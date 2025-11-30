@@ -49,6 +49,21 @@ module.exports = {
       const reason =
         interaction.options.getString("reason") || "No reason provided";
 
+      // Safety checks
+      if (user.id === interaction.user.id) {
+        return interaction.reply({
+          content: "❌ You cannot quarantine yourself!",
+          ephemeral: true,
+        });
+      }
+
+      if (user.id === interaction.client.user.id) {
+        return interaction.reply({
+          content: "❌ I cannot quarantine myself!",
+          ephemeral: true,
+        });
+      }
+
       const member = await interaction.guild.members
         .fetch(user.id)
         .catch(() => null);
@@ -56,6 +71,17 @@ module.exports = {
       if (!member) {
         return interaction.reply({
           content: "❌ User not found in this server!",
+          ephemeral: true,
+        });
+      }
+
+      // Check if moderator is server owner (owners can quarantine anyone)
+      const isOwner = interaction.member.id === interaction.guild.ownerId;
+      
+      // Check role hierarchy (unless moderator is owner)
+      if (!isOwner && member.roles.highest.position >= interaction.member.roles.highest.position) {
+        return interaction.reply({
+          content: "❌ You cannot quarantine someone with equal or higher roles!",
           ephemeral: true,
         });
       }

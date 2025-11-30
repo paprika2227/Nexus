@@ -55,25 +55,40 @@ module.exports = {
       }
     }
 
-    // Check advanced anti-raid (multi-algorithm detection)
-    const raidDetected = await AdvancedAntiRaid.detectRaid(
-      member.guild,
-      member
-    );
-    if (raidDetected) {
-      // Send notification
-      const Notifications = require("../utils/notifications");
-      await Notifications.send(
-        member.guild.id,
-        "raid_detected",
-        {
-          userCount: 1,
-          threatScore: 100,
-          details: "Raid detected and handled",
-        },
-        client
+    // Check security whitelist FIRST (before anti-raid to prevent false bans)
+    const isWhitelisted = await new Promise((resolve, reject) => {
+      db.db.get(
+        "SELECT * FROM security_whitelist WHERE guild_id = ? AND user_id = ?",
+        [member.guild.id, member.id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(!!row);
+        }
       );
-      return; // Advanced system handled it
+    });
+
+    // Skip anti-raid if whitelisted
+    if (!isWhitelisted) {
+      // Check advanced anti-raid (multi-algorithm detection)
+      const raidDetected = await AdvancedAntiRaid.detectRaid(
+        member.guild,
+        member
+      );
+      if (raidDetected) {
+        // Send notification
+        const Notifications = require("../utils/notifications");
+        await Notifications.send(
+          member.guild.id,
+          "raid_detected",
+          {
+            userCount: 1,
+            threatScore: 100,
+            details: "Raid detected and handled",
+          },
+          client
+        );
+        return; // Advanced system handled it
+      }
     }
 
     // Check account age (common raid indicator)
@@ -109,18 +124,7 @@ module.exports = {
       }
     }
 
-    // Check security whitelist
-    const isWhitelisted = await new Promise((resolve, reject) => {
-      db.db.get(
-        "SELECT * FROM security_whitelist WHERE guild_id = ? AND user_id = ?",
-        [member.guild.id, member.id],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(!!row);
-        }
-      );
-    });
-
+    // Whitelist already checked above, reuse the variable
     if (!isWhitelisted) {
       // Run security check
       const Security = require("../utils/security");

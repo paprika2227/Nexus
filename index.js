@@ -251,26 +251,23 @@ client.checkAntiNuke = async (guild, user, action) => {
 };
 
 // Login with shard support
-// Note: If using shard.js, don't login here - shard.js handles it
-if (!process.env.SHARDING_DISABLED) {
-  if (client.shard) {
-    // Sharded mode - shard.js handles login
-    console.log("Running in sharded mode - use 'node shard.js' to start");
-  } else {
-    // Single shard mode
-    if (!process.env.DISCORD_TOKEN) {
-      console.error("❌ DISCORD_TOKEN not found in .env file!");
-      process.exit(1);
-    }
-    client.login(process.env.DISCORD_TOKEN).catch((error) => {
-      console.error("❌ Failed to login:", error.message);
-      if (error.message.includes("Invalid token")) {
-        console.error("⚠️ Check your DISCORD_TOKEN in .env file");
-      }
-      process.exit(1);
-    });
+// If we're being spawned by ShardingManager (shard.js), it handles login automatically via the token passed to it
+// Only login if we're running index.js directly (not via shard.js)
+if (!process.env.USING_SHARDING) {
+  // Single shard mode - login directly
+  if (!process.env.DISCORD_TOKEN) {
+    console.error("❌ DISCORD_TOKEN not found in .env file!");
+    process.exit(1);
   }
+  client.login(process.env.DISCORD_TOKEN).catch((error) => {
+    console.error("❌ Failed to login:", error.message);
+    if (error.message.includes("Invalid token")) {
+      console.error("⚠️ Check your DISCORD_TOKEN in .env file");
+    }
+    process.exit(1);
+  });
 }
+// If USING_SHARDING is set, ShardingManager handles login automatically (no need to call client.login)
 
 // Error handling
 process.on("unhandledRejection", (error) => {

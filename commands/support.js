@@ -29,7 +29,7 @@ module.exports = {
         {
           name: "🔗 Quick Links",
           value: [
-            "• [Support Server](https://discord.gg/UHNcUKheZP)",
+            "• [Support Server](https://discord.com/invite/UHNcUKheZP)",
             "• [GitHub Repository](https://github.com/Azzraya/Nexus)",
             "• [Privacy Policy](https://github.com/Azzraya/Nexus/blob/main/PRIVACY_POLICY.md)",
             "• [Terms of Service](https://github.com/Azzraya/Nexus/blob/main/TERMS_OF_SERVICE.md)",
@@ -52,21 +52,27 @@ module.exports = {
       })
       .setTimestamp();
 
+    const supportButton = new ButtonBuilder()
+      .setLabel("Join Support Server")
+      .setURL("https://discord.com/invite/UHNcUKheZP")
+      .setStyle(ButtonStyle.Link);
+
+    const githubButton = new ButtonBuilder()
+      .setLabel("View on GitHub")
+      .setURL("https://github.com/Azzraya/Nexus")
+      .setStyle(ButtonStyle.Link);
+
+    const inviteButton = new ButtonBuilder()
+      .setLabel("Invite Bot")
+      .setURL(
+        `https://discord.com/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=268443574&scope=bot%20applications.commands`
+      )
+      .setStyle(ButtonStyle.Link);
+
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setLabel("Join Support Server")
-        .setURL("https://discord.gg/UHNcUKheZP")
-        .setStyle(ButtonStyle.Link),
-      new ButtonBuilder()
-        .setLabel("View on GitHub")
-        .setURL("https://github.com/Azzraya/Nexus")
-        .setStyle(ButtonStyle.Link),
-      new ButtonBuilder()
-        .setLabel("Invite Bot")
-        .setURL(
-          `https://discord.com/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=268443574&scope=bot%20applications.commands`
-        )
-        .setStyle(ButtonStyle.Link)
+      supportButton,
+      githubButton,
+      inviteButton
     );
 
     await interaction.reply({

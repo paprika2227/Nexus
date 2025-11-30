@@ -36,9 +36,19 @@ module.exports = {
       });
     }
 
-    if (
-      member.roles.highest.position >= interaction.member.roles.highest.position
-    ) {
+    // Check if moderator is server owner (owners can kick anyone)
+    const isOwner = interaction.member.id === interaction.guild.ownerId;
+    
+    // Check if member is manageable
+    if (!member.kickable) {
+      return interaction.reply({
+        content: "❌ I cannot kick this user (they have a higher role than me or are the server owner)!",
+        ephemeral: true,
+      });
+    }
+    
+    // Check role hierarchy (unless moderator is owner)
+    if (!isOwner && member.roles.highest.position >= interaction.member.roles.highest.position) {
       return interaction.reply({
         content: "❌ You cannot kick someone with equal or higher roles!",
         ephemeral: true,

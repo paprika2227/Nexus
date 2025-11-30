@@ -98,18 +98,55 @@ module.exports = {
     let failed = 0;
     const errors = [];
 
+    // Check if moderator is server owner (owners can moderate anyone)
+    const isOwner = interaction.member.id === interaction.guild.ownerId;
+
     for (const userId of userIds) {
       try {
+        // Skip self and bot
+        if (userId === interaction.user.id) {
+          failed++;
+          errors.push(`${userId}: Cannot ${subcommand} yourself`);
+          continue;
+        }
+        if (userId === interaction.client.user.id) {
+          failed++;
+          errors.push(`${userId}: Cannot ${subcommand} the bot`);
+          continue;
+        }
+
         const user = await interaction.client.users.fetch(userId);
         const member = await interaction.guild.members.fetch(userId);
 
+        // Check role hierarchy (unless moderator is owner)
+        if (!isOwner && member.roles.highest.position >= interaction.member.roles.highest.position) {
+          failed++;
+          errors.push(`${userId}: Cannot ${subcommand} user with equal or higher roles`);
+          continue;
+        }
+
         if (subcommand === "ban") {
+          if (!member.manageable) {
+            failed++;
+            errors.push(`${userId}: Bot cannot ban this user`);
+            continue;
+          }
           await member.ban({ reason, deleteMessageDays: 1 });
           success++;
         } else if (subcommand === "kick") {
+          if (!member.kickable) {
+            failed++;
+            errors.push(`${userId}: Bot cannot kick this user`);
+            continue;
+          }
           await member.kick(reason);
           success++;
         } else if (subcommand === "timeout") {
+          if (!member.moderatable) {
+            failed++;
+            errors.push(`${userId}: Bot cannot timeout this user`);
+            continue;
+          }
           const duration = interaction.options.getString("duration");
           const ms = require("ms")(duration);
           await member.timeout(ms, reason);

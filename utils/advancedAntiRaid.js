@@ -40,15 +40,18 @@ class AdvancedAntiRaid {
 
     // Algorithm 3: Behavioral analysis
     behavioral: (joins) => {
+      // Require at least 3 joins to avoid false positives
+      if (joins.length < 3) return false;
+
       // Check for accounts with no avatar (common in bot accounts)
       const noAvatarCount = joins.filter((j) => !j.hasAvatar).length;
-      if (noAvatarCount / joins.length > 0.7) return true;
+      if (noAvatarCount / joins.length > 0.8) return true; // Increased threshold to 80%
 
       // Check for accounts with default discriminator patterns
       const defaultDiscriminators = joins.filter(
         (j) => parseInt(j.discriminator) < 1000
       ).length;
-      if (defaultDiscriminators / joins.length > 0.5) return true;
+      if (defaultDiscriminators / joins.length > 0.6) return true; // Increased threshold to 60%
 
       return false;
     },
@@ -86,6 +89,20 @@ class AdvancedAntiRaid {
     const config = await db.getServerConfig(guild.id);
     if (!config || !config.anti_raid_enabled) return false;
 
+    // Check whitelist first (before any detection)
+    const isWhitelisted = await new Promise((resolve, reject) => {
+      db.db.get(
+        "SELECT * FROM security_whitelist WHERE guild_id = ? AND user_id = ?",
+        [guild.id, member.id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(!!row);
+        }
+      );
+    });
+
+    if (isWhitelisted) return false; // Skip detection for whitelisted users
+
     // Get join history
     const joinData = await this.getJoinHistory(guild.id);
     const memberData = {
@@ -113,18 +130,31 @@ class AdvancedAntiRaid {
     };
 
     // Calculate threat score (0-100)
+    // Only add to threat score if we have enough joins (3+) to avoid false positives
     let threatScore = 0;
-    if (results.rateBased) threatScore += 40;
-    if (results.patternBased) threatScore += 30;
-    if (results.behavioral) threatScore += 20;
-    if (results.networkBased) threatScore += 10;
+    if (joinData.joins.length >= 3) {
+      if (results.rateBased) threatScore += 40;
+      if (results.patternBased) threatScore += 30;
+      if (results.behavioral) threatScore += 20;
+      if (results.networkBased) threatScore += 10;
+    } else {
+      // For single or double joins, only count if it's a very obvious threat
+      // (e.g., brand new account joining during a known raid pattern)
+      if (memberData.accountAge < 86400000) {
+        // Less than 1 day old
+        threatScore += 10; // Minimal threat score for new accounts
+      }
+    }
 
     // If any algorithm triggers or threat score is high, it's a raid
+    // Behavioral detection requires at least 3 joins to avoid false positives
+    // Only trigger on actual raids, not single suspicious joins
     const isRaid =
-      results.rateBased ||
-      results.patternBased ||
-      results.behavioral ||
-      threatScore >= 50;
+      (results.rateBased && joinData.joins.length >= 3) || // Rate-based needs multiple joins
+      (results.patternBased && joinData.joins.length >= 3) || // Pattern needs multiple joins
+      (results.behavioral && joinData.joins.length >= 3) || // Behavioral needs at least 3 joins
+      (results.networkBased && joinData.joins.length >= 3) || // Network needs multiple joins
+      threatScore >= 70; // Higher threshold for single-join threats
 
     if (isRaid) {
       await this.handleRaid(guild, joinData.joins, threatScore, results);
@@ -229,7 +259,15 @@ class AdvancedAntiRaid {
         embeds: [
           {
             title: "🚨 Advanced Anti-Raid Protection Triggered",
-            description: `**Threat Score:** ${threatScore}%\n**Suspicious Joins:** ${suspiciousJoins.length}\n**Action Taken:** ${action}\n**Successfully ${action}ed:** ${successCount}`,
+            description: `**Threat Score:** ${threatScore}%\n**Suspicious Joins:** ${
+              suspiciousJoins.length
+            }\n**Action Taken:** ${action}\n**Successfully ${
+              action === "ban"
+                ? "banned"
+                : action === "kick"
+                ? "kicked"
+                : action + "ed"
+            }:** ${successCount}`,
             fields: [
               {
                 name: "Detection Results",

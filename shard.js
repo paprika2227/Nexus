@@ -2,10 +2,20 @@ const { ShardingManager } = require("discord.js");
 const path = require("path");
 require("dotenv").config();
 
+if (!process.env.DISCORD_TOKEN) {
+  console.error("❌ DISCORD_TOKEN not found in .env file!");
+  process.exit(1);
+}
+
 const manager = new ShardingManager(path.join(__dirname, "index.js"), {
   token: process.env.DISCORD_TOKEN,
   totalShards: "auto", // Auto-calculate shard count
   respawn: true, // Auto-respawn shards if they crash
+  execArgv: process.execArgv,
+  env: {
+    ...process.env,
+    USING_SHARDING: "true", // Pass to child processes
+  },
 });
 
 manager.on("shardCreate", (shard) => {
