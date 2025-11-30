@@ -57,11 +57,11 @@ module.exports = {
         .setStyle(ButtonStyle.Link),
       new ButtonBuilder()
         .setLabel("Support Server")
-        .setURL("https://discord.gg/YOUR_SUPPORT_SERVER") // Replace with your support server
+        .setURL("https://discord.gg/UHNcUKheZP")
         .setStyle(ButtonStyle.Link),
       new ButtonBuilder()
         .setLabel("GitHub")
-        .setURL("https://github.com/YOUR_USERNAME/nexus-bot") // Replace with your GitHub
+        .setURL("https://github.com/Azzraya/Nexus")
         .setStyle(ButtonStyle.Link)
     );
 
@@ -71,4 +71,3 @@ module.exports = {
     });
   },
 };
-

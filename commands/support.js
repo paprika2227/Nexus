@@ -30,9 +30,9 @@ module.exports = {
           name: "🔗 Quick Links",
           value: [
             "• [Support Server](https://discord.gg/UHNcUKheZP)",
-            "• [GitHub Repository](https://github.com/YOUR_USERNAME/nexus-bot)",
-            "• [Privacy Policy](https://github.com/YOUR_USERNAME/nexus-bot/blob/main/PRIVACY_POLICY.md)",
-            "• [Terms of Service](https://github.com/YOUR_USERNAME/nexus-bot/blob/main/TERMS_OF_SERVICE.md)",
+            "• [GitHub Repository](https://github.com/Azzraya/Nexus)",
+            "• [Privacy Policy](https://github.com/Azzraya/Nexus/blob/main/PRIVACY_POLICY.md)",
+            "• [Terms of Service](https://github.com/Azzraya/Nexus/blob/main/TERMS_OF_SERVICE.md)",
           ].join("\n"),
           inline: false,
         },
@@ -55,11 +55,11 @@ module.exports = {
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setLabel("Join Support Server")
-        .setURL("https://discord.gg/YOUR_SUPPORT_SERVER") // Replace with your support server
+        .setURL("https://discord.gg/UHNcUKheZP")
         .setStyle(ButtonStyle.Link),
       new ButtonBuilder()
         .setLabel("View on GitHub")
-        .setURL("https://github.com/YOUR_USERNAME/nexus-bot") // Replace with your GitHub
+        .setURL("https://github.com/Azzraya/Nexus")
         .setStyle(ButtonStyle.Link),
       new ButtonBuilder()
         .setLabel("Invite Bot")
@@ -75,4 +75,3 @@ module.exports = {
     });
   },
 };
-

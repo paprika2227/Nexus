@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last Updated: [Date]**
+**Last Updated: November 30, 2025**
 
 ## Introduction
 
@@ -141,9 +141,9 @@ We may update this Privacy Policy from time to time. We will:
 
 For privacy concerns or questions:
 
-- Discord Support Server: [Your Support Server]
-- Email: [Your Email]
-- GitHub Issues: [Your GitHub]
+- Discord Support Server: https://discord.gg/UHNcUKheZP
+- Email: Contact us via our support server
+- GitHub Issues: https://github.com/Azzraya/Nexus/issues
 
 ## Compliance
 

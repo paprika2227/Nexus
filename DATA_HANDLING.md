@@ -148,11 +148,11 @@ Since Nexus Bot is open source:
 ## Contact
 
 For data-related questions:
-- Discord: [Your Support Server]
-- Email: [Your Email]
-- GitHub: [Your GitHub]
+- Discord: https://discord.gg/UHNcUKheZP
+- Email: Contact us via our support server
+- GitHub: https://github.com/Azzraya/Nexus
 
 ---
 
-_Data Handling Policy - Last Updated: [Date]_
+_Data Handling Policy - Last Updated: November 30, 2025_
 

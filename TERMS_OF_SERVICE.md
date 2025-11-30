@@ -1,6 +1,6 @@
 # Terms of Service
 
-**Last Updated: [Date]**
+**Last Updated: November 30, 2025**
 
 ## Agreement to Terms
 
@@ -146,8 +146,8 @@ Continued use of the Bot after changes constitutes acceptance.
 - We will attempt to resolve issues amicably
 
 ### Governing Law
-- These Terms are governed by [Your Jurisdiction] law
-- Disputes will be resolved in [Your Jurisdiction] courts
+- These Terms are governed by United States law
+- Disputes will be resolved in United States courts
 
 ## Severability
 
@@ -160,9 +160,9 @@ These Terms, together with the Privacy Policy, constitute the entire agreement b
 ## Contact
 
 For questions about these Terms:
-- Discord Support Server: [Your Support Server]
-- Email: [Your Email]
-- GitHub Issues: [Your GitHub]
+- Discord Support Server: https://discord.gg/UHNcUKheZP
+- Email: Contact us via our support server
+- GitHub Issues: https://github.com/Azzraya/Nexus/issues
 
 ## Acknowledgment
 
