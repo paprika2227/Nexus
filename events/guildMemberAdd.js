@@ -1,0 +1,260 @@
+const db = require("../utils/database");
+const AdvancedAntiRaid = require("../utils/advancedAntiRaid");
+const JoinGate = require("../utils/joinGate");
+
+module.exports = {
+  name: "guildMemberAdd",
+  async execute(member, client) {
+    // Check threat intelligence network
+    const ThreatIntelligence = require("../utils/threatIntelligence");
+    const threatCheck = await ThreatIntelligence.checkThreat(member.user.id);
+    if (threatCheck.hasThreat && threatCheck.riskScore >= 50) {
+      const Notifications = require("../utils/notifications");
+      await Notifications.send(
+        member.guild.id,
+        "high_threat",
+        {
+          userId: member.user.id,
+          threatScore: threatCheck.riskScore,
+          details: `User has ${threatCheck.threatCount} threat reports in network`,
+        },
+        client
+      );
+    }
+
+    // Check workflows first
+    if (client.workflows) {
+      await client.workflows.checkTriggers(member.guild.id, "guildMemberAdd", {
+        user: member.user,
+        member: member,
+        guild: member.guild,
+      });
+    }
+    // Check Join Gate first (instant filtering)
+    const joinGateCheck = await JoinGate.checkMember(member, member.guild);
+    if (joinGateCheck.filtered) {
+      // Execute action based on join gate
+      if (joinGateCheck.action === "ban") {
+        await member
+          .ban({
+            reason: `Join Gate: ${joinGateCheck.reason}`,
+            deleteMessageDays: 1,
+          })
+          .catch(() => {});
+        return;
+      } else if (joinGateCheck.action === "kick") {
+        await member.kick(`Join Gate: ${joinGateCheck.reason}`).catch(() => {});
+        return;
+      } else if (joinGateCheck.action === "timeout") {
+        await member
+          .timeout(
+            7 * 24 * 60 * 60 * 1000,
+            `Join Gate: ${joinGateCheck.reason}`
+          )
+          .catch(() => {});
+      }
+    }
+
+    // Check advanced anti-raid (multi-algorithm detection)
+    const raidDetected = await AdvancedAntiRaid.detectRaid(
+      member.guild,
+      member
+    );
+    if (raidDetected) {
+      // Send notification
+      const Notifications = require("../utils/notifications");
+      await Notifications.send(
+        member.guild.id,
+        "raid_detected",
+        {
+          userCount: 1,
+          threatScore: 100,
+          details: "Raid detected and handled",
+        },
+        client
+      );
+      return; // Advanced system handled it
+    }
+
+    // Check account age (common raid indicator)
+    const accountAge = Date.now() - member.user.createdTimestamp;
+    const daysOld = accountAge / (1000 * 60 * 60 * 24);
+
+    if (daysOld < 7) {
+      // Very new account - add heat
+      await client.addHeat(
+        member.guild.id,
+        member.id,
+        10,
+        "New account (< 7 days old)"
+      );
+    }
+
+    // Check if server is in lockdown
+    if (client.antiRaid.lockdown.get(member.guild.id)) {
+      // Auto-kick during lockdown
+      member.kick("Server is in lockdown mode").catch(() => {});
+      return;
+    }
+
+    // Check verification requirement
+    const config = await db.getServerConfig(member.guild.id);
+    if (config && config.verification_enabled && config.verification_role) {
+      // Remove verified role if they have it (they need to verify again)
+      const verifiedRole = member.guild.roles.cache.get(
+        config.verification_role
+      );
+      if (verifiedRole && member.roles.cache.has(verifiedRole.id)) {
+        await member.roles.remove(verifiedRole).catch(() => {});
+      }
+    }
+
+    // Check security whitelist
+    const isWhitelisted = await new Promise((resolve, reject) => {
+      db.db.get(
+        "SELECT * FROM security_whitelist WHERE guild_id = ? AND user_id = ?",
+        [member.guild.id, member.id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(!!row);
+        }
+      );
+    });
+
+    if (!isWhitelisted) {
+      // Run security check
+      const Security = require("../utils/security");
+      const threat = await Security.detectThreat(
+        member.guild,
+        member.user,
+        "join"
+      );
+
+      // Log security event
+      await new Promise((resolve, reject) => {
+        db.db.run(
+          "INSERT INTO security_logs (guild_id, event_type, user_id, details, threat_score, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+          [
+            member.guild.id,
+            "member_join",
+            member.id,
+            JSON.stringify({ threat_level: threat.level }),
+            threat.score,
+            Date.now(),
+          ],
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
+
+      // Send alert if configured
+      if (config && config.alert_channel && config.alert_threshold) {
+        if (threat.score >= config.alert_threshold) {
+          const alertChannel = member.guild.channels.cache.get(
+            config.alert_channel
+          );
+          if (alertChannel) {
+            alertChannel
+              .send({
+                embeds: [
+                  {
+                    title: "🚨 Security Alert",
+                    description: `**User:** ${member.user.tag} (${
+                      member.id
+                    })\n**Threat Score:** ${
+                      threat.score
+                    }%\n**Level:** ${threat.level.toUpperCase()}\n**Recommended Action:** ${
+                      threat.action || "Monitor"
+                    }`,
+                    color:
+                      threat.score >= 80
+                        ? 0xff0000
+                        : threat.score >= 60
+                        ? 0xff8800
+                        : 0xffff00,
+                    timestamp: new Date().toISOString(),
+                  },
+                ],
+              })
+              .catch(() => {});
+          }
+        }
+      }
+
+      // Auto-action based on threat
+      if (threat.score >= 80 && threat.action === "ban") {
+        await member
+          .ban({
+            reason: `Security threat detected (Score: ${threat.score})`,
+            deleteMessageDays: 1,
+          })
+          .catch(() => {});
+        return;
+      } else if (threat.score >= 60 && threat.action === "kick") {
+        await member
+          .kick(`Security threat detected (Score: ${threat.score})`)
+          .catch(() => {});
+        return;
+      }
+    }
+
+    // Send welcome message (reuse config from above)
+    if (config && config.welcome_channel && config.welcome_message) {
+      const welcomeChannel = member.guild.channels.cache.get(
+        config.welcome_channel
+      );
+      if (welcomeChannel) {
+        const message = config.welcome_message
+          .replace(/{user}/g, member.toString())
+          .replace(/{server}/g, member.guild.name)
+          .replace(/{membercount}/g, member.guild.memberCount);
+
+        welcomeChannel
+          .send({
+            embeds: [
+              {
+                title: "👋 Welcome!",
+                description: message,
+                color: 0x00ff00,
+                thumbnail: {
+                  url: member.user.displayAvatarURL({ dynamic: true }),
+                },
+              },
+            ],
+          })
+          .catch(() => {});
+      }
+    }
+
+    // Auto-role assignment
+    const autoRoles = await new Promise((resolve, reject) => {
+      db.db.all(
+        "SELECT role_id FROM auto_roles WHERE guild_id = ? AND type = ?",
+        [member.guild.id, "join"],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+
+    for (const autoRole of autoRoles) {
+      try {
+        const role = member.guild.roles.cache.get(autoRole.role_id);
+        if (role) {
+          await member.roles.add(role);
+        }
+      } catch (error) {
+        // Role doesn't exist or can't assign
+      }
+    }
+
+    // Log analytics
+    await db.logAnalytics(member.guild.id, "member_join", {
+      user_id: member.id,
+      account_age_days: daysOld,
+    });
+  },
+};

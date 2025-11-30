@@ -1,0 +1,78 @@
+const {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} = require("discord.js");
+
+module.exports = {
+  data: new SlashCommandBuilder()
+    .setName("support")
+    .setDescription("Get support and help with Nexus Bot"),
+
+  async execute(interaction) {
+    const embed = new EmbedBuilder()
+      .setTitle("🆘 Nexus Bot Support")
+      .setDescription("Need help? We're here for you!")
+      .addFields(
+        {
+          name: "📚 Resources",
+          value: [
+            "• **Support Server** - Get help from our community",
+            "• **Documentation** - Learn how to use Nexus",
+            "• **GitHub** - View source code and report issues",
+            "• **Commands** - Use `/help` to see all commands",
+          ].join("\n"),
+          inline: false,
+        },
+        {
+          name: "🔗 Quick Links",
+          value: [
+            "• [Support Server](https://discord.gg/UHNcUKheZP)",
+            "• [GitHub Repository](https://github.com/YOUR_USERNAME/nexus-bot)",
+            "• [Privacy Policy](https://github.com/YOUR_USERNAME/nexus-bot/blob/main/PRIVACY_POLICY.md)",
+            "• [Terms of Service](https://github.com/YOUR_USERNAME/nexus-bot/blob/main/TERMS_OF_SERVICE.md)",
+          ].join("\n"),
+          inline: false,
+        },
+        {
+          name: "❓ Common Questions",
+          value: [
+            "**Q: Is Nexus free?**\nA: Yes, 100% free with all features included.",
+            "**Q: Is it open source?**\nA: Yes, view our code on GitHub.",
+            "**Q: How is it different from Wick?**\nA: Nexus has AI features, better UX, and is open source.",
+          ].join("\n\n"),
+          inline: false,
+        }
+      )
+      .setColor(0x0099ff)
+      .setFooter({
+        text: "Nexus - Beyond Wick. Free. Open Source. Powerful.",
+      })
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel("Join Support Server")
+        .setURL("https://discord.gg/YOUR_SUPPORT_SERVER") // Replace with your support server
+        .setStyle(ButtonStyle.Link),
+      new ButtonBuilder()
+        .setLabel("View on GitHub")
+        .setURL("https://github.com/YOUR_USERNAME/nexus-bot") // Replace with your GitHub
+        .setStyle(ButtonStyle.Link),
+      new ButtonBuilder()
+        .setLabel("Invite Bot")
+        .setURL(
+          `https://discord.com/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=8&scope=bot%20applications.commands`
+        )
+        .setStyle(ButtonStyle.Link)
+    );
+
+    await interaction.reply({
+      embeds: [embed],
+      components: [row],
+    });
+  },
+};
+

@@ -1,0 +1,1863 @@
+const sqlite3 = require("sqlite3").verbose();
+const path = require("path");
+const fs = require("fs");
+
+class Database {
+  constructor() {
+    const dbPath = path.join(__dirname, "..", "data", "nexus.db");
+    const dataDir = path.dirname(dbPath);
+
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+
+    this.db = new sqlite3.Database(dbPath, (err) => {
+      if (err) {
+        console.error("Database error:", err);
+      } else {
+        console.log("✅ Database connected");
+        this.initTables();
+      }
+    });
+  }
+
+  initTables() {
+    // Server configurations
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS server_config (
+                guild_id TEXT PRIMARY KEY,
+                prefix TEXT DEFAULT '!',
+                mod_log_channel TEXT,
+                welcome_channel TEXT,
+                leave_channel TEXT,
+                welcome_message TEXT,
+                leave_message TEXT,
+                auto_mod_enabled INTEGER DEFAULT 1,
+                anti_raid_enabled INTEGER DEFAULT 1,
+                anti_nuke_enabled INTEGER DEFAULT 1,
+                heat_system_enabled INTEGER DEFAULT 1,
+                ticket_category TEXT,
+                reaction_roles_enabled INTEGER DEFAULT 0,
+                verification_enabled INTEGER DEFAULT 0,
+                verification_role TEXT,
+                webhook_url TEXT,
+                alert_channel TEXT,
+                alert_threshold INTEGER DEFAULT 60
+            )
+        `);
+
+    // Moderation logs
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS moderation_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                user_id TEXT,
+                moderator_id TEXT,
+                action TEXT,
+                reason TEXT,
+                timestamp INTEGER,
+                duration INTEGER
+            )
+        `);
+
+    // Warnings
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS warnings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                user_id TEXT,
+                moderator_id TEXT,
+                reason TEXT,
+                timestamp INTEGER
+            )
+        `);
+
+    // Auto-moderation rules
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS automod_rules (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                rule_type TEXT,
+                trigger TEXT,
+                action TEXT,
+                enabled INTEGER DEFAULT 1
+            )
+        `);
+
+    // Heat scores (persistent)
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS heat_scores (
+                guild_id TEXT,
+                user_id TEXT,
+                score INTEGER DEFAULT 0,
+                last_updated INTEGER,
+                PRIMARY KEY (guild_id, user_id)
+            )
+        `);
+
+    // Analytics
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS analytics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                event_type TEXT,
+                data TEXT,
+                timestamp INTEGER
+            )
+        `);
+
+    // Tickets
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS tickets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                channel_id TEXT,
+                user_id TEXT,
+                status TEXT DEFAULT 'open',
+                created_at INTEGER
+            )
+        `);
+
+    // Reaction roles
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS reaction_roles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                message_id TEXT,
+                emoji TEXT,
+                role_id TEXT
+            )
+        `);
+
+    // Anti-raid logs
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS anti_raid_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                user_id TEXT,
+                action_taken TEXT,
+                timestamp INTEGER
+            )
+        `);
+
+    // User stats
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS user_stats (
+                guild_id TEXT,
+                user_id TEXT,
+                messages_sent INTEGER DEFAULT 0,
+                commands_used INTEGER DEFAULT 0,
+                last_active INTEGER,
+                PRIMARY KEY (guild_id, user_id)
+            )
+        `);
+
+    // Anti-raid state (for advanced detection)
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS anti_raid_state (
+                guild_id TEXT PRIMARY KEY,
+                data TEXT
+            )
+        `);
+
+    // Leveling system
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS levels (
+                guild_id TEXT,
+                user_id TEXT,
+                xp INTEGER DEFAULT 0,
+                level INTEGER DEFAULT 0,
+                total_xp INTEGER DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id)
+            )
+        `);
+
+    // Custom commands
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS custom_commands (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                command_name TEXT,
+                response TEXT,
+                created_by TEXT,
+                created_at INTEGER
+            )
+        `);
+
+    // Giveaways
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS giveaways (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                channel_id TEXT,
+                message_id TEXT,
+                prize TEXT,
+                winners INTEGER DEFAULT 1,
+                ends_at INTEGER,
+                requirements TEXT,
+                entries TEXT
+            )
+        `);
+
+    // Auto-roles
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS auto_roles (
+                guild_id TEXT,
+                role_id TEXT,
+                type TEXT,
+                PRIMARY KEY (guild_id, role_id)
+            )
+        `);
+
+    // Backups
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS backups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                backup_id TEXT,
+                file_path TEXT,
+                created_at INTEGER
+            )
+        `);
+
+    // Slowmode tracking
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS slowmode_channels (
+                guild_id TEXT,
+                channel_id TEXT,
+                rate_limit INTEGER,
+                PRIMARY KEY (guild_id, channel_id)
+            )
+        `);
+
+    // Role management
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS role_management (
+                guild_id TEXT,
+                role_id TEXT,
+                max_uses INTEGER,
+                current_uses INTEGER DEFAULT 0,
+                cooldown INTEGER,
+                PRIMARY KEY (guild_id, role_id)
+            )
+        `);
+
+    // Security whitelist
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS security_whitelist (
+                guild_id TEXT,
+                user_id TEXT,
+                PRIMARY KEY (guild_id, user_id)
+            )
+        `);
+
+    // Security logs
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS security_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                event_type TEXT,
+                user_id TEXT,
+                details TEXT,
+                threat_score INTEGER,
+                timestamp INTEGER
+            )
+        `);
+
+    // Attack patterns (for learning)
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS attack_patterns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                pattern_data TEXT,
+                timestamp INTEGER
+            )
+        `);
+
+    // Join Gate configuration
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS join_gate_config (
+                guild_id TEXT PRIMARY KEY,
+                enabled INTEGER DEFAULT 0,
+                target_unauthorized_bots INTEGER DEFAULT 1,
+                target_new_accounts INTEGER DEFAULT 1,
+                min_account_age_days INTEGER DEFAULT 7,
+                target_no_avatar INTEGER DEFAULT 0,
+                target_unverified_bots INTEGER DEFAULT 1,
+                target_invite_usernames INTEGER DEFAULT 1,
+                target_suspicious INTEGER DEFAULT 1,
+                suspicious_threshold INTEGER DEFAULT 60,
+                action TEXT DEFAULT 'kick',
+                strict_words TEXT DEFAULT '[]',
+                wildcard_words TEXT DEFAULT '[]',
+                authorized_roles TEXT DEFAULT '[]'
+            )
+        `);
+
+    // Rescue keys
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS rescue_keys (
+                guild_id TEXT PRIMARY KEY,
+                owner_id TEXT,
+                rescue_key TEXT UNIQUE,
+                created_at INTEGER,
+                used_at INTEGER
+            )
+        `);
+
+    // Rescue key usage logs
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS rescue_key_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                old_owner_id TEXT,
+                new_owner_id TEXT,
+                used_at INTEGER
+            )
+        `);
+
+    // Notes
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                user_id TEXT,
+                note TEXT,
+                created_by TEXT,
+                created_at INTEGER
+            )
+        `);
+
+    // Quarantine
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS quarantine (
+                guild_id TEXT,
+                user_id TEXT,
+                original_roles TEXT,
+                reason TEXT,
+                quarantined_by TEXT,
+                quarantined_at INTEGER,
+                PRIMARY KEY (guild_id, user_id)
+            )
+        `);
+
+    // Locked channels
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS locked_channels (
+                guild_id TEXT,
+                channel_id TEXT,
+                PRIMARY KEY (guild_id, channel_id)
+            )
+        `);
+
+    // Locked roles
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS locked_roles (
+                guild_id TEXT,
+                role_id TEXT,
+                PRIMARY KEY (guild_id, role_id)
+            )
+        `);
+
+    // Custom workflows
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS workflows (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                name TEXT,
+                description TEXT,
+                trigger_type TEXT,
+                trigger_config TEXT,
+                actions TEXT,
+                enabled INTEGER DEFAULT 1,
+                created_by TEXT,
+                created_at INTEGER,
+                last_triggered INTEGER,
+                trigger_count INTEGER DEFAULT 0
+            )
+        `);
+
+    // Enhanced logging
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS enhanced_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                log_type TEXT,
+                category TEXT,
+                user_id TEXT,
+                moderator_id TEXT,
+                action TEXT,
+                details TEXT,
+                metadata TEXT,
+                severity TEXT,
+                timestamp INTEGER,
+                indexed_data TEXT
+            )
+        `);
+
+    // AI learning data
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS ai_learning (
+                guild_id TEXT,
+                user_id TEXT,
+                pattern_type TEXT,
+                pattern_data TEXT,
+                confidence REAL,
+                last_seen INTEGER,
+                occurrences INTEGER DEFAULT 1,
+                PRIMARY KEY (guild_id, user_id, pattern_type)
+            )
+        `);
+
+    // API keys for REST API
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                key_hash TEXT UNIQUE,
+                name TEXT,
+                permissions TEXT,
+                created_by TEXT,
+                created_at INTEGER,
+                last_used INTEGER,
+                expires_at INTEGER,
+                enabled INTEGER DEFAULT 1
+            )
+        `);
+
+    // Scheduled actions
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS scheduled_actions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                user_id TEXT,
+                action_type TEXT,
+                reason TEXT,
+                execute_at INTEGER,
+                created_by TEXT,
+                executed INTEGER DEFAULT 0
+            )
+        `);
+
+    // Smart recommendations
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS recommendations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                recommendation_type TEXT,
+                title TEXT,
+                description TEXT,
+                priority TEXT,
+                action_data TEXT,
+                created_at INTEGER,
+                acknowledged INTEGER DEFAULT 0,
+                acknowledged_by TEXT,
+                acknowledged_at INTEGER
+            )
+        `);
+
+    // Real-time notifications
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                notification_type TEXT,
+                channel_id TEXT,
+                webhook_url TEXT,
+                enabled INTEGER DEFAULT 1,
+                filters TEXT,
+                created_at INTEGER
+            )
+        `);
+
+    // Behavioral analysis
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS behavioral_data (
+                guild_id TEXT,
+                user_id TEXT,
+                behavior_type TEXT,
+                data TEXT,
+                timestamp INTEGER,
+                confidence REAL,
+                PRIMARY KEY (guild_id, user_id, behavior_type, timestamp)
+            )
+        `);
+
+    // Threat intelligence network
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS threat_intelligence (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT,
+                threat_type TEXT,
+                threat_data TEXT,
+                severity TEXT,
+                source_guild_id TEXT,
+                reported_at INTEGER,
+                verified INTEGER DEFAULT 0,
+                verification_count INTEGER DEFAULT 1
+            )
+        `);
+
+    // Auto-recovery snapshots
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS recovery_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                snapshot_type TEXT,
+                snapshot_data TEXT,
+                created_at INTEGER,
+                triggered_by TEXT,
+                reason TEXT
+            )
+        `);
+
+    // Moderation queue
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS moderation_queue (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                user_id TEXT,
+                action_type TEXT,
+                reason TEXT,
+                priority INTEGER DEFAULT 0,
+                context TEXT,
+                suggested_action TEXT,
+                created_at INTEGER,
+                processed INTEGER DEFAULT 0,
+                processed_by TEXT,
+                processed_at INTEGER
+            )
+        `);
+
+    // Reports
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                report_type TEXT,
+                period_start INTEGER,
+                period_end INTEGER,
+                report_data TEXT,
+                generated_at INTEGER,
+                generated_by TEXT
+            )
+        `);
+  }
+
+  // Server config methods
+  async getServerConfig(guildId) {
+    // Check cache first
+    const cache = require("./cache");
+    const cached = cache.get(`config_${guildId}`);
+    if (cached) return cached;
+
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        "SELECT * FROM server_config WHERE guild_id = ?",
+        [guildId],
+        (err, row) => {
+          if (err) reject(err);
+          else {
+            const config = row || null;
+            // Cache for 5 minutes
+            cache.set(`config_${guildId}`, config, 300000);
+            resolve(config);
+          }
+        }
+      );
+    });
+  }
+
+  async setServerConfig(guildId, data) {
+    // Clear cache when config changes
+    const cache = require("./cache");
+    cache.delete(`config_${guildId}`);
+
+    const keys = Object.keys(data);
+    const values = Object.values(data);
+    const placeholders = keys.map(() => "?").join(", ");
+    const updateClause = keys.map((k) => `${k} = ?`).join(", ");
+
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        `INSERT INTO server_config (guild_id, ${keys.join(", ")}) 
+                 VALUES (?, ${placeholders})
+                 ON CONFLICT(guild_id) DO UPDATE SET ${updateClause}`,
+        [guildId, ...values, ...values],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  // Moderation logs
+  async addModLog(
+    guildId,
+    userId,
+    moderatorId,
+    action,
+    reason,
+    duration = null
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO moderation_logs (guild_id, user_id, moderator_id, action, reason, timestamp, duration) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [guildId, userId, moderatorId, action, reason, Date.now(), duration],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  async getModLogs(guildId, userId = null, limit = 10) {
+    return new Promise((resolve, reject) => {
+      let query = "SELECT * FROM moderation_logs WHERE guild_id = ?";
+      const params = [guildId];
+
+      if (userId) {
+        query += " AND user_id = ?";
+        params.push(userId);
+      }
+
+      query += " ORDER BY timestamp DESC LIMIT ?";
+      params.push(limit);
+
+      this.db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+  }
+
+  // Warnings
+  async addWarning(guildId, userId, moderatorId, reason) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO warnings (guild_id, user_id, moderator_id, reason, timestamp) VALUES (?, ?, ?, ?, ?)",
+        [guildId, userId, moderatorId, reason, Date.now()],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  async getWarnings(guildId, userId) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        "SELECT * FROM warnings WHERE guild_id = ? AND user_id = ? ORDER BY timestamp DESC",
+        [guildId, userId],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+  }
+
+  async clearWarnings(guildId, userId) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "DELETE FROM warnings WHERE guild_id = ? AND user_id = ?",
+        [guildId, userId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  // Heat scores
+  async getHeatScore(guildId, userId) {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        "SELECT score FROM heat_scores WHERE guild_id = ? AND user_id = ?",
+        [guildId, userId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row ? row.score : 0);
+        }
+      );
+    });
+  }
+
+  async setHeatScore(guildId, userId, score) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        `INSERT INTO heat_scores (guild_id, user_id, score, last_updated) 
+                 VALUES (?, ?, ?, ?)
+                 ON CONFLICT(guild_id, user_id) DO UPDATE SET score = ?, last_updated = ?`,
+        [guildId, userId, score, Date.now(), score, Date.now()],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  // Analytics
+  async logAnalytics(guildId, eventType, data) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO analytics (guild_id, event_type, data, timestamp) VALUES (?, ?, ?, ?)",
+        [guildId, eventType, JSON.stringify(data), Date.now()],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  // Tickets
+  async createTicket(guildId, channelId, userId) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO tickets (guild_id, channel_id, user_id, created_at) VALUES (?, ?, ?, ?)",
+        [guildId, channelId, userId, Date.now()],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getTicket(channelId) {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        "SELECT * FROM tickets WHERE channel_id = ?",
+        [channelId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row || null);
+        }
+      );
+    });
+  }
+
+  async closeTicket(channelId) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "UPDATE tickets SET status = ? WHERE channel_id = ?",
+        ["closed", channelId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  // Reaction roles
+  async addReactionRole(guildId, messageId, emoji, roleId) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO reaction_roles (guild_id, message_id, emoji, role_id) VALUES (?, ?, ?, ?)",
+        [guildId, messageId, emoji, roleId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  async getReactionRoles(messageId) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        "SELECT * FROM reaction_roles WHERE message_id = ?",
+        [messageId],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+  }
+
+  // User stats
+  async updateUserStats(guildId, userId, field, increment = 1) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        `INSERT INTO user_stats (guild_id, user_id, ${field}, last_active) 
+                 VALUES (?, ?, ?, ?)
+                 ON CONFLICT(guild_id, user_id) DO UPDATE SET ${field} = ${field} + ?, last_active = ?`,
+        [guildId, userId, increment, Date.now(), increment, Date.now()],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  async getUserStats(guildId, userId) {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        "SELECT * FROM user_stats WHERE guild_id = ? AND user_id = ?",
+        [guildId, userId],
+        (err, row) => {
+          if (err) reject(err);
+          else
+            resolve(
+              row || { messages_sent: 0, commands_used: 0, last_active: null }
+            );
+        }
+      );
+    });
+  }
+
+  // Workflows
+  async createWorkflow(
+    guildId,
+    name,
+    description,
+    triggerType,
+    triggerConfig,
+    actions,
+    createdBy
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO workflows (guild_id, name, description, trigger_type, trigger_config, actions, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          name,
+          description,
+          triggerType,
+          JSON.stringify(triggerConfig),
+          JSON.stringify(actions),
+          createdBy,
+          Date.now(),
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getWorkflows(guildId, enabledOnly = false) {
+    return new Promise((resolve, reject) => {
+      const query = enabledOnly
+        ? "SELECT * FROM workflows WHERE guild_id = ? AND enabled = 1"
+        : "SELECT * FROM workflows WHERE guild_id = ?";
+      this.db.all(query, [guildId], (err, rows) => {
+        if (err) reject(err);
+        else {
+          const workflows = (rows || []).map((row) => ({
+            ...row,
+            trigger_config: JSON.parse(row.trigger_config || "{}"),
+            actions: JSON.parse(row.actions || "[]"),
+          }));
+          resolve(workflows);
+        }
+      });
+    });
+  }
+
+  async updateWorkflow(workflowId, updates) {
+    const keys = Object.keys(updates);
+    const values = Object.values(updates);
+    const setClause = keys.map((k) => `${k} = ?`).join(", ");
+
+    const processedValues = values.map((v) => {
+      if (typeof v === "object" && v !== null && !Array.isArray(v))
+        return JSON.stringify(v);
+      return v;
+    });
+
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        `UPDATE workflows SET ${setClause} WHERE id = ?`,
+        [...processedValues, workflowId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  async deleteWorkflow(workflowId) {
+    return new Promise((resolve, reject) => {
+      this.db.run("DELETE FROM workflows WHERE id = ?", [workflowId], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+
+  // Enhanced logging
+  async addEnhancedLog(
+    guildId,
+    logType,
+    category,
+    userId,
+    moderatorId,
+    action,
+    details,
+    metadata,
+    severity = "info"
+  ) {
+    const indexedData = JSON.stringify({
+      user_id: userId,
+      moderator_id: moderatorId,
+      action: action,
+      category: category,
+      severity: severity,
+    });
+
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO enhanced_logs (guild_id, log_type, category, user_id, moderator_id, action, details, metadata, severity, timestamp, indexed_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          logType,
+          category,
+          userId,
+          moderatorId,
+          action,
+          details,
+          JSON.stringify(metadata || {}),
+          severity,
+          Date.now(),
+          indexedData,
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async searchLogs(guildId, filters = {}) {
+    let query = "SELECT * FROM enhanced_logs WHERE guild_id = ?";
+    const params = [guildId];
+
+    if (filters.category) {
+      query += " AND category = ?";
+      params.push(filters.category);
+    }
+    if (filters.severity) {
+      query += " AND severity = ?";
+      params.push(filters.severity);
+    }
+    if (filters.userId) {
+      query += " AND user_id = ?";
+      params.push(filters.userId);
+    }
+    if (filters.action) {
+      query += " AND action = ?";
+      params.push(filters.action);
+    }
+    if (filters.startTime) {
+      query += " AND timestamp >= ?";
+      params.push(filters.startTime);
+    }
+    if (filters.endTime) {
+      query += " AND timestamp <= ?";
+      params.push(filters.endTime);
+    }
+    if (filters.searchText) {
+      query += " AND (details LIKE ? OR action LIKE ?)";
+      const searchTerm = `%${filters.searchText}%`;
+      params.push(searchTerm, searchTerm);
+    }
+
+    query += " ORDER BY timestamp DESC LIMIT ?";
+    params.push(filters.limit || 100);
+
+    return new Promise((resolve, reject) => {
+      this.db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else {
+          const logs = (rows || []).map((row) => ({
+            ...row,
+            metadata: JSON.parse(row.metadata || "{}"),
+          }));
+          resolve(logs);
+        }
+      });
+    });
+  }
+
+  // AI Learning
+  async recordPattern(guildId, userId, patternType, patternData, confidence) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        `INSERT INTO ai_learning (guild_id, user_id, pattern_type, pattern_data, confidence, last_seen, occurrences)
+         VALUES (?, ?, ?, ?, ?, ?, 1)
+         ON CONFLICT(guild_id, user_id, pattern_type) DO UPDATE SET
+         pattern_data = ?,
+         confidence = ?,
+         last_seen = ?,
+         occurrences = occurrences + 1`,
+        [
+          guildId,
+          userId,
+          patternType,
+          JSON.stringify(patternData),
+          confidence,
+          Date.now(),
+          JSON.stringify(patternData),
+          confidence,
+          Date.now(),
+        ],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  async getPatterns(guildId, userId = null, patternType = null) {
+    let query = "SELECT * FROM ai_learning WHERE guild_id = ?";
+    const params = [guildId];
+
+    if (userId) {
+      query += " AND user_id = ?";
+      params.push(userId);
+    }
+    if (patternType) {
+      query += " AND pattern_type = ?";
+      params.push(patternType);
+    }
+
+    return new Promise((resolve, reject) => {
+      this.db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else {
+          const patterns = (rows || []).map((row) => ({
+            ...row,
+            pattern_data: JSON.parse(row.pattern_data || "{}"),
+          }));
+          resolve(patterns);
+        }
+      });
+    });
+  }
+
+  // API Keys
+  async createAPIKey(
+    guildId,
+    keyHash,
+    name,
+    permissions,
+    createdBy,
+    expiresAt = null
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO api_keys (guild_id, key_hash, name, permissions, created_by, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          keyHash,
+          name,
+          JSON.stringify(permissions),
+          createdBy,
+          Date.now(),
+          expiresAt,
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getAPIKey(keyHash) {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        "SELECT * FROM api_keys WHERE key_hash = ? AND enabled = 1",
+        [keyHash],
+        (err, row) => {
+          if (err) reject(err);
+          else {
+            if (row) {
+              if (row.expires_at && Date.now() > row.expires_at) {
+                resolve(null);
+              } else {
+                row.permissions = JSON.parse(row.permissions || "[]");
+                resolve(row);
+              }
+            } else {
+              resolve(null);
+            }
+          }
+        }
+      );
+    });
+  }
+
+  async updateAPIKey(keyId, updates) {
+    const keys = Object.keys(updates);
+    const values = Object.values(updates);
+    const setClause = keys.map((k) => `${k} = ?`).join(", ");
+
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        `UPDATE api_keys SET ${setClause} WHERE id = ?`,
+        [...values, keyId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  async updateAPIKeyUsage(keyHash) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "UPDATE api_keys SET last_used = ? WHERE key_hash = ?",
+        [Date.now(), keyHash],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  async getAPIKeys(guildId) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        "SELECT * FROM api_keys WHERE guild_id = ?",
+        [guildId],
+        (err, rows) => {
+          if (err) reject(err);
+          else {
+            const keys = (rows || []).map((row) => ({
+              ...row,
+              permissions: JSON.parse(row.permissions || "[]"),
+            }));
+            resolve(keys);
+          }
+        }
+      );
+    });
+  }
+
+  // Recommendations
+  async createRecommendation(
+    guildId,
+    type,
+    title,
+    description,
+    priority,
+    actionData
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO recommendations (guild_id, recommendation_type, title, description, priority, action_data, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          type,
+          title,
+          description,
+          priority,
+          JSON.stringify(actionData),
+          Date.now(),
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getRecommendations(guildId, unacknowledgedOnly = true) {
+    return new Promise((resolve, reject) => {
+      const query = unacknowledgedOnly
+        ? "SELECT * FROM recommendations WHERE guild_id = ? AND acknowledged = 0 ORDER BY priority DESC, created_at DESC"
+        : "SELECT * FROM recommendations WHERE guild_id = ? ORDER BY priority DESC, created_at DESC";
+      this.db.all(query, [guildId], (err, rows) => {
+        if (err) reject(err);
+        else {
+          const recs = (rows || []).map((row) => ({
+            ...row,
+            action_data: JSON.parse(row.action_data || "{}"),
+          }));
+          resolve(recs);
+        }
+      });
+    });
+  }
+
+  async acknowledgeRecommendation(recommendationId, userId) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "UPDATE recommendations SET acknowledged = 1, acknowledged_by = ?, acknowledged_at = ? WHERE id = ?",
+        [userId, Date.now(), recommendationId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  // Notifications
+  async createNotification(guildId, type, channelId, webhookUrl, filters) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO notifications (guild_id, notification_type, channel_id, webhook_url, filters, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          type,
+          channelId,
+          webhookUrl,
+          JSON.stringify(filters || {}),
+          Date.now(),
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getNotifications(guildId, type = null) {
+    return new Promise((resolve, reject) => {
+      const query = type
+        ? "SELECT * FROM notifications WHERE guild_id = ? AND notification_type = ? AND enabled = 1"
+        : "SELECT * FROM notifications WHERE guild_id = ? AND enabled = 1";
+      const params = type ? [guildId, type] : [guildId];
+      this.db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else {
+          const notifs = (rows || []).map((row) => ({
+            ...row,
+            filters: JSON.parse(row.filters || "{}"),
+          }));
+          resolve(notifs);
+        }
+      });
+    });
+  }
+
+  // Behavioral data
+  async recordBehavior(guildId, userId, behaviorType, data, timestamp) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO behavioral_data (guild_id, user_id, behavior_type, data, timestamp, confidence) VALUES (?, ?, ?, ?, ?, ?)",
+        [guildId, userId, behaviorType, JSON.stringify(data), timestamp, 0.5],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  async getBehaviors(guildId, userId = null, behaviorType = null) {
+    let query = "SELECT * FROM behavioral_data WHERE guild_id = ?";
+    const params = [guildId];
+
+    if (userId) {
+      query += " AND user_id = ?";
+      params.push(userId);
+    }
+    if (behaviorType) {
+      query += " AND behavior_type = ?";
+      params.push(behaviorType);
+    }
+
+    query += " ORDER BY timestamp DESC LIMIT 100";
+
+    return new Promise((resolve, reject) => {
+      this.db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else {
+          const behaviors = (rows || []).map((row) => ({
+            ...row,
+            data: JSON.parse(row.data || "{}"),
+          }));
+          resolve(behaviors);
+        }
+      });
+    });
+  }
+
+  // Threat intelligence
+  async reportThreat(userId, threatType, threatData, severity, sourceGuildId) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO threat_intelligence (user_id, threat_type, threat_data, severity, source_guild_id, reported_at) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          threatType,
+          JSON.stringify(threatData),
+          severity,
+          sourceGuildId,
+          Date.now(),
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getThreatIntelligence(userId) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        "SELECT * FROM threat_intelligence WHERE user_id = ? ORDER BY reported_at DESC",
+        [userId],
+        (err, rows) => {
+          if (err) reject(err);
+          else {
+            const threats = (rows || []).map((row) => ({
+              ...row,
+              threat_data: JSON.parse(row.threat_data || "{}"),
+            }));
+            resolve(threats);
+          }
+        }
+      );
+    });
+  }
+
+  async verifyThreat(threatId) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "UPDATE threat_intelligence SET verified = 1, verification_count = verification_count + 1 WHERE id = ?",
+        [threatId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  // Recovery snapshots
+  async createRecoverySnapshot(
+    guildId,
+    snapshotType,
+    snapshotData,
+    triggeredBy,
+    reason
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO recovery_snapshots (guild_id, snapshot_type, snapshot_data, created_at, triggered_by, reason) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          snapshotType,
+          JSON.stringify(snapshotData),
+          Date.now(),
+          triggeredBy,
+          reason,
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getRecoverySnapshots(guildId, limit = 10) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        "SELECT * FROM recovery_snapshots WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?",
+        [guildId, limit],
+        (err, rows) => {
+          if (err) reject(err);
+          else {
+            const snapshots = (rows || []).map((row) => ({
+              ...row,
+              snapshot_data: JSON.parse(row.snapshot_data || "{}"),
+            }));
+            resolve(snapshots);
+          }
+        }
+      );
+    });
+  }
+
+  // Moderation queue
+  async addToModQueue(
+    guildId,
+    userId,
+    actionType,
+    reason,
+    priority,
+    context,
+    suggestedAction
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO moderation_queue (guild_id, user_id, action_type, reason, priority, context, suggested_action, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          userId,
+          actionType,
+          reason,
+          priority,
+          JSON.stringify(context || {}),
+          suggestedAction,
+          Date.now(),
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getModQueue(guildId, unprocessedOnly = true) {
+    return new Promise((resolve, reject) => {
+      const query = unprocessedOnly
+        ? "SELECT * FROM moderation_queue WHERE guild_id = ? AND processed = 0 ORDER BY priority DESC, created_at ASC"
+        : "SELECT * FROM moderation_queue WHERE guild_id = ? ORDER BY priority DESC, created_at DESC LIMIT 50";
+      this.db.all(query, [guildId], (err, rows) => {
+        if (err) reject(err);
+        else {
+          const queue = (rows || []).map((row) => ({
+            ...row,
+            context: JSON.parse(row.context || "{}"),
+          }));
+          resolve(queue);
+        }
+      });
+    });
+  }
+
+  async processModQueueItem(queueId, processedBy) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "UPDATE moderation_queue SET processed = 1, processed_by = ?, processed_at = ? WHERE id = ?",
+        [processedBy, Date.now(), queueId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  // Reports
+  async createReport(
+    guildId,
+    reportType,
+    periodStart,
+    periodEnd,
+    reportData,
+    generatedBy
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO reports (guild_id, report_type, period_start, period_end, report_data, generated_at, generated_by) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          reportType,
+          periodStart,
+          periodEnd,
+          JSON.stringify(reportData),
+          Date.now(),
+          generatedBy,
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getReports(guildId, reportType = null, limit = 10) {
+    return new Promise((resolve, reject) => {
+      const query = reportType
+        ? "SELECT * FROM reports WHERE guild_id = ? AND report_type = ? ORDER BY generated_at DESC LIMIT ?"
+        : "SELECT * FROM reports WHERE guild_id = ? ORDER BY generated_at DESC LIMIT ?";
+      const params = reportType
+        ? [guildId, reportType, limit]
+        : [guildId, limit];
+      this.db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else {
+          const reports = (rows || []).map((row) => ({
+            ...row,
+            report_data: JSON.parse(row.report_data || "{}"),
+          }));
+          resolve(reports);
+        }
+      });
+    });
+  }
+
+  // Recommendations
+  async createRecommendation(
+    guildId,
+    type,
+    title,
+    description,
+    priority,
+    actionData
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO recommendations (guild_id, recommendation_type, title, description, priority, action_data, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          type,
+          title,
+          description,
+          priority,
+          JSON.stringify(actionData),
+          Date.now(),
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getRecommendations(guildId, unacknowledgedOnly = true) {
+    return new Promise((resolve, reject) => {
+      const query = unacknowledgedOnly
+        ? "SELECT * FROM recommendations WHERE guild_id = ? AND acknowledged = 0 ORDER BY priority DESC, created_at DESC"
+        : "SELECT * FROM recommendations WHERE guild_id = ? ORDER BY priority DESC, created_at DESC";
+      this.db.all(query, [guildId], (err, rows) => {
+        if (err) reject(err);
+        else {
+          const recs = (rows || []).map((row) => ({
+            ...row,
+            action_data: JSON.parse(row.action_data || "{}"),
+          }));
+          resolve(recs);
+        }
+      });
+    });
+  }
+
+  async acknowledgeRecommendation(recommendationId, userId) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "UPDATE recommendations SET acknowledged = 1, acknowledged_by = ?, acknowledged_at = ? WHERE id = ?",
+        [userId, Date.now(), recommendationId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  // Notifications
+  async createNotification(guildId, type, channelId, webhookUrl, filters) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO notifications (guild_id, notification_type, channel_id, webhook_url, filters, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          type,
+          channelId,
+          webhookUrl,
+          JSON.stringify(filters || {}),
+          Date.now(),
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getNotifications(guildId, type = null) {
+    return new Promise((resolve, reject) => {
+      const query = type
+        ? "SELECT * FROM notifications WHERE guild_id = ? AND notification_type = ? AND enabled = 1"
+        : "SELECT * FROM notifications WHERE guild_id = ? AND enabled = 1";
+      const params = type ? [guildId, type] : [guildId];
+      this.db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else {
+          const notifs = (rows || []).map((row) => ({
+            ...row,
+            filters: JSON.parse(row.filters || "{}"),
+          }));
+          resolve(notifs);
+        }
+      });
+    });
+  }
+
+  // Behavioral data
+  async recordBehavior(guildId, userId, behaviorType, data, timestamp) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO behavioral_data (guild_id, user_id, behavior_type, data, timestamp, confidence) VALUES (?, ?, ?, ?, ?, ?)",
+        [guildId, userId, behaviorType, JSON.stringify(data), timestamp, 0.5],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  async getBehaviors(guildId, userId = null, behaviorType = null) {
+    let query = "SELECT * FROM behavioral_data WHERE guild_id = ?";
+    const params = [guildId];
+
+    if (userId) {
+      query += " AND user_id = ?";
+      params.push(userId);
+    }
+    if (behaviorType) {
+      query += " AND behavior_type = ?";
+      params.push(behaviorType);
+    }
+
+    query += " ORDER BY timestamp DESC LIMIT 100";
+
+    return new Promise((resolve, reject) => {
+      this.db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else {
+          const behaviors = (rows || []).map((row) => ({
+            ...row,
+            data: JSON.parse(row.data || "{}"),
+          }));
+          resolve(behaviors);
+        }
+      });
+    });
+  }
+
+  // Threat intelligence
+  async reportThreat(userId, threatType, threatData, severity, sourceGuildId) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO threat_intelligence (user_id, threat_type, threat_data, severity, source_guild_id, reported_at) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          threatType,
+          JSON.stringify(threatData),
+          severity,
+          sourceGuildId,
+          Date.now(),
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getThreatIntelligence(userId) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        "SELECT * FROM threat_intelligence WHERE user_id = ? ORDER BY reported_at DESC",
+        [userId],
+        (err, rows) => {
+          if (err) reject(err);
+          else {
+            const threats = (rows || []).map((row) => ({
+              ...row,
+              threat_data: JSON.parse(row.threat_data || "{}"),
+            }));
+            resolve(threats);
+          }
+        }
+      );
+    });
+  }
+
+  async verifyThreat(threatId) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "UPDATE threat_intelligence SET verified = 1, verification_count = verification_count + 1 WHERE id = ?",
+        [threatId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  // Recovery snapshots
+  async createRecoverySnapshot(
+    guildId,
+    snapshotType,
+    snapshotData,
+    triggeredBy,
+    reason
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO recovery_snapshots (guild_id, snapshot_type, snapshot_data, created_at, triggered_by, reason) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          snapshotType,
+          JSON.stringify(snapshotData),
+          Date.now(),
+          triggeredBy,
+          reason,
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getRecoverySnapshots(guildId, limit = 10) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        "SELECT * FROM recovery_snapshots WHERE guild_id = ? ORDER BY created_at DESC LIMIT ?",
+        [guildId, limit],
+        (err, rows) => {
+          if (err) reject(err);
+          else {
+            const snapshots = (rows || []).map((row) => ({
+              ...row,
+              snapshot_data: JSON.parse(row.snapshot_data || "{}"),
+            }));
+            resolve(snapshots);
+          }
+        }
+      );
+    });
+  }
+
+  // Moderation queue
+  async addToModQueue(
+    guildId,
+    userId,
+    actionType,
+    reason,
+    priority,
+    context,
+    suggestedAction
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO moderation_queue (guild_id, user_id, action_type, reason, priority, context, suggested_action, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          userId,
+          actionType,
+          reason,
+          priority,
+          JSON.stringify(context || {}),
+          suggestedAction,
+          Date.now(),
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getModQueue(guildId, unprocessedOnly = true) {
+    return new Promise((resolve, reject) => {
+      const query = unprocessedOnly
+        ? "SELECT * FROM moderation_queue WHERE guild_id = ? AND processed = 0 ORDER BY priority DESC, created_at ASC"
+        : "SELECT * FROM moderation_queue WHERE guild_id = ? ORDER BY priority DESC, created_at DESC LIMIT 50";
+      this.db.all(query, [guildId], (err, rows) => {
+        if (err) reject(err);
+        else {
+          const queue = (rows || []).map((row) => ({
+            ...row,
+            context: JSON.parse(row.context || "{}"),
+          }));
+          resolve(queue);
+        }
+      });
+    });
+  }
+
+  async processModQueueItem(queueId, processedBy) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "UPDATE moderation_queue SET processed = 1, processed_by = ?, processed_at = ? WHERE id = ?",
+        [processedBy, Date.now(), queueId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  // Reports
+  async createReport(
+    guildId,
+    reportType,
+    periodStart,
+    periodEnd,
+    reportData,
+    generatedBy
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        "INSERT INTO reports (guild_id, report_type, period_start, period_end, report_data, generated_at, generated_by) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          guildId,
+          reportType,
+          periodStart,
+          periodEnd,
+          JSON.stringify(reportData),
+          Date.now(),
+          generatedBy,
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getReports(guildId, reportType = null, limit = 10) {
+    return new Promise((resolve, reject) => {
+      const query = reportType
+        ? "SELECT * FROM reports WHERE guild_id = ? AND report_type = ? ORDER BY generated_at DESC LIMIT ?"
+        : "SELECT * FROM reports WHERE guild_id = ? ORDER BY generated_at DESC LIMIT ?";
+      const params = reportType
+        ? [guildId, reportType, limit]
+        : [guildId, limit];
+      this.db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else {
+          const reports = (rows || []).map((row) => ({
+            ...row,
+            report_data: JSON.parse(row.report_data || "{}"),
+          }));
+          resolve(reports);
+        }
+      });
+    });
+  }
+}
+
+module.exports = new Database();
