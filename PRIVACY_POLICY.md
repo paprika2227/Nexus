@@ -15,6 +15,8 @@ Nexus Bot ("we", "our", "us") is committed to protecting your privacy. This Priv
 - Server settings and configurations
 - Moderation logs and actions
 - Security events and threat data
+- **Recovery snapshots** (channel structures, role configurations, permission overwrites)
+- Server lockdown state (temporary, during security incidents)
 
 ### User Information
 
@@ -23,13 +25,15 @@ Nexus Bot ("we", "our", "us") is committed to protecting your privacy. This Priv
 - Messages (for moderation purposes only)
 - Moderation history
 - Behavioral patterns (for threat detection)
+- **Role and permission data** (stored in recovery snapshots for restoration purposes)
 
 ### Technical Information
 
 - Command usage statistics
-- Bot performance metrics
+- Bot performance metrics (command execution times, database query performance, memory usage)
 - Error logs
 - API usage data
+- Event processing times
 
 ## How We Use Information
 
@@ -39,6 +43,9 @@ Nexus Bot ("we", "our", "us") is committed to protecting your privacy. This Priv
 - Moderate server content
 - Track user behavior for threat detection
 - Share threat intelligence across servers (see "Threat Intelligence Network" section below)
+- **Auto-recovery**: Create snapshots of server structure (channels, roles, permissions) to restore after attacks
+- **Server lockdown**: Temporarily restrict server access during security incidents
+- **Spam detection**: Monitor and remove spam channels and messages
 
 ### Service Improvement
 
@@ -66,10 +73,52 @@ Nexus Bot ("we", "our", "us") is committed to protecting your privacy. This Priv
 
 - Server configurations: Until server removes bot (deleted 30 days after removal)
 - Moderation logs: 90 days (configurable per server)
+- **Recovery snapshots**: 90 days (automatically created periodically and before/after security incidents)
 - Analytics: 1 year (anonymized after 90 days)
 - Threat intelligence: 30 days
+- **Performance metrics**: 90 days (command times, query performance, memory usage)
 - Message content: Not stored permanently (only processed in real-time for moderation)
 - Behavioral patterns: 90 days (anonymized after 30 days)
+- **Security logs with threat types**: 90 days (includes threat classification and actions taken)
+
+## Auto-Recovery System
+
+Nexus Bot includes an automatic server recovery system that creates snapshots of your server's structure to restore it after attacks.
+
+### What Data is Stored in Snapshots:
+
+- **Channel Data**: Channel IDs, names, types, positions, parent categories, and permission overwrites (including role/user IDs and specific permissions)
+- **Role Data**: Role IDs, names, colors, permissions, positions, mentionable status, and hoist settings
+- **Permission Overwrites**: Detailed permission settings for channels, including which roles/users have specific permissions
+
+### Purpose:
+
+- Restore deleted channels and roles after nuke attacks
+- Recover server structure and permissions
+- Maintain server functionality after security incidents
+
+### Retention:
+
+- Snapshots are automatically created:
+  - When the bot joins your server (initial snapshot)
+  - Periodically (every 24 hours if no recent snapshot exists)
+  - Before and after security incidents
+- Snapshots are retained for **90 days**
+- Snapshots are automatically deleted 30 days after bot removal from server
+
+### Your Control:
+
+- Snapshots are created automatically for security purposes
+- You cannot disable snapshot creation (required for auto-recovery)
+- You can request deletion of specific snapshots via support
+- All snapshots are deleted when the bot is removed from your server
+
+### Data Security:
+
+- Snapshots are stored in encrypted database
+- Only accessible to the bot for recovery purposes
+- Not shared with third parties
+- Contains server structure data only (no message content)
 
 ## Data Sharing
 
@@ -194,6 +243,9 @@ Data will be provided in JSON format including:
 - Moderation logs
 - User data (if applicable)
 - Analytics data
+- **Recovery snapshots** (if requested)
+- **Performance metrics** (if requested)
+- **Security logs** (if requested)
 
 ## International Data Transfers
 

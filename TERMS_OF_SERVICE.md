@@ -10,9 +10,12 @@ By inviting and using Nexus Bot ("the Bot", "we", "our", "us") to your Discord s
 
 Nexus Bot is a Discord security and moderation bot that provides:
 - Anti-raid and anti-nuke protection
+- **Automatic server recovery** (snapshots and restoration of channels/roles after attacks)
+- **Server lockdown** (temporary server restrictions during security incidents)
 - Moderation tools and automation
 - Security features and threat detection
 - Analytics and reporting
+- Performance monitoring
 - AI-powered recommendations
 
 ## Eligibility
@@ -79,6 +82,8 @@ Nexus Bot is a Discord security and moderation bot that provides:
 - Back up important data regularly
 - You are responsible for configuring appropriate data retention settings
 - You must comply with applicable privacy laws (GDPR, CCPA, etc.) for your users
+- **Auto-recovery snapshots**: Snapshots are created automatically for security purposes. While we strive to restore servers after attacks, we cannot guarantee complete restoration of all channels, roles, or permissions.
+- **Server lockdown**: During security incidents, the bot may temporarily restrict server access (lockdown mode). This is an automated security measure to prevent further damage.
 
 ## Limitation of Liability
 
@@ -87,6 +92,8 @@ Nexus Bot is a Discord security and moderation bot that provides:
 - We are not liable for damages from Bot use
 - We are not responsible for moderation decisions
 - We are not responsible for false positives
+- **Auto-recovery**: While we provide automatic server recovery features, we cannot guarantee that all channels, roles, or permissions will be perfectly restored after an attack. Recovery is provided on a "best effort" basis.
+- **Server lockdown**: Temporary server restrictions (lockdown) may occur during security incidents. We are not liable for any inconvenience or temporary loss of access during lockdown periods.
 
 ### Maximum Liability
 - Our total liability is limited to the amount you paid (if any)
