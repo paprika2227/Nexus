@@ -11,8 +11,7 @@ const db = require("./utils/database");
 const logger = require("./utils/logger");
 const AutoMod = require("./utils/automod");
 
-// Load API server (only starts if API_ENABLED=true)
-require("./api/server");
+// API removed - not needed for local use
 
 // Initialize client with all necessary intents
 const client = new Client({

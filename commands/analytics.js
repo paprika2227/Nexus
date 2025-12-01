@@ -19,7 +19,8 @@ module.exports = {
           { name: "Security Trends", value: "security" },
           { name: "User Activity", value: "activity" },
           { name: "Threat Patterns", value: "threats" },
-          { name: "Performance Metrics", value: "performance" }
+          { name: "Performance Metrics", value: "performance" },
+          { name: "AI Insights", value: "insights" }
         )
     )
     .addIntegerOption((option) =>
@@ -157,6 +158,49 @@ module.exports = {
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
+    } else if (type === "insights") {
+      await this.showAIInsights(interaction, days);
     }
+  },
+
+  async showAIInsights(interaction, days) {
+    const SmartRecommendations = require("../utils/smartRecommendations");
+
+    // Get AI-generated insights
+    const insights = await SmartRecommendations.generateInsights(
+      interaction.guild.id,
+      interaction.guild,
+      days
+    );
+
+    const embed = new EmbedBuilder()
+      .setTitle("🤖 AI-Generated Insights")
+      .setDescription(
+        "Intelligent analysis of your server's activity and security"
+      )
+      .setColor(0x5865f2)
+      .setTimestamp();
+
+    if (insights.length > 0) {
+      insights.slice(0, 5).forEach((insight, index) => {
+        embed.addFields({
+          name: `${index + 1}. ${insight.title}`,
+          value:
+            insight.description +
+            (insight.recommendation
+              ? `\n\n💡 **Recommendation:** ${insight.recommendation}`
+              : ""),
+          inline: false,
+        });
+      });
+    } else {
+      embed.setDescription(
+        "No insights available yet. The AI needs more data to generate insights."
+      );
+    }
+
+    embed.setFooter({ text: `Analysis period: Last ${days} days` });
+
+    await interaction.editReply({ embeds: [embed] });
   },
 };

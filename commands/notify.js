@@ -58,6 +58,46 @@ module.exports = {
             .setRequired(true)
         )
     )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("digest")
+        .setDescription("Configure notification digest mode")
+        .addBooleanOption((option) =>
+          option
+            .setName("enabled")
+            .setDescription("Enable digest mode (batch notifications)")
+            .setRequired(true)
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("interval")
+            .setDescription("Digest interval in minutes (default: 5)")
+            .setRequired(false)
+            .setMinValue(1)
+            .setMaxValue(60)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("quiet")
+        .setDescription("Set quiet hours (no notifications during these hours)")
+        .addIntegerOption((option) =>
+          option
+            .setName("start")
+            .setDescription("Start hour (0-23)")
+            .setRequired(false)
+            .setMinValue(0)
+            .setMaxValue(23)
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("end")
+            .setDescription("End hour (0-23)")
+            .setRequired(false)
+            .setMinValue(0)
+            .setMaxValue(23)
+        )
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 
   async execute(interaction) {
@@ -133,6 +173,74 @@ module.exports = {
         content: `✅ Notification #${id} removed`,
         flags: MessageFlags.Ephemeral,
       });
+    } else if (subcommand === "digest") {
+      const enabled = interaction.options.getBoolean("enabled");
+      const interval = interaction.options.getInteger("interval") || 5;
+
+      await db.setServerConfig(interaction.guild.id, {
+        notification_digest_mode: enabled ? 1 : 0,
+        notification_digest_interval: interval * 60000, // Convert to milliseconds
+      });
+
+      const embed = new EmbedBuilder()
+        .setTitle("✅ Digest Mode Configured")
+        .setDescription(
+          enabled
+            ? `Notifications will be batched and sent every ${interval} minute(s)`
+            : "Notifications will be sent immediately"
+        )
+        .addFields({
+          name: "💡 How It Works",
+          value:
+            "When enabled, non-critical notifications are grouped together and sent in batches. Critical alerts are always sent immediately.",
+        })
+        .setColor(0x00ff00)
+        .setTimestamp();
+
+      await interaction.reply({
+        embeds: [embed],
+        flags: MessageFlags.Ephemeral,
+      });
+    } else if (subcommand === "quiet") {
+      const start = interaction.options.getInteger("start");
+      const end = interaction.options.getInteger("end");
+
+      if (start !== null && end !== null) {
+        await db.setServerConfig(interaction.guild.id, {
+          notification_quiet_hours_start: start,
+          notification_quiet_hours_end: end,
+        });
+
+        const embed = new EmbedBuilder()
+          .setTitle("✅ Quiet Hours Set")
+          .setDescription(
+            `Notifications will be queued (not sent) between ${start}:00 and ${end}:00`
+          )
+          .setColor(0x00ff00)
+          .setTimestamp();
+
+        await interaction.reply({
+          embeds: [embed],
+          flags: MessageFlags.Ephemeral,
+        });
+      } else {
+        // Show current quiet hours
+        const config = await db.getServerConfig(interaction.guild.id);
+        const embed = new EmbedBuilder()
+          .setTitle("🔕 Quiet Hours")
+          .setDescription(
+            config?.notification_quiet_hours_start !== null
+              ? `Quiet hours: ${config.notification_quiet_hours_start}:00 - ${config.notification_quiet_hours_end}:00`
+              : "Quiet hours not configured. Set start and end hours to enable."
+          )
+          .setColor(0x0099ff)
+          .setTimestamp();
+
+        await interaction.reply({
+          embeds: [embed],
+          flags: MessageFlags.Ephemeral,
+        });
+      }
     }
   },
 };

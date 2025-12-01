@@ -22,7 +22,8 @@ module.exports = {
           { name: "Security", value: "security" },
           { name: "Moderation", value: "moderation" },
           { name: "Activity", value: "activity" },
-          { name: "Performance", value: "performance" }
+          { name: "Performance", value: "performance" },
+          { name: "Live Monitoring", value: "live" }
         )
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
@@ -276,6 +277,115 @@ module.exports = {
       } else {
         await interaction.reply({ embeds: [embed], components: [buttons] });
       }
+    } else if (view === "live") {
+      // Live monitoring dashboard
+      await this.showLiveDashboard(interaction);
+    }
+  },
+
+  async showLiveDashboard(interaction) {
+    const embed = new EmbedBuilder()
+      .setTitle("📡 Live Security Monitoring")
+      .setDescription("Real-time threat detection and server activity")
+      .setColor(0xff0000)
+      .setTimestamp();
+
+    // Get recent security events (last 5 minutes)
+    const recentEvents = await new Promise((resolve, reject) => {
+      db.db.all(
+        `SELECT * FROM security_logs 
+         WHERE guild_id = ? AND timestamp > ? 
+         ORDER BY timestamp DESC LIMIT 10`,
+        [interaction.guild.id, Date.now() - 300000],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+
+    // Get active heat scores
+    const activeHeat = await new Promise((resolve, reject) => {
+      db.db.all(
+        `SELECT user_id, score FROM heat_scores 
+         WHERE guild_id = ? AND score > 0 
+         ORDER BY score DESC LIMIT 5`,
+        [interaction.guild.id],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+
+    // Get recent moderation actions
+    const recentActions = await new Promise((resolve, reject) => {
+      db.db.all(
+        `SELECT action, COUNT(*) as count FROM moderation_logs 
+         WHERE guild_id = ? AND timestamp > ? 
+         GROUP BY action`,
+        [interaction.guild.id, Date.now() - 300000],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+
+    embed.addFields(
+      {
+        name: "🚨 Recent Security Events (5 min)",
+        value:
+          recentEvents.length > 0
+            ? recentEvents
+                .slice(0, 5)
+                .map(
+                  (e) =>
+                    `• ${e.event_type.replace(/_/g, " ")} - Threat: ${
+                      e.threat_score || 0
+                    }`
+                )
+                .join("\n")
+            : "✅ No security events",
+        inline: false,
+      },
+      {
+        name: "🔥 Active Heat Scores",
+        value:
+          activeHeat.length > 0
+            ? activeHeat.map((h) => `<@${h.user_id}>: ${h.score}`).join("\n")
+            : "✅ No active heat",
+        inline: true,
+      },
+      {
+        name: "⚡ Recent Actions (5 min)",
+        value:
+          recentActions.length > 0
+            ? recentActions.map((a) => `**${a.action}:** ${a.count}`).join("\n")
+            : "No actions",
+        inline: true,
+      }
+    );
+
+    embed.setFooter({
+      text: "Live monitoring - Updates every 30 seconds. Use /dashboard live to refresh.",
+    });
+
+    const buttons = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("dashboard_live_refresh")
+        .setLabel("🔄 Refresh")
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId("dashboard_overview")
+        .setLabel("Overview")
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply({ embeds: [embed], components: [buttons] });
+    } else {
+      await interaction.reply({ embeds: [embed], components: [buttons] });
     }
   },
 };

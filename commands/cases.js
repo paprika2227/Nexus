@@ -82,37 +82,83 @@ module.exports = {
           });
         }
 
+        // Get user's case history for context
+        const userCases = await new Promise((resolve, reject) => {
+          db.db.all(
+            "SELECT * FROM moderation_logs WHERE user_id = ? AND guild_id = ? ORDER BY timestamp DESC LIMIT 5",
+            [caseData.user_id, interaction.guild.id],
+            (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows || []);
+            }
+          );
+        });
+
         const embed = new EmbedBuilder()
-          .setTitle(`Case #${caseData.id}`)
+          .setTitle(
+            `📋 Case #${caseData.id} - ${caseData.action.toUpperCase()}`
+          )
+          .setDescription(`Moderation case details for <@${caseData.user_id}>`)
           .addFields(
             {
-              name: "User",
-              value: `<@${caseData.user_id}> (${caseData.user_id})`,
+              name: "👤 User",
+              value: `<@${caseData.user_id}>\n\`${caseData.user_id}\``,
               inline: true,
             },
             {
-              name: "Moderator",
+              name: "🛡️ Moderator",
               value: `<@${caseData.moderator_id}>`,
               inline: true,
             },
             {
-              name: "Action",
-              value: caseData.action.toUpperCase(),
+              name: "⚡ Action",
+              value: `**${caseData.action.toUpperCase()}**`,
               inline: true,
             },
             {
-              name: "Reason",
-              value: caseData.reason || "No reason provided",
+              name: "📝 Reason",
+              value: caseData.reason || "*No reason provided*",
               inline: false,
             },
             {
-              name: "Date",
-              value: `<t:${Math.floor(caseData.timestamp / 1000)}:F>`,
+              name: "📅 Date",
+              value: `<t:${Math.floor(
+                caseData.timestamp / 1000
+              )}:F>\n<t:${Math.floor(caseData.timestamp / 1000)}:R>`,
               inline: true,
             }
           )
-          .setColor(0x0099ff)
-          .setTimestamp();
+          .setColor(
+            caseData.action === "ban"
+              ? 0xff0000
+              : caseData.action === "kick"
+              ? 0xff8800
+              : caseData.action === "warn"
+              ? 0xffff00
+              : 0x0099ff
+          )
+          .setTimestamp(new Date(caseData.timestamp));
+
+        // Add case history if available
+        if (userCases.length > 1) {
+          const previousCases = userCases
+            .filter((c) => c.id !== caseData.id)
+            .slice(0, 3);
+          if (previousCases.length > 0) {
+            embed.addFields({
+              name: "📜 Case History",
+              value: previousCases
+                .map(
+                  (c) =>
+                    `Case #${c.id} - ${c.action.toUpperCase()} (<t:${Math.floor(
+                      c.timestamp / 1000
+                    )}:R>)`
+                )
+                .join("\n"),
+              inline: false,
+            });
+          }
+        }
 
         if (caseData.duration) {
           embed.addFields({

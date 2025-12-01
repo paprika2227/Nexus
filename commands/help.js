@@ -87,7 +87,6 @@ module.exports = {
         "search",
         "workflow",
         "logs",
-        "api",
         "report",
         "queue",
         "behavior",
@@ -198,6 +197,7 @@ module.exports = {
           "• Multi-algorithm anti-raid\n• Predictive security\n• Heat-based moderation\n• Auto-moderation\n• Real-time threat detection\n• Cross-server intelligence\n• Intelligent auto-tuning",
         inline: false,
       });
+
     }
 
     await interaction.reply({ embeds: [embed] });

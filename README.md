@@ -91,10 +91,11 @@ Nexus is a Discord security bot that combines all of Wick's features with cuttin
 ## 🚀 Getting Started
 
 1. **Invite the Bot** - Add Nexus to your server
-2. **Run `/recommend analyze`** - Get AI-powered security suggestions
-3. **Configure Protection** - Enable anti-raid, anti-nuke, and join gate
-4. **Set Up Notifications** - Configure real-time alerts
-5. **Explore Features** - Use `/help` to see all commands
+2. **Run `/setup preset`** - Quick setup with server type presets
+3. **Run `/recommend analyze`** - Get AI-powered security suggestions
+4. **Configure Protection** - Enable anti-raid, anti-nuke, and join gate
+5. **Set Up Notifications** - Configure real-time alerts
+6. **Explore Features** - Use `/help` to see all commands
 
 ## 💡 Why We're Better
 

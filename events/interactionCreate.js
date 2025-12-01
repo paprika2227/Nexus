@@ -55,35 +55,42 @@ module.exports = {
           "commands_used"
         );
       } catch (error) {
+        // Use ErrorHelper for better error messages
+        const ErrorHelper = require("../utils/errorHelper");
+
         // Log error with full context
-        ErrorHandler.logError(
-          error,
-          "interactionCreate",
-          `Execute command ${interaction.commandName}`
-        );
+        ErrorHelper.logError(error, {
+          commandName: interaction.commandName,
+          userId: interaction.user.id,
+          guildId: interaction.guild?.id,
+          channelId: interaction.channel?.id,
+        });
 
-        // Handle different error types
-        let errorMessage = "❌ An error occurred while executing this command!";
+        // Get user-friendly error message
+        const errorInfo = ErrorHelper.getErrorMessage(error, {
+          commandName: interaction.commandName,
+          userId: interaction.user.id,
+          guildId: interaction.guild?.id,
+        });
 
-        if (error.code === 50001) {
-          errorMessage = "❌ Missing permissions to execute this command.";
-        } else if (error.code === 50013) {
-          errorMessage = "❌ Missing required permissions.";
-        } else if (error.status === 429 || error.code === 429) {
-          errorMessage = "⏳ Rate limited. Please try again in a moment.";
-        }
+        // Create troubleshooting embed
+        const embed = ErrorHelper.createTroubleshootingEmbed(error, {
+          commandName: interaction.commandName,
+          userId: interaction.user.id,
+          guildId: interaction.guild?.id,
+        });
 
         // Try to reply, but don't crash if that fails too
         if (interaction.replied || interaction.deferred) {
           await ErrorHandler.safeExecute(
-            interaction.editReply({ content: errorMessage }),
+            interaction.editReply({ embeds: [embed] }),
             "interactionCreate",
             `Edit error reply for ${interaction.commandName}`
           );
         } else {
           await ErrorHandler.safeExecute(
             interaction.reply({
-              content: errorMessage,
+              embeds: [embed],
               flags: MessageFlags.Ephemeral,
             }),
             "interactionCreate",
@@ -94,7 +101,76 @@ module.exports = {
     } else if (interaction.type === InteractionType.MessageComponent) {
       // Handle button interactions
       if (interaction.isButton()) {
-        // Handle dashboard buttons FIRST (before other button checks)
+        // Handle wizard buttons FIRST (before other button checks)
+        if (
+          interaction.customId &&
+          interaction.customId.startsWith("wizard_")
+        ) {
+          const setupCommand = client.commands.get("setup");
+          if (setupCommand) {
+            try {
+              if (interaction.customId === "wizard_start") {
+                await interaction.deferUpdate();
+                await setupCommand.handleWizardStep(interaction, "start");
+                return;
+              }
+
+              if (interaction.customId === "wizard_cancel") {
+                await interaction.update({
+                  content: "❌ Setup wizard cancelled.",
+                  embeds: [],
+                  components: [],
+                });
+                return;
+              }
+
+              // Handle preset selection (wizard_gaming, wizard_community, etc.)
+              if (
+                [
+                  "wizard_gaming",
+                  "wizard_community",
+                  "wizard_business",
+                  "wizard_streaming",
+                  "wizard_educational",
+                ].includes(interaction.customId)
+              ) {
+                await interaction.deferUpdate();
+                const presetType = interaction.customId.replace("wizard_", "");
+                // Add options to the original interaction object
+                // This preserves all interaction properties (guild, editReply, etc.)
+                interaction.options = {
+                  getSubcommand: () => "preset",
+                  getString: (name) => (name === "type" ? presetType : null),
+                };
+                await setupCommand.applyPreset(interaction);
+                return;
+              }
+            } catch (error) {
+              logger.error("Error handling wizard button:", error);
+              const ErrorHandler = require("../utils/errorHandler");
+              ErrorHandler.logError(
+                error,
+                "interactionCreate",
+                "Handle wizard button"
+              );
+              if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                  content:
+                    "❌ An error occurred. Please try `/setup preset` instead.",
+                  flags: MessageFlags.Ephemeral,
+                });
+              } else {
+                await interaction.editReply({
+                  content:
+                    "❌ An error occurred. Please try `/setup preset` instead.",
+                });
+              }
+            }
+            return;
+          }
+        }
+
+        // Handle dashboard buttons
         if (
           interaction.customId &&
           interaction.customId.startsWith("dashboard_")

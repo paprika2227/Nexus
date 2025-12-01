@@ -2,17 +2,20 @@ const {
   SlashCommandBuilder,
   PermissionFlagsBits,
   EmbedBuilder,
+  MessageFlags,
 } = require("discord.js");
 const db = require("../utils/database");
+const logger = require("../utils/logger");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("search")
-    .setDescription(
-      "Advanced search across cases, notes, and logs "
-    )
+    .setDescription("Universal search across cases, logs, and data")
     .addStringOption((option) =>
-      option.setName("query").setDescription("Search query").setRequired(true)
+      option
+        .setName("query")
+        .setDescription("Search query (keywords, user ID, case ID, etc.)")
+        .setRequired(true)
     )
     .addStringOption((option) =>
       option
@@ -22,155 +25,209 @@ module.exports = {
         .addChoices(
           { name: "All", value: "all" },
           { name: "Cases", value: "cases" },
-          { name: "Notes", value: "notes" },
-          { name: "Warnings", value: "warnings" },
-          { name: "Security Logs", value: "security" }
+          { name: "Logs", value: "logs" },
+          { name: "Users", value: "users" },
+          { name: "Warnings", value: "warnings" }
         )
-    )
-    .addUserOption((option) =>
-      option.setName("user").setDescription("Filter by user").setRequired(false)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 
   async execute(interaction) {
     const query = interaction.options.getString("query");
     const type = interaction.options.getString("type") || "all";
-    const user = interaction.options.getUser("user");
 
-    await interaction.deferReply();
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
+    try {
+      const results = await this.search(query, interaction.guild.id, type);
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🔍 Search Results: "${query}"`)
+        .setDescription(
+          results.total > 0
+            ? `Found **${results.total}** result(s)`
+            : "No results found. Try different keywords."
+        )
+        .setColor(results.total > 0 ? 0x0099ff : 0xff0000)
+        .setTimestamp();
+
+      if (results.cases && results.cases.length > 0) {
+        embed.addFields({
+          name: `📋 Cases (${results.cases.length})`,
+          value:
+            results.cases
+              .slice(0, 5)
+              .map(
+                (c) =>
+                  `**Case #${c.id}** - ${c.action} - <@${
+                    c.user_id
+                  }>\n   Reason: ${(c.reason || "No reason").substring(
+                    0,
+                    50
+                  )}...`
+              )
+              .join("\n\n") +
+            (results.cases.length > 5
+              ? `\n\n+${results.cases.length - 5} more`
+              : ""),
+          inline: false,
+        });
+      }
+
+      if (results.logs && results.logs.length > 0) {
+        embed.addFields({
+          name: `📝 Logs (${results.logs.length})`,
+          value:
+            results.logs
+              .slice(0, 5)
+              .map(
+                (l) =>
+                  `**${l.event_type}** - <@${l.user_id}>\n   ${new Date(
+                    l.timestamp
+                  ).toLocaleString()}`
+              )
+              .join("\n\n") +
+            (results.logs.length > 5
+              ? `\n\n+${results.logs.length - 5} more`
+              : ""),
+          inline: false,
+        });
+      }
+
+      if (results.warnings && results.warnings.length > 0) {
+        embed.addFields({
+          name: `⚠️ Warnings (${results.warnings.length})`,
+          value:
+            results.warnings
+              .slice(0, 5)
+              .map(
+                (w) =>
+                  `**Warning #${w.id}** - <@${w.user_id}>\n   ${(
+                    w.reason || "No reason"
+                  ).substring(0, 50)}...`
+              )
+              .join("\n\n") +
+            (results.warnings.length > 5
+              ? `\n\n+${results.warnings.length - 5} more`
+              : ""),
+          inline: false,
+        });
+      }
+
+      if (results.total === 0) {
+        embed.addFields({
+          name: "💡 Search Tips",
+          value:
+            "• Try searching by user ID or mention\n• Search by case ID (e.g., 'case:123')\n• Use keywords from reasons or descriptions\n• Try different spellings or partial matches",
+          inline: false,
+        });
+      }
+
+      await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+      logger.error("Error searching:", error);
+      await interaction.editReply({
+        content: "❌ An error occurred while searching.",
+      });
+    }
+  },
+
+  async search(query, guildId, type) {
     const results = {
+      total: 0,
       cases: [],
-      notes: [],
+      logs: [],
       warnings: [],
-      security: [],
+      users: [],
     };
 
-    // Search cases
+    // Check if query is a user ID or mention
+    const userIdMatch = query.match(/<@!?(\d+)>|(\d{17,19})/);
+    const userId = userIdMatch ? userIdMatch[1] || userIdMatch[2] : null;
+
+    // Check if query is a case ID
+    const caseIdMatch = query.match(/case[:\s]*(\d+)/i);
+    const caseId = caseIdMatch ? parseInt(caseIdMatch[1]) : null;
+
     if (type === "all" || type === "cases") {
-      let caseQuery =
-        "SELECT * FROM moderation_logs WHERE guild_id = ? AND (reason LIKE ? OR action LIKE ?)";
-      const params = [interaction.guild.id, `%${query}%`, `%${query}%`];
+      let casesQuery;
+      let casesParams;
 
-      if (user) {
-        caseQuery += " AND user_id = ?";
-        params.push(user.id);
+      if (caseId) {
+        casesQuery =
+          "SELECT * FROM moderation_logs WHERE guild_id = ? AND id = ?";
+        casesParams = [guildId, caseId];
+      } else if (userId) {
+        casesQuery =
+          "SELECT * FROM moderation_logs WHERE guild_id = ? AND (user_id = ? OR moderator_id = ?)";
+        casesParams = [guildId, userId, userId];
+      } else {
+        casesQuery =
+          "SELECT * FROM moderation_logs WHERE guild_id = ? AND (reason LIKE ? OR action LIKE ?)";
+        casesParams = [guildId, `%${query}%`, `%${query}%`];
       }
 
-      caseQuery += " ORDER BY timestamp DESC LIMIT 20";
-
-      results.cases = await new Promise((resolve, reject) => {
-        db.db.all(caseQuery, params, (err, rows) => {
+      const cases = await new Promise((resolve, reject) => {
+        db.db.all(casesQuery, casesParams, (err, rows) => {
           if (err) reject(err);
           else resolve(rows || []);
         });
       });
+
+      results.cases = cases;
+      results.total += cases.length;
     }
 
-    // Search notes
-    if (type === "all" || type === "notes") {
-      let noteQuery = "SELECT * FROM notes WHERE guild_id = ? AND note LIKE ?";
-      const params = [interaction.guild.id, `%${query}%`];
+    if (type === "all" || type === "logs") {
+      let logsQuery;
+      let logsParams;
 
-      if (user) {
-        noteQuery += " AND user_id = ?";
-        params.push(user.id);
+      if (userId) {
+        logsQuery =
+          "SELECT * FROM security_logs WHERE guild_id = ? AND user_id = ? ORDER BY timestamp DESC LIMIT 20";
+        logsParams = [guildId, userId];
+      } else {
+        logsQuery =
+          "SELECT * FROM security_logs WHERE guild_id = ? AND (event_type LIKE ? OR details LIKE ?) ORDER BY timestamp DESC LIMIT 20";
+        logsParams = [guildId, `%${query}%`, `%${query}%`];
       }
 
-      noteQuery += " ORDER BY created_at DESC LIMIT 20";
-
-      results.notes = await new Promise((resolve, reject) => {
-        db.db.all(noteQuery, params, (err, rows) => {
+      const logs = await new Promise((resolve, reject) => {
+        db.db.all(logsQuery, logsParams, (err, rows) => {
           if (err) reject(err);
           else resolve(rows || []);
         });
       });
+
+      results.logs = logs;
+      results.total += logs.length;
     }
 
-    // Search warnings
     if (type === "all" || type === "warnings") {
-      let warnQuery =
-        "SELECT * FROM warnings WHERE guild_id = ? AND reason LIKE ?";
-      const params = [interaction.guild.id, `%${query}%`];
+      let warningsQuery;
+      let warningsParams;
 
-      if (user) {
-        warnQuery += " AND user_id = ?";
-        params.push(user.id);
+      if (userId) {
+        warningsQuery =
+          "SELECT * FROM warnings WHERE guild_id = ? AND user_id = ? ORDER BY timestamp DESC";
+        warningsParams = [guildId, userId];
+      } else {
+        warningsQuery =
+          "SELECT * FROM warnings WHERE guild_id = ? AND reason LIKE ? ORDER BY timestamp DESC LIMIT 20";
+        warningsParams = [guildId, `%${query}%`];
       }
 
-      warnQuery += " ORDER BY timestamp DESC LIMIT 20";
-
-      results.warnings = await new Promise((resolve, reject) => {
-        db.db.all(warnQuery, params, (err, rows) => {
+      const warnings = await new Promise((resolve, reject) => {
+        db.db.all(warningsQuery, warningsParams, (err, rows) => {
           if (err) reject(err);
           else resolve(rows || []);
         });
       });
+
+      results.warnings = warnings;
+      results.total += warnings.length;
     }
 
-    const totalResults =
-      results.cases.length +
-      results.notes.length +
-      results.warnings.length +
-      results.security.length;
-
-    if (totalResults === 0) {
-      return interaction.editReply({
-        content: `❌ No results found for "${query}"`,
-      });
-    }
-
-    const embed = new EmbedBuilder()
-      .setTitle(`🔍 Search Results for "${query}"`)
-      .setDescription(`Found **${totalResults}** result(s)`)
-      .setColor(0x0099ff)
-      .setTimestamp();
-
-    if (results.cases.length > 0) {
-      embed.addFields({
-        name: `📋 Cases (${results.cases.length})`,
-        value: results.cases
-          .slice(0, 5)
-          .map(
-            (c) =>
-              `**#${c.id}** ${c.action.toUpperCase()} - <@${c.user_id}> - ${
-                c.reason?.slice(0, 50) || "No reason"
-              }`
-          )
-          .join("\n"),
-        inline: false,
-      });
-    }
-
-    if (results.notes.length > 0) {
-      embed.addFields({
-        name: `📝 Notes (${results.notes.length})`,
-        value: results.notes
-          .slice(0, 5)
-          .map(
-            (n) => `**#${n.id}** <@${n.user_id}> - ${n.note.slice(0, 50)}...`
-          )
-          .join("\n"),
-        inline: false,
-      });
-    }
-
-    if (results.warnings.length > 0) {
-      embed.addFields({
-        name: `⚠️ Warnings (${results.warnings.length})`,
-        value: results.warnings
-          .slice(0, 5)
-          .map(
-            (w) =>
-              `**#${w.id}** <@${w.user_id}> - ${
-                w.reason?.slice(0, 50) || "No reason"
-              }`
-          )
-          .join("\n"),
-        inline: false,
-      });
-    }
-
-    await interaction.editReply({ embeds: [embed] });
+    return results;
   },
 };

@@ -82,15 +82,87 @@ module.exports = {
       )
       .setTimestamp();
 
+    // Add predictive insights
+    const insights = [];
     if (predictions.raidLikelihood > 50) {
+      insights.push("🔴 High raid risk detected - Consider lockdown mode");
       embed.addFields({
-        name: "⚠️ Recommendation",
+        name: "⚠️ Immediate Action Recommended",
         value:
-          "Consider enabling lockdown mode or increasing anti-raid sensitivity",
+          "• Enable lockdown: `/lockdown enable`\n• Increase anti-raid sensitivity\n• Monitor join rate closely",
+        inline: false,
+      });
+    } else if (predictions.raidLikelihood > 30) {
+      insights.push("🟡 Moderate raid risk - Monitor closely");
+      embed.addFields({
+        name: "💡 Preventive Measures",
+        value:
+          "• Review recent joins: `/scan recent`\n• Check threat network: `/threatnet check`\n• Consider increasing join gate strictness",
+        inline: false,
+      });
+    }
+
+    if (predictions.nukeLikelihood > 40) {
+      insights.push("🔴 High nuke risk - Review admin permissions");
+      embed.addFields({
+        name: "🛡️ Nuke Protection",
+        value:
+          "• Review admin roles: `/security audit`\n• Enable rescue key: `/rescue generate`\n• Check role hierarchy",
+        inline: false,
+      });
+    }
+
+    // Add trend analysis if available
+    const trends = await this.analyzeTrends(interaction.guild.id);
+    if (trends) {
+      embed.addFields({
+        name: "📈 Trend Analysis",
+        value: trends,
         inline: false,
       });
     }
 
     await interaction.editReply({ embeds: [embed] });
+  },
+
+  async analyzeTrends(guildId) {
+    try {
+      const db = require("../utils/database");
+
+      // Get join rate trend (last 7 days vs previous 7 days)
+      const recentJoins = await new Promise((resolve, reject) => {
+        db.db.get(
+          "SELECT COUNT(*) as count FROM anti_raid_logs WHERE guild_id = ? AND timestamp > ? AND timestamp < ?",
+          [guildId, Date.now() - 604800000, Date.now() - 172800000],
+          (err, row) => {
+            if (err) reject(err);
+            else resolve(row?.count || 0);
+          }
+        );
+      });
+
+      const previousJoins = await new Promise((resolve, reject) => {
+        db.db.get(
+          "SELECT COUNT(*) as count FROM anti_raid_logs WHERE guild_id = ? AND timestamp > ? AND timestamp < ?",
+          [guildId, Date.now() - 1209600000, Date.now() - 604800000],
+          (err, row) => {
+            if (err) reject(err);
+            else resolve(row?.count || 0);
+          }
+        );
+      });
+
+      if (recentJoins > previousJoins * 1.5) {
+        return `⚠️ Join rate increased ${Math.round(
+          ((recentJoins - previousJoins) / previousJoins) * 100
+        )}% - Potential raid preparation`;
+      } else if (recentJoins < previousJoins * 0.5) {
+        return `✅ Join rate decreased - Server activity normalizing`;
+      }
+
+      return null;
+    } catch (error) {
+      return null;
+    }
   },
 };

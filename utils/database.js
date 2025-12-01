@@ -409,6 +409,25 @@ class Database {
             )
         `);
 
+    // API audit logs - track all API usage
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS api_audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                api_key_id INTEGER,
+                guild_id TEXT,
+                endpoint TEXT,
+                method TEXT,
+                ip_address TEXT,
+                user_agent TEXT,
+                request_data TEXT,
+                response_status INTEGER,
+                data_accessed TEXT,
+                permissions_used TEXT,
+                timestamp INTEGER,
+                created_by_user_id TEXT
+            )
+        `);
+
     // API keys for REST API
     this.db.run(`
             CREATE TABLE IF NOT EXISTS api_keys (
@@ -540,6 +559,19 @@ class Database {
                 processed INTEGER DEFAULT 0,
                 processed_by TEXT,
                 processed_at INTEGER
+            )
+        `);
+
+    // Scheduled reports
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS scheduled_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                frequency TEXT,
+                channel_id TEXT,
+                next_run INTEGER,
+                enabled INTEGER DEFAULT 1,
+                created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
             )
         `);
 
@@ -1177,6 +1209,63 @@ class Database {
         (err) => {
           if (err) reject(err);
           else resolve();
+        }
+      );
+    });
+  }
+
+  async logAPIRequest(
+    apiKeyId,
+    guildId,
+    endpoint,
+    method,
+    ipAddress,
+    userAgent,
+    requestData,
+    responseStatus,
+    dataAccessed,
+    permissionsUsed,
+    createdByUserId
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        `INSERT INTO api_audit_logs (api_key_id, guild_id, endpoint, method, ip_address, user_agent, request_data, response_status, data_accessed, permissions_used, timestamp, created_by_user_id) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          apiKeyId,
+          guildId,
+          endpoint,
+          method,
+          ipAddress,
+          userAgent,
+          JSON.stringify(requestData || {}),
+          responseStatus,
+          JSON.stringify(dataAccessed || []),
+          JSON.stringify(permissionsUsed || []),
+          Date.now(),
+          createdByUserId,
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  }
+
+  async getAPIAuditLogs(guildId, limit = 100, offset = 0) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        `SELECT al.*, ak.name as api_key_name, ak.permissions as api_key_permissions 
+         FROM api_audit_logs al 
+         LEFT JOIN api_keys ak ON al.api_key_id = ak.id 
+         WHERE al.guild_id = ? 
+         ORDER BY al.timestamp DESC 
+         LIMIT ? OFFSET ?`,
+        [guildId, limit, offset],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
         }
       );
     });
