@@ -96,6 +96,7 @@ module.exports = {
   },
 
   async handleQuickAction(interaction, action) {
+    // Defer reply to allow time to process
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     switch (action) {
@@ -167,6 +168,17 @@ module.exports = {
           .setTimestamp();
 
         await interaction.editReply({ embeds: [securityEmbed] });
+        break;
+
+      case "dashboard":
+        // Redirect to dashboard command
+        const dashboardEmbed = new EmbedBuilder()
+          .setTitle("📊 Dashboard")
+          .setDescription("Use `/dashboard` to view the server dashboard.")
+          .setColor(0x5865f2)
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [dashboardEmbed] });
         break;
     }
   },

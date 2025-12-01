@@ -1009,6 +1009,36 @@ class Database {
         }
       }
     );
+
+    // Migration: Add suggestions_channel_id column
+    this.db.run(
+      `ALTER TABLE server_config ADD COLUMN suggestions_channel_id TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          console.error("Error adding suggestions_channel_id column:", err);
+        }
+      }
+    );
+
+    // Migration: Add join_lock_enabled column
+    this.db.run(
+      `ALTER TABLE server_config ADD COLUMN join_lock_enabled INTEGER DEFAULT 0`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          console.error("Error adding join_lock_enabled column:", err);
+        }
+      }
+    );
+
+    // Migration: Add auto_recovery_enabled column
+    this.db.run(
+      `ALTER TABLE server_config ADD COLUMN auto_recovery_enabled INTEGER DEFAULT 1`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          console.error("Error adding auto_recovery_enabled column:", err);
+        }
+      }
+    );
   }
 
   // Server config methods

@@ -257,6 +257,41 @@ module.exports = {
           return;
         }
 
+        // Handle quick command buttons
+        if (
+          interaction.customId &&
+          interaction.customId.startsWith("quick_")
+        ) {
+          const quickCommand = client.commands.get("quick");
+          if (quickCommand) {
+            try {
+              const action = interaction.customId.replace("quick_", "");
+              // For ephemeral messages, we can't update them, so just reply with a new message
+              await quickCommand.handleQuickAction(interaction, action);
+            } catch (error) {
+              logger.error("Error handling quick action:", error);
+              const ErrorHandler = require("../utils/errorHandler");
+              ErrorHandler.logError(
+                error,
+                "interactionCreate",
+                "Handle quick action button"
+              );
+              if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                  content: "❌ An error occurred processing this action.",
+                  flags: MessageFlags.Ephemeral,
+                });
+              } else {
+                await interaction.followUp({
+                  content: "❌ An error occurred processing this action.",
+                  flags: MessageFlags.Ephemeral,
+                });
+              }
+            }
+          }
+          return;
+        }
+
         // Handle dashboard buttons
         if (
           interaction.customId &&
