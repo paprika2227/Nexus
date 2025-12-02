@@ -107,11 +107,11 @@ module.exports = {
         );
       });
 
-      const message = await interaction.reply({
+      await interaction.reply({
         embeds: [embed],
         components: [buttons],
-        fetchReply: true,
       });
+      const message = await interaction.fetchReply();
 
       // Save to database
       for (let i = 0; i < roles.length; i++) {

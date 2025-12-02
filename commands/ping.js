@@ -6,9 +6,11 @@ module.exports = {
     .setDescription("Check how Nexus is doing!"),
 
   async execute(interaction) {
-    const sent = await interaction.deferReply({ fetchReply: true });
-
-    const roundtrip = sent.createdTimestamp - interaction.createdTimestamp;
+    const interactionTime = interaction.createdTimestamp;
+    await interaction.deferReply();
+    
+    // Calculate roundtrip from interaction creation to now
+    const roundtrip = Date.now() - interactionTime;
     const wsPing = interaction.client.ws.ping;
 
     const embed = new EmbedBuilder()

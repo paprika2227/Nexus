@@ -50,6 +50,17 @@ module.exports = {
             .setRequired(true)
         )
     )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("reroll")
+        .setDescription("Reroll winners for an ended giveaway")
+        .addStringOption((option) =>
+          option
+            .setName("message_id")
+            .setDescription("Giveaway message ID")
+            .setRequired(true)
+        )
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 
   async execute(interaction) {
@@ -79,11 +90,11 @@ module.exports = {
           .setEmoji("🎉")
       );
 
-      const message = await interaction.reply({
+      await interaction.reply({
         embeds: [embed],
         components: [button],
-        fetchReply: true,
       });
+      const message = await interaction.fetchReply();
 
       // Save to database
       await new Promise((resolve, reject) => {
@@ -116,6 +127,20 @@ module.exports = {
         content: "✅ Giveaway ended!",
         flags: MessageFlags.Ephemeral,
       });
+    } else if (subcommand === "reroll") {
+      const messageId = interaction.options.getString("message_id");
+      const result = await this.rerollGiveaway(interaction.client, messageId);
+      if (result.success) {
+        await interaction.reply({
+          content: `✅ Rerolled! New winners: ${result.winnerMentions}`,
+          flags: MessageFlags.Ephemeral,
+        });
+      } else {
+        await interaction.reply({
+          content: `❌ ${result.error}`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
     }
   },
 
@@ -178,16 +203,109 @@ module.exports = {
       content: `🎉 Congratulations ${winnerMentions}! You won: **${giveaway.prize}**`,
     });
 
-    // Delete from database
+    // Update database - mark as ended and store winners (don't delete for reroll capability)
     await new Promise((resolve, reject) => {
       db.db.run(
-        "DELETE FROM giveaways WHERE message_id = ?",
-        [messageId],
+        "UPDATE giveaways SET ends_at = -1, requirements = ? WHERE message_id = ?",
+        [JSON.stringify(winners), messageId],
         (err) => {
           if (err) reject(err);
           else resolve();
         }
       );
     });
+  },
+
+  async rerollGiveaway(client, messageId) {
+    const giveaway = await new Promise((resolve, reject) => {
+      db.db.get(
+        "SELECT * FROM giveaways WHERE message_id = ?",
+        [messageId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (!giveaway) {
+      return { success: false, error: "Giveaway not found!" };
+    }
+
+    // Check if giveaway has ended (ends_at = -1 means ended)
+    if (giveaway.ends_at !== -1) {
+      return {
+        success: false,
+        error: "Giveaway hasn't ended yet! Use /giveaway end first.",
+      };
+    }
+
+    const entries = JSON.parse(giveaway.entries || "[]");
+    if (entries.length === 0) {
+      return { success: false, error: "No entries to reroll from!" };
+    }
+
+    // Get previous winners from requirements field (we stored them there)
+    const previousWinners = JSON.parse(giveaway.requirements || "[]");
+
+    // Filter out previous winners from entries
+    let availableEntries = entries.filter(
+      (id) => !previousWinners.includes(id)
+    );
+
+    // If there aren't enough unique entries, allow rerolling from all entries
+    // (including previous winners) to ensure we can always reroll
+    if (availableEntries.length < giveaway.winners) {
+      availableEntries = entries; // Use all entries if not enough unique ones
+    }
+
+    if (availableEntries.length === 0) {
+      return { success: false, error: "No entries available to reroll!" };
+    }
+
+    // Select new winners
+    const winners = [];
+    const winnerCount = Math.min(giveaway.winners, availableEntries.length);
+    const entriesCopy = [...availableEntries];
+
+    for (let i = 0; i < winnerCount; i++) {
+      const randomIndex = Math.floor(Math.random() * entriesCopy.length);
+      winners.push(entriesCopy.splice(randomIndex, 1)[0]);
+    }
+
+    const channel = await client.channels.fetch(giveaway.channel_id);
+    const message = await channel.messages.fetch(messageId);
+    const winnerMentions = winners.map((id) => `<@${id}>`).join(", ");
+
+    // Update message
+    await message.edit({
+      embeds: [
+        {
+          title: "🎉 Giveaway Ended! (Rerolled)",
+          description: `**Prize:** ${giveaway.prize}\n**Winners:** ${winnerMentions}`,
+          color: 0x00ff00,
+        },
+      ],
+      components: [],
+    });
+
+    // Send reroll announcement
+    await channel.send({
+      content: `🎲 Rerolled! New winners: ${winnerMentions}! You won: **${giveaway.prize}**`,
+    });
+
+    // Update database with new winners
+    await new Promise((resolve, reject) => {
+      db.db.run(
+        "UPDATE giveaways SET requirements = ? WHERE message_id = ?",
+        [JSON.stringify(winners), messageId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+
+    return { success: true, winnerMentions };
   },
 };
