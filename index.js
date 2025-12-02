@@ -331,7 +331,10 @@ if (!process.env.USING_SHARDING && process.env.DISCORDBOTS_TOKEN) {
   client.once("clientReady", () => {
     try {
       const DiscordBots = require("./utils/discordbots");
-      const discordBots = new DiscordBots(client, process.env.DISCORDBOTS_TOKEN);
+      const discordBots = new DiscordBots(
+        client,
+        process.env.DISCORDBOTS_TOKEN
+      );
       discordBots.initialize();
       client.discordBots = discordBots;
     } catch (error) {
@@ -345,7 +348,10 @@ if (!process.env.USING_SHARDING && process.env.BOTSONDICORD_TOKEN) {
   client.once("clientReady", () => {
     try {
       const BotsOnDiscord = require("./utils/botsondicord");
-      const botsOnDiscord = new BotsOnDiscord(client, process.env.BOTSONDICORD_TOKEN);
+      const botsOnDiscord = new BotsOnDiscord(
+        client,
+        process.env.BOTSONDICORD_TOKEN
+      );
       botsOnDiscord.initialize();
       client.botsOnDiscord = botsOnDiscord;
     } catch (error) {
