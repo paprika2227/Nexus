@@ -1,0 +1,15 @@
+{
+  "name": "nexus-verification",
+  "version": "1.0.0",
+  "description": "Web verification page for Nexus Bot",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@vercel/node": "^3.0.0"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}
+

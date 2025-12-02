@@ -257,7 +257,7 @@ class VerificationSystem {
       // Web verification URL (would be your website)
       const webUrl =
         process.env.VERIFICATION_WEB_URL ||
-        `https://nexus-bot.vercel.app/verify?token=${token}&id=${verificationId}`;
+        `https://vercel-verification.vercel.app?token=${token}&id=${verificationId}`;
 
       const embed = new EmbedBuilder()
         .setTitle("🔒 Web Verification Required")
