@@ -297,69 +297,8 @@ if (!process.env.USING_SHARDING && process.env.TOPGG_TOKEN) {
   }
 }
 
-// Initialize Discord Bot List stats posting (for non-sharded mode)
-// Note: For sharded mode, Discord Bot List is initialized in shard.js
-if (!process.env.USING_SHARDING && process.env.DISCORDBOTLIST_TOKEN) {
-  client.once("clientReady", () => {
-    try {
-      const DiscordBotList = require("./utils/discordbotlist");
-      const dbl = new DiscordBotList(client, process.env.DISCORDBOTLIST_TOKEN);
-      dbl.initialize();
-      client.discordBotList = dbl;
-    } catch (error) {
-      logger.error("[Discord Bot List] Failed to initialize:", error);
-    }
-  });
-}
-
-// Initialize Void Bots stats posting (for non-sharded mode)
-if (!process.env.USING_SHARDING && process.env.VOIDBOTS_TOKEN) {
-  client.once("clientReady", () => {
-    try {
-      const VoidBots = require("./utils/voidbots");
-      const voidBots = new VoidBots(client, process.env.VOIDBOTS_TOKEN);
-      voidBots.initialize();
-      client.voidBots = voidBots;
-    } catch (error) {
-      logger.error("[Void Bots] Failed to initialize:", error);
-    }
-  });
-}
-
-// Initialize Discord Bots (discord.bots.gg) stats posting (for non-sharded mode)
-if (!process.env.USING_SHARDING && process.env.DISCORDBOTS_TOKEN) {
-  client.once("clientReady", () => {
-    try {
-      const DiscordBots = require("./utils/discordbots");
-      const discordBots = new DiscordBots(
-        client,
-        process.env.DISCORDBOTS_TOKEN
-      );
-      discordBots.initialize();
-      client.discordBots = discordBots;
-    } catch (error) {
-      logger.error("[Discord Bots] Failed to initialize:", error);
-    }
-  });
-}
-
-// Initialize Bots on Discord stats posting (for non-sharded mode)
-if (!process.env.USING_SHARDING && process.env.BOTSONDICORD_TOKEN) {
-  client.once("clientReady", () => {
-    try {
-      const BotsOnDiscord = require("./utils/botsondicord");
-      const botsOnDiscord = new BotsOnDiscord(
-        client,
-        process.env.BOTSONDICORD_TOKEN
-      );
-      botsOnDiscord.initialize();
-      client.botsOnDiscord = botsOnDiscord;
-    } catch (error) {
-      logger.error("[Bots on Discord] Failed to initialize:", error);
-    }
-  });
-}
-
+// Bot list stats posting initialization moved to events/ready.js
+// This keeps all ready event handling in one place
 
 // Top.gg webhook server removed - not using webhooks
 

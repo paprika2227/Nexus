@@ -154,13 +154,121 @@ if (process.env.DISCORDBOTLIST_TOKEN) {
 if (process.env.VOIDBOTS_TOKEN) {
   let voidbotsInterval = null;
   let botId = null;
+  let voidbotsInitialized = false;
+  let lastPostTime = 0; // Module-level to persist across restarts
+  let isPosting = false; // Module-level lock
+  const MIN_POST_INTERVAL = 200000; // 3 minutes 20 seconds - add buffer to be safe (200000ms)
 
-  // Wait for manager to be ready, then start posting stats
+  const postStats = async () => {
+    // Prevent concurrent execution - CRITICAL
+    if (isPosting) {
+      return;
+    }
+
+    // Rate limiting: ensure at least 3 minutes between posts
+    const now = Date.now();
+    const timeSinceLastPost = now - lastPostTime;
+
+    if (timeSinceLastPost < MIN_POST_INTERVAL && lastPostTime > 0) {
+      const waitTime = MIN_POST_INTERVAL - timeSinceLastPost;
+      console.log(
+        `⏳ [VoidBots] Rate limited, waiting ${Math.ceil(
+          waitTime / 1000
+        )}s before posting...`
+      );
+      if (voidbotsInterval) {
+        clearInterval(voidbotsInterval);
+        voidbotsInterval = null;
+      }
+      setTimeout(() => {
+        postStats();
+        if (!voidbotsInterval) {
+          voidbotsInterval = setInterval(postStats, 15 * 60 * 1000);
+        }
+      }, waitTime);
+      return;
+    }
+
+    isPosting = true;
+    try {
+      const axios = require("axios");
+      const guilds = await manager.fetchClientValues("guilds.cache.size");
+      const totalGuilds = guilds.reduce((acc, count) => acc + count, 0);
+      const shardCount = manager.totalShards;
+
+      await axios.post(
+        `https://api.voidbots.net/bot/stats/${botId}`,
+        {
+          server_count: totalGuilds,
+          shard_count: shardCount,
+        },
+        {
+          headers: {
+            Authorization: process.env.VOIDBOTS_TOKEN,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      lastPostTime = Date.now();
+      console.log(
+        `📊 [VoidBots] Posted stats: ${totalGuilds} servers, ${shardCount} shards`
+      );
+      isPosting = false;
+
+      // Restart interval if it was cleared
+      if (!voidbotsInterval) {
+        voidbotsInterval = setInterval(postStats, 15 * 60 * 1000);
+      }
+    } catch (error) {
+      isPosting = false;
+      console.error("❌ [VoidBots] Error posting stats:", error.message);
+      if (error.response) {
+        console.error(
+          `❌ [VoidBots] API Error: ${error.response.status} - ${JSON.stringify(
+            error.response.data
+          )}`
+        );
+
+        // If rate limited (429), clear interval and wait before retrying
+        if (error.response.status === 429) {
+          if (voidbotsInterval) {
+            clearInterval(voidbotsInterval);
+            voidbotsInterval = null;
+          }
+          const retryAfter = error.response.headers["retry-after"]
+            ? parseInt(error.response.headers["retry-after"]) * 1000
+            : MIN_POST_INTERVAL;
+          console.log(
+            `⏳ [VoidBots] Rate limited, waiting ${
+              retryAfter / 1000
+            }s before retry...`
+          );
+          // DON'T update lastPostTime here - we didn't actually post!
+          // Only update it when we successfully post
+          // Use a longer retry to be safe (add 10 seconds buffer)
+          const safeRetryAfter = Math.max(retryAfter, MIN_POST_INTERVAL) + 10000;
+          setTimeout(() => {
+            postStats();
+            if (!voidbotsInterval) {
+              voidbotsInterval = setInterval(postStats, 15 * 60 * 1000);
+            }
+          }, safeRetryAfter);
+          return;
+        }
+      }
+    }
+  };
+
+  // Initialize only once when first shard is ready
   manager.once("shardCreate", async (shard) => {
     shard.once("ready", async () => {
+      if (voidbotsInitialized) {
+        return;
+      }
+
       if (!botId) {
         try {
-          // Get bot ID from the first ready shard
           const clientValues = await manager.fetchClientValues("user.id");
           botId = clientValues[0];
         } catch (error) {
@@ -169,81 +277,28 @@ if (process.env.VOIDBOTS_TOKEN) {
         }
       }
 
-      if (!voidbotsInterval) {
-        let lastPostTime = 0;
-        const MIN_POST_INTERVAL = 180000; // 3 minutes minimum per API (180000ms)
+      voidbotsInitialized = true;
 
-        const postStats = async () => {
-          // Rate limiting: ensure at least 3 minutes between posts
-          const now = Date.now();
-          const timeSinceLastPost = now - lastPostTime;
-          
-          if (timeSinceLastPost < MIN_POST_INTERVAL) {
-            const waitTime = MIN_POST_INTERVAL - timeSinceLastPost;
-            console.log(
-              `⏳ [VoidBots] Rate limited, waiting ${Math.ceil(waitTime / 1000)}s before posting...`
-            );
-            setTimeout(postStats, waitTime);
-            return;
-          }
+      // Calculate initial delay - if we posted recently, wait the full interval
+      const now = Date.now();
+      const timeSinceLastPost = now - lastPostTime;
+      const initialDelay =
+        lastPostTime > 0 && timeSinceLastPost < MIN_POST_INTERVAL
+          ? MIN_POST_INTERVAL - timeSinceLastPost + 10000 // Add 10s buffer
+          : MIN_POST_INTERVAL;
 
-          try {
-            const axios = require("axios");
-            const guilds = await manager.fetchClientValues("guilds.cache.size");
-            const totalGuilds = guilds.reduce((acc, count) => acc + count, 0);
-            const shardCount = manager.totalShards;
+      console.log(
+        `✅ [VoidBots] Stats posting initialized (first post in ${Math.ceil(
+          initialDelay / 1000
+        )}s)`
+      );
 
-            await axios.post(
-              `https://api.voidbots.net/bot/stats/${botId}`,
-              {
-                server_count: totalGuilds,
-                shard_count: shardCount,
-              },
-              {
-                headers: {
-                  Authorization: process.env.VOIDBOTS_TOKEN,
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-
-            lastPostTime = Date.now();
-            console.log(
-              `📊 [VoidBots] Posted stats: ${totalGuilds} servers, ${shardCount} shards`
-            );
-          } catch (error) {
-            console.error("❌ [VoidBots] Error posting stats:", error.message);
-            if (error.response) {
-              console.error(
-                `❌ [VoidBots] API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`
-              );
-              
-              // If rate limited (429), wait longer before retrying
-              if (error.response.status === 429) {
-                const retryAfter = error.response.headers["retry-after"] 
-                  ? parseInt(error.response.headers["retry-after"]) * 1000 
-                  : MIN_POST_INTERVAL;
-                console.log(
-                  `⏳ [VoidBots] Rate limited, waiting ${retryAfter / 1000}s before retry...`
-                );
-                lastPostTime = Date.now();
-                setTimeout(postStats, retryAfter);
-                return;
-              }
-            }
-          }
-        };
-
-        // Post after initial delay (don't post immediately to avoid rate limits)
-        // Wait 3 minutes before first post, then post every 15 minutes
-        // Note: API requires 3 minute minimum between posts
-        setTimeout(() => {
-          postStats();
-          voidbotsInterval = setInterval(postStats, 15 * 60 * 1000); // 15 minutes (post less frequently than minimum)
-        }, 180000); // Initial 3 minute delay
-
-        console.log("✅ [VoidBots] Stats posting initialized");
-      }
+      setTimeout(() => {
+        postStats();
+        if (!voidbotsInterval) {
+          voidbotsInterval = setInterval(postStats, 15 * 60 * 1000);
+        }
+      }, initialDelay);
     });
   });
 } else {

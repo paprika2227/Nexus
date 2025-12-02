@@ -224,5 +224,53 @@ module.exports = {
         // Silently continue - not critical
       }
     }
+
+    // Initialize bot list stats posting (for non-sharded mode only)
+    // DO NOT initialize if sharding is enabled - shard.js handles it
+    if (!process.env.USING_SHARDING && !shardInfo.isSharded) {
+      const logger = require("../utils/logger");
+
+      // Initialize Void Bots stats posting
+      if (process.env.VOIDBOTS_TOKEN && !client.voidBots) {
+        try {
+          const VoidBots = require("../utils/voidbots");
+          const voidBots = new VoidBots(client, process.env.VOIDBOTS_TOKEN);
+          voidBots.initialize();
+          client.voidBots = voidBots;
+        } catch (error) {
+          logger.error("[Void Bots] Failed to initialize:", error);
+        }
+      }
+
+      // Initialize Discord Bots (discord.bots.gg) stats posting
+      if (process.env.DISCORDBOTS_TOKEN && !client.discordBots) {
+        try {
+          const DiscordBots = require("../utils/discordbots");
+          const discordBots = new DiscordBots(
+            client,
+            process.env.DISCORDBOTS_TOKEN
+          );
+          discordBots.initialize();
+          client.discordBots = discordBots;
+        } catch (error) {
+          logger.error("[Discord Bots] Failed to initialize:", error);
+        }
+      }
+
+      // Initialize Bots on Discord stats posting
+      if (process.env.BOTSONDICORD_TOKEN && !client.botsOnDiscord) {
+        try {
+          const BotsOnDiscord = require("../utils/botsondicord");
+          const botsOnDiscord = new BotsOnDiscord(
+            client,
+            process.env.BOTSONDICORD_TOKEN
+          );
+          botsOnDiscord.initialize();
+          client.botsOnDiscord = botsOnDiscord;
+        } catch (error) {
+          logger.error("[Bots on Discord] Failed to initialize:", error);
+        }
+      }
+    }
   },
 };
