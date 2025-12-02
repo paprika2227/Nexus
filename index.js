@@ -68,6 +68,8 @@ client.advancedAntiNuke = new AdvancedAntiNuke(client);
 const AutoBackup = require("./utils/autoBackup");
 client.autoBackup = new AutoBackup(client);
 
+// Webhook Server removed - web verification no longer supported
+
 // Performance Monitor
 const PerformanceMonitor = require("./utils/performanceMonitor");
 client.performanceMonitor = new PerformanceMonitor();

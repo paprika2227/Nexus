@@ -94,8 +94,8 @@ class VerificationSystem {
   getVerificationMode(config, member) {
     // Server type scaling
     if (config.verification_server_type === "nft_crypto") {
-      // NFT/Crypto servers: Always use web verification (most secure)
-      return "web";
+      // NFT/Crypto servers: Use captcha (most secure available)
+      return "captcha";
     }
 
     if (config.verification_server_type === "big_server") {
@@ -144,8 +144,6 @@ class VerificationSystem {
           verificationId,
           config
         );
-      case "web":
-        return await this.sendWebVerification(member, verificationId, config);
       case "instant":
         return await this.sendInstantVerification(
           member,
@@ -221,90 +219,7 @@ class VerificationSystem {
     }
   }
 
-  // Send web verification
-  async sendWebVerification(member, verificationId, config) {
-    try {
-      // Generate verification token
-      const token = crypto.randomBytes(32).toString("hex");
-      this.captchaCodes.set(verificationId, token);
-
-      // Store token in database for web verification
-      await new Promise((resolve, reject) => {
-        db.db.run(
-          "INSERT INTO verification_tokens (guild_id, user_id, token, verification_id, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
-          [
-            member.guild.id,
-            member.id,
-            token,
-            verificationId,
-            Date.now(),
-            Date.now() + 3600000, // 1 hour expiry
-          ],
-          (err) => {
-            if (err) reject(err);
-            else resolve();
-          }
-        );
-      });
-
-      const {
-        EmbedBuilder,
-        ActionRowBuilder,
-        ButtonBuilder,
-        ButtonStyle,
-      } = require("discord.js");
-
-      // Web verification URL (would be your website)
-      const webUrl =
-        process.env.VERIFICATION_WEB_URL ||
-        `https://nexus-bot.vercel.app/verify?token=${token}&id=${verificationId}`;
-
-      const embed = new EmbedBuilder()
-        .setTitle("🔒 Web Verification Required")
-        .setDescription(
-          config.verification_message ||
-            "Please complete web verification to verify your account.\n\n" +
-              "Click the button below to open the verification page in your browser."
-        )
-        .setColor(0x0099ff)
-        .setFooter({ text: "You have 1 hour to complete verification" })
-        .setTimestamp();
-
-      const button = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setLabel("Verify on Website")
-          .setStyle(ButtonStyle.Link)
-          .setURL(webUrl)
-          .setEmoji("🌐")
-      );
-
-      const dmChannel = await member.createDM().catch(() => null);
-      if (dmChannel) {
-        await dmChannel.send({ embeds: [embed], components: [button] });
-        return { sent: true, channel: "dm", token: token };
-      } else {
-        const verificationChannel = config.verification_channel
-          ? member.guild.channels.cache.get(config.verification_channel)
-          : null;
-
-        if (verificationChannel) {
-          await verificationChannel.send({
-            content: `${member}, please verify:`,
-            embeds: [embed],
-            components: [button],
-          });
-          return { sent: true, channel: "guild", token: token };
-        }
-      }
-
-      return { sent: false, reason: "Could not send verification message" };
-    } catch (error) {
-      logger.error(`[Verification] Error sending web verification:`, error);
-      return { sent: false, reason: error.message };
-    }
-  }
-
-  // Send instant verification (button click)
+// Send instant verification (button click)
   async sendInstantVerification(member, verificationId, config) {
     try {
       const {
@@ -364,8 +279,8 @@ class VerificationSystem {
       return { success: false, reason: "Verification not found or expired" };
     }
 
-    // Check expiry (5 minutes for captcha/instant, 1 hour for web)
-    const expiry = verification.mode === "web" ? 3600000 : 300000;
+    // Check expiry (5 minutes for captcha/instant)
+    const expiry = 300000;
     if (Date.now() - verification.startedAt > expiry) {
       this.pendingVerifications.delete(verificationId);
       return { success: false, reason: "Verification expired" };
@@ -377,12 +292,6 @@ class VerificationSystem {
       if (answer.toLowerCase().trim() !== correctAnswer.toLowerCase().trim()) {
         return { success: false, reason: "Incorrect answer" };
       }
-    }
-
-    // Verify token for web
-    if (verification.mode === "web") {
-      // Token verification would happen on web server
-      // For now, we'll accept it if verification exists
     }
 
     // Give role
@@ -425,7 +334,7 @@ class VerificationSystem {
   cleanup() {
     const now = Date.now();
     for (const [id, verification] of this.pendingVerifications.entries()) {
-      const expiry = verification.mode === "web" ? 3600000 : 300000;
+      const expiry = 300000; // 5 minutes
       if (now - verification.startedAt > expiry) {
         this.pendingVerifications.delete(id);
         this.captchaCodes.delete(id);

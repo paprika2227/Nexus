@@ -30,8 +30,7 @@ module.exports = {
             .setRequired(false)
             .addChoices(
               { name: "Instant (Button Click)", value: "instant" },
-              { name: "Captcha (Math/Text)", value: "captcha" },
-              { name: "Web Verification", value: "web" }
+              { name: "Captcha (Math/Text)", value: "captcha" }
             )
         )
         .addStringOption((option) =>
@@ -103,7 +102,6 @@ module.exports = {
       const modeDescriptions = {
         instant: "Button click verification (fastest)",
         captcha: "Math/Text captcha verification (balanced)",
-        web: "Web-based verification (most secure)",
       };
 
       const targetDescriptions = {
@@ -125,7 +123,10 @@ module.exports = {
         .setColor(0x00ff00)
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+      await interaction.reply({
+        embeds: [embed],
+        flags: MessageFlags.Ephemeral,
+      });
     } else if (subcommand === "disable") {
       await db.setServerConfig(interaction.guild.id, {
         verification_enabled: 0,
@@ -140,7 +141,8 @@ module.exports = {
 
       if (!config || !config.verification_enabled) {
         await interaction.reply({
-          content: "❌ Verification system is not enabled. Use `/verify setup` to configure it.",
+          content:
+            "❌ Verification system is not enabled. Use `/verify setup` to configure it.",
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -149,7 +151,6 @@ module.exports = {
       const modeDescriptions = {
         instant: "Button click verification",
         captcha: "Math/Text captcha verification",
-        web: "Web-based verification",
       };
 
       const targetDescriptions = {
@@ -169,9 +170,15 @@ module.exports = {
         .setDescription(
           `**Status:** ✅ Enabled\n\n` +
             `**Role:** ${role || "Not set"}\n` +
-            `**Mode:** ${modeDescriptions[config.verification_mode] || "Instant"}\n` +
-            `**Target:** ${targetDescriptions[config.verification_target] || "Everyone"}\n` +
-            `**Server Type:** ${config.verification_server_type || "Standard"}\n` +
+            `**Mode:** ${
+              modeDescriptions[config.verification_mode] || "Instant"
+            }\n` +
+            `**Target:** ${
+              targetDescriptions[config.verification_target] || "Everyone"
+            }\n` +
+            `**Server Type:** ${
+              config.verification_server_type || "Standard"
+            }\n` +
             (channel ? `**Channel:** ${channel}\n` : "**Channel:** Not set\n") +
             (config.verification_message
               ? `**Message:** ${config.verification_message}\n`
@@ -180,7 +187,10 @@ module.exports = {
         .setColor(0x0099ff)
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+      await interaction.reply({
+        embeds: [embed],
+        flags: MessageFlags.Ephemeral,
+      });
     }
   },
 };
