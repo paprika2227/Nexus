@@ -239,18 +239,18 @@ class DiscordBotList {
         return true;
       }
 
-      // Fallback to direct API call if dbl not initialized
-      // According to docs: Authorization header should be the token
-      const response = await axios.post(
-        `https://discordbotlist.com/api/v1/bots/${this.client.user.id}/commands`,
-        commands,
-        {
-          headers: {
-            Authorization: this.token,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      // // Fallback to direct API call if dbl not initialized
+      // // According to docs: Authorization header should be the token
+      // const response = await axios.post(
+      //   `https://discordbotlist.com/api/v1/bots/${this.client.user.id}/commands`,
+      //   commands,
+      //   {
+      //     headers: {
+      //       Authorization: this.token,
+      //       "Content-Type": "application/json",
+      //     },
+      //   }
+      // );
 
       logger.info(
         `[Discord Bot List] Posted ${commands.length} commands successfully`

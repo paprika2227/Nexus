@@ -259,9 +259,9 @@ client.checkAntiNuke = async (guild, user, action) => {
       }
 
       return true;
-      } catch (err) {
-        logger.error("Anti-nuke action failed:", err);
-      }
+    } catch (err) {
+      logger.error("Anti-nuke action failed:", err);
+    }
   }
 
   client.antiRaid.suspiciousUsers.set(key, data);
@@ -276,9 +276,7 @@ if (!process.env.USING_SHARDING && process.env.TOPGG_TOKEN) {
     const ap = AutoPoster(process.env.TOPGG_TOKEN, client);
 
     ap.on("posted", (stats) => {
-      logger.info(
-        `[Top.gg] Posted stats: ${stats.serverCount} servers`
-      );
+      logger.info(`[Top.gg] Posted stats: ${stats.serverCount} servers`);
     });
 
     ap.on("error", (error) => {
