@@ -57,10 +57,12 @@ class DashboardServer {
         return next();
       }
 
+      // Get real IP - check X-Forwarded-For FIRST (for ngrok/proxies)
       const ip =
+        req.headers["x-forwarded-for"]?.split(',')[0].trim() || // Real IP from proxy
+        req.headers["x-real-ip"] || // Alternative header
         req.ip ||
-        req.connection.remoteAddress ||
-        req.headers["x-forwarded-for"];
+        req.connection.remoteAddress;
       const cleanIP = ip?.replace("::ffff:", "") || "unknown";
 
       // Rate limit: 100 requests per minute per IP
@@ -1594,7 +1596,12 @@ class DashboardServer {
     this.app.post("/api/track-invite-click", async (req, res) => {
       try {
         const { source } = req.body;
-        const ipAddress = req.ip || req.connection.remoteAddress;
+        // Get real IP from proxy headers
+        const ipAddress = 
+          req.headers["x-forwarded-for"]?.split(',')[0].trim() ||
+          req.headers["x-real-ip"] ||
+          req.ip || 
+          req.connection.remoteAddress;
         const userAgent = req.headers["user-agent"];
 
         if (source) {
