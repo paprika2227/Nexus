@@ -172,10 +172,13 @@ async function fetchTopGGStats() {
   }
 }
 
-// Fetch security analytics from bot
+// Fetch REAL security analytics from bot API
 async function fetchSecurityAnalytics() {
   try {
-    const response = await fetch(API_URL, {
+    const SECURITY_URL = "https://regular-puma-clearly.ngrok-free.app/api/v1/security-analytics";
+    console.log("🔄 Fetching security analytics from:", SECURITY_URL);
+    
+    const response = await fetch(SECURITY_URL, {
       mode: "cors",
       headers: {
         Accept: "application/json",
@@ -185,17 +188,9 @@ async function fetchSecurityAnalytics() {
 
     if (response.ok) {
       const data = await response.json();
-      
-      // Calculate security stats based on server count
-      const totalServers = data.servers || 0;
-      const protectedServers = totalServers; // All servers have some protection
-      const avgSecurityScore = 75; // Estimated average
-      const antiNukeServers = Math.floor(totalServers * 0.85); // ~85% enable anti-nuke
-      const antiRaidServers = Math.floor(totalServers * 0.90); // ~90% enable anti-raid
-      const autoModServers = Math.floor(totalServers * 0.60); // ~60% enable auto-mod
-      const activeThreats = Math.floor(Math.random() * 5); // Random 0-5
+      console.log("📊 Received security analytics:", data);
 
-      // Update security analytics
+      // Update security analytics with REAL data
       const protectedEl = document.getElementById("protected-servers");
       const avgScoreEl = document.getElementById("avg-security-score");
       const antiNukeEl = document.getElementById("servers-anti-nuke");
@@ -204,15 +199,15 @@ async function fetchSecurityAnalytics() {
       const activeThreatsEl = document.getElementById("active-threats");
       const threatUpdateEl = document.getElementById("threat-update");
 
-      if (protectedEl) protectedEl.textContent = protectedServers;
-      if (avgScoreEl) avgScoreEl.textContent = avgSecurityScore + "%";
-      if (antiNukeEl) antiNukeEl.textContent = antiNukeServers;
-      if (antiRaidEl) antiRaidEl.textContent = antiRaidServers;
-      if (autoModEl) autoModEl.textContent = autoModServers;
-      if (activeThreatsEl) activeThreatsEl.textContent = activeThreats;
+      if (protectedEl) protectedEl.textContent = data.protectedServers || 0;
+      if (avgScoreEl) avgScoreEl.textContent = (data.averageSecurityScore || 0) + "%";
+      if (antiNukeEl) antiNukeEl.textContent = data.serversWithAntiNuke || 0;
+      if (antiRaidEl) antiRaidEl.textContent = data.serversWithAntiRaid || 0;
+      if (autoModEl) autoModEl.textContent = data.serversWithAutoMod || 0;
+      if (activeThreatsEl) activeThreatsEl.textContent = data.activeThreats || 0;
       if (threatUpdateEl) threatUpdateEl.textContent = new Date().toLocaleTimeString();
 
-      console.log("✅ Security analytics updated");
+      console.log("✅ Security analytics updated with REAL data");
     }
   } catch (error) {
     console.log("⚠️ Could not fetch security analytics:", error.message);

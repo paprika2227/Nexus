@@ -884,6 +884,85 @@ class DashboardServer {
       }
     );
 
+    // GET /api/v1/security-analytics - Get real security analytics
+    this.app.get("/api/v1/security-analytics", async (req, res) => {
+      try {
+        const totalServers = this.client.guilds.cache.size;
+
+        // Count servers with each feature enabled
+        const antiNukeCount = await new Promise((resolve) => {
+          db.db.get(
+            "SELECT COUNT(*) as count FROM server_config WHERE anti_nuke_enabled = 1",
+            [],
+            (err, row) => {
+              if (err) resolve(0);
+              else resolve(row?.count || 0);
+            }
+          );
+        });
+
+        const antiRaidCount = await new Promise((resolve) => {
+          db.db.get(
+            "SELECT COUNT(*) as count FROM server_config WHERE anti_raid_enabled = 1",
+            [],
+            (err, row) => {
+              if (err) resolve(0);
+              else resolve(row?.count || 0);
+            }
+          );
+        });
+
+        const autoModCount = await new Promise((resolve) => {
+          db.db.get(
+            "SELECT COUNT(*) as count FROM server_config WHERE auto_mod_enabled = 1",
+            [],
+            (err, row) => {
+              if (err) resolve(0);
+              else resolve(row?.count || 0);
+            }
+          );
+        });
+
+        // Calculate average security score
+        const avgScore = await new Promise((resolve) => {
+          db.db.get(
+            "SELECT AVG(security_score) as avg FROM server_config",
+            [],
+            (err, row) => {
+              if (err) resolve(0);
+              else resolve(Math.round(row?.avg || 0));
+            }
+          );
+        });
+
+        // Count active threats (recent security logs from last 24h)
+        const last24h = Date.now() - 24 * 60 * 60 * 1000;
+        const activeThreats = await new Promise((resolve) => {
+          db.db.get(
+            `SELECT COUNT(*) as count FROM security_logs 
+             WHERE timestamp > ? AND (action_taken = 'prevented' OR action_taken = 'blocked')`,
+            [last24h],
+            (err, row) => {
+              if (err) resolve(0);
+              else resolve(row?.count || 0);
+            }
+          );
+        });
+
+        res.json({
+          protectedServers: totalServers,
+          averageSecurityScore: avgScore,
+          serversWithAntiNuke: antiNukeCount,
+          serversWithAntiRaid: antiRaidCount,
+          serversWithAutoMod: autoModCount,
+          activeThreats: activeThreats,
+        });
+      } catch (error) {
+        console.error("Security analytics error:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
+
     console.log("[API] Public API v1 endpoints registered");
   }
 
