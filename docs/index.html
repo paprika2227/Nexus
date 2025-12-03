@@ -1400,32 +1400,35 @@
           const message = document.getElementById("newsletterMessage");
 
           try {
-            // Send to API
-            await fetch(
-              "https://regular-puma-clearly.ngrok-free.app/api/v1/feedback",
+            // Send to newsletter API
+            const response = await fetch(
+              "https://regular-puma-clearly.ngrok-free.app/api/v1/newsletter/subscribe",
               {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                   "ngrok-skip-browser-warning": "true",
                 },
-                body: JSON.stringify({
-                  type: "newsletter",
-                  message: `Newsletter signup: ${email}`,
-                  contact: email,
-                }),
+                body: JSON.stringify({ email }),
               }
             );
 
-            message.textContent =
-              "✅ Subscribed! Check your email for confirmation.";
+            const data = await response.json();
+
+            if (data.success) {
+              message.textContent = "✅ Subscribed! You'll get updates about new features.";
+              message.style.color = "#00ff88";
+              document.getElementById("newsletterEmail").value = "";
+            } else {
+              message.textContent = data.error || "Subscription failed";
+              message.style.color = "#ff6b6b";
+            }
+
             message.style.display = "block";
-            message.style.color = "#00ff88";
-            document.getElementById("newsletterEmail").value = "";
           } catch (error) {
-            message.textContent = "✅ Thanks for subscribing!";
+            message.textContent = "❌ Something went wrong. Try again later.";
             message.style.display = "block";
-            message.style.color = "#00ff88";
+            message.style.color = "#ff6b6b";
           }
         });
       }
