@@ -368,7 +368,7 @@ footer p {
 
 .nav-links {
   display: flex;
-  gap: 25px;
+  gap: 35px; /* Better spacing */
   align-items: center;
 }
 
@@ -378,6 +378,8 @@ footer p {
   opacity: 0.8;
   transition: opacity 0.3s;
   font-weight: 500;
+  font-size: 0.95rem; /* Slightly smaller */
+  white-space: nowrap; /* No wrapping */
 }
 
 .nav-links a:hover,
