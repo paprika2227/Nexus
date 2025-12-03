@@ -104,7 +104,7 @@ module.exports = {
           text: "Nexus - Beyond Wick. Free. Open Source. Powerful.",
         });
 
-      const buttons = new ActionRowBuilder().addComponents(
+      const row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("dashboard_security")
           .setLabel("Security")
@@ -121,6 +121,17 @@ module.exports = {
           .setCustomId("dashboard_performance")
           .setLabel("Performance")
           .setStyle(ButtonStyle.Success)
+      );
+
+      const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel("🎛️ Web Dashboard")
+          .setStyle(ButtonStyle.Link)
+          .setURL(process.env.DASHBOARD_URL || "https://regular-puma-clearly.ngrok-free.app"),
+        new ButtonBuilder()
+          .setLabel("🌐 Website")
+          .setStyle(ButtonStyle.Link)
+          .setURL("https://azzraya.github.io/Nexus/")
       );
 
       // Check if this is a button interaction (update) or command (reply)
