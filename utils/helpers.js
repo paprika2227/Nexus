@@ -17,7 +17,10 @@ class DatabaseHelpers {
     return new Promise((resolve, reject) => {
       db.db.run(query, params, function (err) {
         if (err) {
-          logger.error("Database", "Run query failed", { query, error: err.message });
+          logger.error("Database", "Run query failed", {
+            query,
+            error: err.message,
+          });
           reject(err);
         } else {
           resolve({ lastID: this.lastID, changes: this.changes });
@@ -33,7 +36,10 @@ class DatabaseHelpers {
     return new Promise((resolve, reject) => {
       db.db.all(query, params, (err, rows) => {
         if (err) {
-          logger.error("Database", "All query failed", { query, error: err.message });
+          logger.error("Database", "All query failed", {
+            query,
+            error: err.message,
+          });
           reject(err);
         } else {
           resolve(rows || []);
@@ -49,7 +55,10 @@ class DatabaseHelpers {
     return new Promise((resolve, reject) => {
       db.db.get(query, params, (err, row) => {
         if (err) {
-          logger.error("Database", "Get query failed", { query, error: err.message });
+          logger.error("Database", "Get query failed", {
+            query,
+            error: err.message,
+          });
           reject(err);
         } else {
           resolve(row || null);
@@ -105,12 +114,9 @@ class ResponseHelpers {
    * Send validation error
    */
   static validationError(res, fields) {
-    return ResponseHelpers.error(
-      res,
-      "Validation failed",
-      400,
-      { invalidFields: fields }
-    );
+    return ResponseHelpers.error(res, "Validation failed", 400, {
+      invalidFields: fields,
+    });
   }
 }
 
@@ -124,7 +130,11 @@ class ValidationHelpers {
   static validateRequired(data, fields) {
     const missing = [];
     for (const field of fields) {
-      if (data[field] === undefined || data[field] === null || data[field] === "") {
+      if (
+        data[field] === undefined ||
+        data[field] === null ||
+        data[field] === ""
+      ) {
         missing.push(field);
       }
     }
@@ -274,7 +284,7 @@ class FormatHelpers {
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   }
 }
 
@@ -286,4 +296,3 @@ module.exports = {
   time: TimeHelpers,
   format: FormatHelpers,
 };
-

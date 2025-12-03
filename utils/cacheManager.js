@@ -3,14 +3,14 @@
  * Provides intelligent caching with automatic expiration and memory management
  */
 
-const logger = require('./logger');
+const logger = require("./logger");
 
 class CacheManager {
   constructor() {
     this.caches = new Map();
     this.maxCacheSize = 1000; // Maximum items per cache
     this.defaultTTL = 5 * 60 * 1000; // 5 minutes default
-    
+
     // Cleanup interval every minute
     setInterval(() => this.cleanup(), 60 * 1000);
   }
@@ -30,19 +30,22 @@ class CacheManager {
    */
   set(cacheName, key, value, ttl = null) {
     const cache = this.getCache(cacheName);
-    
+
     // Check size limit
     if (cache.size >= this.maxCacheSize) {
       // Remove oldest entry
       const firstKey = cache.keys().next().value;
       cache.delete(firstKey);
-      logger.debug('Cache', `Max size reached for ${cacheName}, removed oldest entry`);
+      logger.debug(
+        "Cache",
+        `Max size reached for ${cacheName}, removed oldest entry`
+      );
     }
 
     cache.set(key, {
       value,
       expires: Date.now() + (ttl || this.defaultTTL),
-      hits: 0
+      hits: 0,
     });
   }
 
@@ -99,7 +102,7 @@ class CacheManager {
 
     if (!pattern) {
       cache.clear();
-      logger.info('Cache', `Cleared all entries in ${cacheName}`);
+      logger.info("Cache", `Cleared all entries in ${cacheName}`);
       return;
     }
 
@@ -109,7 +112,7 @@ class CacheManager {
         cache.delete(key);
       }
     }
-    logger.info('Cache', `Cleared ${cacheName} entries matching: ${pattern}`);
+    logger.info("Cache", `Cleared ${cacheName} entries matching: ${pattern}`);
   }
 
   /**
@@ -129,12 +132,15 @@ class CacheManager {
       }
       if (cleaned > 0) {
         totalCleaned += cleaned;
-        logger.debug('Cache', `Cleaned ${cleaned} expired entries from ${cacheName}`);
+        logger.debug(
+          "Cache",
+          `Cleaned ${cleaned} expired entries from ${cacheName}`
+        );
       }
     }
 
     if (totalCleaned > 0) {
-      logger.debug('Cache', `Total cleaned: ${totalCleaned} expired entries`);
+      logger.debug("Cache", `Total cleaned: ${totalCleaned} expired entries`);
     }
   }
 
@@ -143,7 +149,7 @@ class CacheManager {
    */
   getStats() {
     const stats = {};
-    
+
     for (const [name, cache] of this.caches.entries()) {
       let totalHits = 0;
       let activeEntries = 0;
@@ -160,7 +166,7 @@ class CacheManager {
         size: cache.size,
         activeEntries,
         totalHits,
-        avgHits: activeEntries > 0 ? (totalHits / activeEntries).toFixed(2) : 0
+        avgHits: activeEntries > 0 ? (totalHits / activeEntries).toFixed(2) : 0,
       };
     }
 
@@ -174,10 +180,9 @@ class CacheManager {
     for (const [key, value] of dataMap.entries()) {
       this.set(cacheName, key, value, ttl);
     }
-    logger.info('Cache', `Warmed up ${cacheName} with ${dataMap.size} entries`);
+    logger.info("Cache", `Warmed up ${cacheName} with ${dataMap.size} entries`);
   }
 }
 
 // Export singleton
 module.exports = new CacheManager();
-

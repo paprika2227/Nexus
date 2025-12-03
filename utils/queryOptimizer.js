@@ -3,8 +3,8 @@
  * Provides optimized query patterns and caching
  */
 
-const db = require('./database');
-const logger = require('./logger');
+const db = require("./database");
+const logger = require("./logger");
 
 class QueryOptimizer {
   constructor() {
@@ -23,7 +23,7 @@ class QueryOptimizer {
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
       if (Date.now() < cached.expires) {
-        logger.debug('QueryCache', `Cache hit: ${cacheKey}`);
+        logger.debug("QueryCache", `Cache hit: ${cacheKey}`);
         return cached.data;
       }
       // Expired, remove
@@ -37,13 +37,13 @@ class QueryOptimizer {
 
     // Log slow queries
     if (queryTime > 1000) {
-      logger.warn('SlowQuery', `Query took ${queryTime}ms`, { query, params });
+      logger.warn("SlowQuery", `Query took ${queryTime}ms`, { query, params });
     }
 
     // Cache result
     this.cache.set(cacheKey, {
       data: result,
-      expires: Date.now() + duration
+      expires: Date.now() + duration,
     });
 
     // Track performance
@@ -57,14 +57,23 @@ class QueryOptimizer {
    */
   async executeQuery(query, params = []) {
     return new Promise((resolve, reject) => {
-      const method = query.trim().toUpperCase().startsWith('SELECT') ? 'all' : 'run';
+      const method = query.trim().toUpperCase().startsWith("SELECT")
+        ? "all"
+        : "run";
 
-      db.db[method](query, params, function(err, result) {
+      db.db[method](query, params, function (err, result) {
         if (err) {
-          logger.error('Database', 'Query failed', { query, error: err.message });
+          logger.error("Database", "Query failed", {
+            query,
+            error: err.message,
+          });
           reject(err);
         } else {
-          resolve(method === 'all' ? result : { lastID: this?.lastID, changes: this?.changes });
+          resolve(
+            method === "all"
+              ? result
+              : { lastID: this?.lastID, changes: this?.changes }
+          );
         }
       });
     });
@@ -76,14 +85,18 @@ class QueryOptimizer {
   async batchInsert(table, records, columns) {
     if (!records || records.length === 0) return { inserted: 0 };
 
-    const placeholders = `(${columns.map(() => '?').join(',')})`;
-    const values = records.flatMap(record => columns.map(col => record[col]));
-    
-    const query = `INSERT INTO ${table} (${columns.join(',')}) VALUES ${records.map(() => placeholders).join(',')}`;
+    const placeholders = `(${columns.map(() => "?").join(",")})`;
+    const values = records.flatMap((record) =>
+      columns.map((col) => record[col])
+    );
+
+    const query = `INSERT INTO ${table} (${columns.join(",")}) VALUES ${records
+      .map(() => placeholders)
+      .join(",")}`;
 
     const result = await this.executeQuery(query, values);
-    logger.db('BATCH_INSERT', table);
-    
+    logger.db("BATCH_INSERT", table);
+
     return { inserted: records.length };
   }
 
@@ -93,10 +106,10 @@ class QueryOptimizer {
   async paginatedQuery(query, params, page = 1, limit = 50) {
     const offset = (page - 1) * limit;
     const paginatedQuery = `${query} LIMIT ? OFFSET ?`;
-    
+
     const [data, totalResult] = await Promise.all([
       this.executeQuery(paginatedQuery, [...params, limit, offset]),
-      this.executeQuery(`SELECT COUNT(*) as total FROM (${query})`, params)
+      this.executeQuery(`SELECT COUNT(*) as total FROM (${query})`, params),
     ]);
 
     return {
@@ -106,8 +119,8 @@ class QueryOptimizer {
         limit,
         total: totalResult[0]?.total || 0,
         pages: Math.ceil((totalResult[0]?.total || 0) / limit),
-        hasMore: offset + data.length < (totalResult[0]?.total || 0)
-      }
+        hasMore: offset + data.length < (totalResult[0]?.total || 0),
+      },
     };
   }
 
@@ -117,7 +130,7 @@ class QueryOptimizer {
   clearCache(pattern = null) {
     if (!pattern) {
       this.cache.clear();
-      logger.info('QueryCache', 'Cache cleared completely');
+      logger.info("QueryCache", "Cache cleared completely");
       return;
     }
 
@@ -127,21 +140,21 @@ class QueryOptimizer {
         this.cache.delete(key);
       }
     }
-    logger.info('QueryCache', `Cache cleared for pattern: ${pattern}`);
+    logger.info("QueryCache", `Cache cleared for pattern: ${pattern}`);
   }
 
   /**
    * Track query performance
    */
   trackPerformance(query, duration) {
-    const queryType = query.trim().split(' ')[0].toUpperCase();
-    
+    const queryType = query.trim().split(" ")[0].toUpperCase();
+
     if (!this.performanceMetrics.has(queryType)) {
       this.performanceMetrics.set(queryType, {
         count: 0,
         totalTime: 0,
         avgTime: 0,
-        maxTime: 0
+        maxTime: 0,
       });
     }
 
@@ -161,7 +174,7 @@ class QueryOptimizer {
       stats[type] = {
         ...metrics,
         avgTime: Math.round(metrics.avgTime * 100) / 100,
-        maxTime: Math.round(metrics.maxTime * 100) / 100
+        maxTime: Math.round(metrics.maxTime * 100) / 100,
       };
     }
     return stats;
@@ -170,4 +183,3 @@ class QueryOptimizer {
 
 // Export singleton
 module.exports = new QueryOptimizer();
-
