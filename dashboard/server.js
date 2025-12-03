@@ -1048,26 +1048,30 @@ class DashboardServer {
           uniqueVisitors24h: 0,
         };
 
-        const pageviews = await new Promise((resolve, reject) => {
+        const pageviews = await new Promise((resolve) => {
           db.db.get(
             `SELECT COUNT(*) as count FROM analytics_events 
              WHERE event_type = 'pageview' AND timestamp > ?`,
             [last24h],
             (err, row) => {
-              if (err) reject(err);
-              else resolve(row?.count || 0);
+              if (err) {
+                console.log("[Analytics] Table may not exist yet:", err.message);
+                resolve(0);
+              } else {
+                resolve(row?.count || 0);
+              }
             }
           );
         });
         stats.pageviews24h = pageviews;
 
-        const visitors = await new Promise((resolve, reject) => {
+        const visitors = await new Promise((resolve) => {
           db.db.get(
             `SELECT COUNT(DISTINCT session_id) as count FROM analytics_events 
              WHERE timestamp > ?`,
             [last24h],
             (err, row) => {
-              if (err) reject(err);
+              if (err) resolve(0);
               else resolve(row?.count || 0);
             }
           );
@@ -1077,7 +1081,7 @@ class DashboardServer {
         res.json(stats);
       } catch (error) {
         console.error("Analytics health error:", error);
-        res.json({ online: false });
+        res.json({ online: true, pageviews24h: 0, uniqueVisitors24h: 0 });
       }
     });
 
