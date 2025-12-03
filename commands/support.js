@@ -19,6 +19,7 @@ module.exports = {
         {
           name: "📚 Resources",
           value: [
+            "• **Website** - View features, docs, and live stats",
             "• **Support Server** - Get help from our community",
             "• **Documentation** - Learn how to use Nexus",
             "• **GitHub** - View source code and report issues",
@@ -29,6 +30,7 @@ module.exports = {
         {
           name: "🔗 Quick Links",
           value: [
+            "• [Official Website](https://azzraya.github.io/nexus-bot/)",
             "• [Support Server](https://discord.com/invite/UHNcUKheZP)",
             "• [GitHub Repository](https://github.com/Azzraya/Nexus)",
             "• [Privacy Policy](https://github.com/Azzraya/Nexus/blob/main/PRIVACY_POLICY.md)",
@@ -52,13 +54,18 @@ module.exports = {
       })
       .setTimestamp();
 
+    const websiteButton = new ButtonBuilder()
+      .setLabel("Visit Website")
+      .setURL("https://azzraya.github.io/nexus-bot/")
+      .setStyle(ButtonStyle.Link);
+
     const supportButton = new ButtonBuilder()
-      .setLabel("Join Support Server")
+      .setLabel("Support Server")
       .setURL("https://discord.com/invite/UHNcUKheZP")
       .setStyle(ButtonStyle.Link);
 
     const githubButton = new ButtonBuilder()
-      .setLabel("View on GitHub")
+      .setLabel("GitHub")
       .setURL("https://github.com/Azzraya/Nexus")
       .setStyle(ButtonStyle.Link);
 
@@ -70,6 +77,7 @@ module.exports = {
       .setStyle(ButtonStyle.Link);
 
     const row = new ActionRowBuilder().addComponents(
+      websiteButton,
       supportButton,
       githubButton,
       inviteButton

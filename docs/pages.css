@@ -398,6 +398,65 @@
   font-family: "Courier New", monospace;
 }
 
+/* Changelog styles */
+.changelog-entry {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  padding: 40px;
+  border-radius: 20px;
+  margin-bottom: 30px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.changelog-entry h2 {
+  color: #b794f6;
+  margin-bottom: 15px;
+  font-size: 2rem;
+}
+
+.changelog-entry h3 {
+  margin-top: 25px;
+  margin-bottom: 15px;
+  font-size: 1.5rem;
+}
+
+.version-badge {
+  display: inline-block;
+  padding: 5px 15px;
+  background: linear-gradient(135deg, #b794f6 0%, #9333ea 100%);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.changelog-entry ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.changelog-entry li {
+  padding: 10px 0;
+  padding-left: 30px;
+  position: relative;
+}
+
+.changelog-entry li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: #b794f6;
+  font-weight: bold;
+}
+
+.changelog-entry code {
+  background: rgba(183, 148, 246, 0.2);
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
 /* Responsive */
 @media (max-width: 968px) {
   .nav-links {
