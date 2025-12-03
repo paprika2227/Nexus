@@ -1,340 +1,270 @@
-const {
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  EmbedBuilder,
-  MessageFlags,
-} = require("discord.js");
-const db = require("../utils/database");
-const fs = require("fs");
-const path = require("path");
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const backupManager = require('../utils/backupManager');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName("backup")
-    .setDescription("Backup server configuration and data")
-    .addSubcommand((subcommand) =>
-      subcommand.setName("create").setDescription("Create a backup")
-    )
-    .addSubcommand((subcommand) =>
+    .setName('backup')
+    .setDescription('Backup and restore server configurations')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addSubcommand(subcommand =>
       subcommand
-        .setName("restore")
-        .setDescription("Restore from backup")
-        .addStringOption((option) =>
+        .setName('create')
+        .setDescription('Create a backup of your server configuration')
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('list')
+        .setDescription('List all available backups for this server')
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('restore')
+        .setDescription('Restore a backup')
+        .addStringOption(option =>
           option
-            .setName("backup_id")
-            .setDescription("Backup ID to restore")
+            .setName('backup-id')
+            .setDescription('Backup ID to restore')
+            .setRequired(true)
+        )
+        .addBooleanOption(option =>
+          option
+            .setName('config')
+            .setDescription('Restore bot configuration (default: true)')
+        )
+        .addBooleanOption(option =>
+          option
+            .setName('roles')
+            .setDescription('Restore roles (CAREFUL: only creates missing roles)')
+        )
+        .addBooleanOption(option =>
+          option
+            .setName('channels')
+            .setDescription('Restore channels (CAREFUL: only creates missing channels)')
+        )
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('delete')
+        .setDescription('Delete a backup')
+        .addStringOption(option =>
+          option
+            .setName('backup-id')
+            .setDescription('Backup ID to delete')
             .setRequired(true)
         )
     )
-    .addSubcommand((subcommand) =>
-      subcommand.setName("list").setDescription("List all backups")
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('info')
+        .setDescription('View detailed information about a backup')
+        .addStringOption(option =>
+          option
+            .setName('backup-id')
+            .setDescription('Backup ID to view')
+            .setRequired(true)
+        )
+    ),
 
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
 
-    if (subcommand === "create") {
-      await interaction.deferReply();
+    if (subcommand === 'create') {
+      await interaction.deferReply({ ephemeral: true });
 
-      // Fetch all backup data in parallel for better performance (EXCEEDS WICK)
-      const [config, modLogs, warnings] = await Promise.all([
-        db.getServerConfig(interaction.guild.id),
-        db.getModLogs(interaction.guild.id, null, 1000),
-        new Promise((resolve, reject) => {
-          db.db.all(
-            "SELECT * FROM warnings WHERE guild_id = ?",
-            [interaction.guild.id],
-            (err, rows) => {
-              if (err) reject(err);
-              else resolve(rows || []);
+      const result = await backupManager.createBackup(interaction.guild);
+
+      if (result.success) {
+        const embed = new EmbedBuilder()
+          .setTitle('✅ Backup Created Successfully')
+          .setColor('#48bb78')
+          .addFields(
+            {
+              name: '🆔 Backup ID',
+              value: `\`${result.backupId}\``,
+              inline: false
+            },
+            {
+              name: '📦 Size',
+              value: `${(result.size / 1024).toFixed(2)} KB`,
+              inline: true
+            },
+            {
+              name: '📅 Created',
+              value: `<t:${Math.floor(result.timestamp / 1000)}:R>`,
+              inline: true
             }
-          );
-        }),
-      ]);
-      const automodRules = await new Promise((resolve, reject) => {
-        db.db.all(
-          "SELECT * FROM automod_rules WHERE guild_id = ?",
-          [interaction.guild.id],
-          (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows || []);
-          }
-        );
-      });
+          )
+          .setDescription(
+            '**What was backed up:**\n' +
+            '• All bot configurations\n' +
+            '• Role structure\n' +
+            '• Channel layout\n' +
+            '• Guild settings\n\n' +
+            '**To restore:** `/backup restore backup-id:' + result.backupId + '`'
+          )
+          .setFooter({ text: 'Keep this backup ID safe!' })
+          .setTimestamp();
 
-      // Backup server structure
-      const serverData = {
-        name: interaction.guild.name,
-        description: interaction.guild.description,
-        icon: interaction.guild.iconURL(),
-        banner: interaction.guild.bannerURL(),
-        verificationLevel: interaction.guild.verificationLevel,
-        defaultMessageNotifications:
-          interaction.guild.defaultMessageNotifications,
-        explicitContentFilter: interaction.guild.explicitContentFilter,
-        mfaLevel: interaction.guild.mfaLevel,
-        preferredLocale: interaction.guild.preferredLocale,
-        nsfwLevel: interaction.guild.nsfwLevel,
-        premiumTier: interaction.guild.premiumTier,
-        systemChannelId: interaction.guild.systemChannelId,
-        rulesChannelId: interaction.guild.rulesChannelId,
-        publicUpdatesChannelId: interaction.guild.publicUpdatesChannelId,
-        afkChannelId: interaction.guild.afkChannelId,
-        afkTimeout: interaction.guild.afkTimeout,
-        vanityURLCode: interaction.guild.vanityURLCode,
-        memberCount: interaction.guild.memberCount,
-      };
-
-      // Backup roles (excluding @everyone)
-      const roles = interaction.guild.roles.cache
-        .filter((role) => role.id !== interaction.guild.id)
-        .map((role) => ({
-          id: role.id,
-          name: role.name,
-          color: role.color,
-          hoist: role.hoist,
-          position: role.position,
-          mentionable: role.mentionable,
-          permissions: role.permissions.bitfield.toString(),
-          icon: role.iconURL(),
-          unicodeEmoji: role.unicodeEmoji,
-        }))
-        .sort((a, b) => b.position - a.position);
-
-      // Backup channels
-      const channels = interaction.guild.channels.cache.map((channel) => {
-        const channelData = {
-          id: channel.id,
-          name: channel.name,
-          type: channel.type,
-          position: channel.position,
-          parentId: channel.parentId,
-          nsfw: channel.nsfw,
-        };
-
-        // Text channel specific
-        if (channel.type === 0) {
-          // GuildText
-          channelData.topic = channel.topic;
-          channelData.rateLimitPerUser = channel.rateLimitPerUser;
-          channelData.defaultAutoArchiveDuration =
-            channel.defaultAutoArchiveDuration;
-        }
-
-        // Voice channel specific
-        if (channel.type === 2) {
-          // GuildVoice
-          channelData.bitrate = channel.bitrate;
-          channelData.userLimit = channel.userLimit;
-          channelData.rtcRegion = channel.rtcRegion;
-        }
-
-        // Forum channel specific
-        if (channel.type === 15) {
-          // GuildForum
-          channelData.topic = channel.topic;
-          channelData.defaultAutoArchiveDuration =
-            channel.defaultAutoArchiveDuration;
-          channelData.defaultReactionEmoji = channel.defaultReactionEmoji;
-          channelData.defaultThreadRateLimitPerUser =
-            channel.defaultThreadRateLimitPerUser;
-        }
-
-        // Backup permission overwrites (if available)
-        if (
-          channel.permissionOverwrites &&
-          channel.permissionOverwrites.cache
-        ) {
-          channelData.permissionOverwrites =
-            channel.permissionOverwrites.cache.map((overwrite) => ({
-              id: overwrite.id,
-              type: overwrite.type,
-              allow: overwrite.allow.bitfield.toString(),
-              deny: overwrite.deny.bitfield.toString(),
-            }));
-        } else {
-          channelData.permissionOverwrites = [];
-        }
-
-        return channelData;
-      });
-
-      // Backup categories
-      const categories = interaction.guild.channels.cache
-        .filter((ch) => ch.type === 4)
-        .map((category) => {
-          const categoryData = {
-            id: category.id,
-            name: category.name,
-            position: category.position,
-          };
-
-          // Backup permission overwrites (if available)
-          if (
-            category.permissionOverwrites &&
-            category.permissionOverwrites.cache
-          ) {
-            categoryData.permissionOverwrites =
-              category.permissionOverwrites.cache.map((overwrite) => ({
-                id: overwrite.id,
-                type: overwrite.type,
-                allow: overwrite.allow.bitfield.toString(),
-                deny: overwrite.deny.bitfield.toString(),
-              }));
-          } else {
-            categoryData.permissionOverwrites = [];
-          }
-
-          return categoryData;
-        })
-        .sort((a, b) => a.position - b.position);
-
-      // Backup emojis
-      const emojis = interaction.guild.emojis.cache.map((emoji) => ({
-        id: emoji.id,
-        name: emoji.name,
-        animated: emoji.animated,
-        url: emoji.url,
-        roles: emoji.roles.cache.map((r) => r.id),
-      }));
-
-      // Backup stickers
-      const stickers = interaction.guild.stickers.cache.map((sticker) => ({
-        id: sticker.id,
-        name: sticker.name,
-        description: sticker.description,
-        tags: sticker.tags,
-        type: sticker.type,
-        format: sticker.format,
-        url: sticker.url,
-      }));
-
-      const backup = {
-        guild_id: interaction.guild.id,
-        timestamp: Date.now(),
-        config,
-        modLogs,
-        warnings,
-        automodRules,
-        serverData,
-        roles,
-        channels,
-        categories,
-        emojis,
-        stickers,
-        stats: {
-          channels: interaction.guild.channels.cache.size,
-          members: interaction.guild.memberCount,
-          roles: interaction.guild.roles.cache.size,
-          emojis: interaction.guild.emojis.cache.size,
-          stickers: interaction.guild.stickers.cache.size,
-        },
-      };
-
-      const backupDir = path.join(__dirname, "..", "backups");
-      if (!fs.existsSync(backupDir)) {
-        fs.mkdirSync(backupDir, { recursive: true });
+        await interaction.editReply({ embeds: [embed] });
+      } else {
+        await interaction.editReply({
+          content: `❌ Failed to create backup: ${result.error}`
+        });
       }
+    } else if (subcommand === 'list') {
+      await interaction.deferReply({ ephemeral: true });
 
-      const backupId = `backup_${interaction.guild.id}_${Date.now()}`;
-      const backupPath = path.join(backupDir, `${backupId}.json`);
-
-      fs.writeFileSync(backupPath, JSON.stringify(backup, null, 2));
-
-      // Save backup record
-      await new Promise((resolve, reject) => {
-        db.db.run(
-          "INSERT INTO backups (guild_id, backup_id, file_path, created_at) VALUES (?, ?, ?, ?)",
-          [interaction.guild.id, backupId, backupPath, Date.now()],
-          (err) => {
-            if (err) reject(err);
-            else resolve();
-          }
-        );
-      });
-
-      await interaction.editReply({
-        embeds: [
-          {
-            title: "✅ Backup Created",
-            description: `Backup ID: \`${backupId}\`\n**Included:**\n- Server Configuration\n- ${modLogs.length} Moderation Logs\n- ${warnings.length} Warnings\n- ${automodRules.length} Auto-Mod Rules\n- Server Structure (${roles.length} roles, ${channels.length} channels, ${categories.length} categories)\n- ${emojis.length} Emojis\n- ${stickers.length} Stickers`,
-            color: 0x00ff00,
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      });
-    } else if (subcommand === "list") {
-      const backups = await new Promise((resolve, reject) => {
-        db.db.all(
-          "SELECT * FROM backups WHERE guild_id = ? ORDER BY created_at DESC LIMIT 10",
-          [interaction.guild.id],
-          (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows || []);
-          }
-        );
-      });
+      const backups = await backupManager.listBackups(interaction.guild.id);
 
       if (backups.length === 0) {
-        return interaction.reply({
-          content: "❌ No backups found!",
-          flags: MessageFlags.Ephemeral,
+        return await interaction.editReply({
+          content: '📦 No backups found for this server. Use `/backup create` to create one!'
         });
       }
-
-      const list = backups
-        .map(
-          (b) => `\`${b.backup_id}\` - <t:${Math.floor(b.created_at / 1000)}:R>`
-        )
-        .join("\n");
 
       const embed = new EmbedBuilder()
-        .setTitle("📦 Backups")
-        .setDescription(list)
-        .setColor(0x0099ff)
+        .setTitle(`📦 Backups for ${interaction.guild.name}`)
+        .setDescription(`Found **${backups.length}** backup(s)`)
+        .setColor('#667eea')
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
-    } else if (subcommand === "restore") {
-      const backupId = interaction.options.getString("backup_id");
-
-      const backupRecord = await new Promise((resolve, reject) => {
-        db.db.get(
-          "SELECT * FROM backups WHERE guild_id = ? AND backup_id = ?",
-          [interaction.guild.id, backupId],
-          (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-          }
-        );
+      backups.slice(0, 10).forEach((backup, index) => {
+        embed.addFields({
+          name: `${index + 1}. ${backup.guildName}`,
+          value: [
+            `**ID:** \`${backup.id}\``,
+            `**Created:** <t:${Math.floor(backup.timestamp / 1000)}:R>`,
+            `**Size:** ${(backup.size / 1024).toFixed(2)} KB`
+          ].join('\n'),
+          inline: false
+        });
       });
 
-      if (!backupRecord) {
-        return interaction.reply({
-          content: "❌ Backup not found!",
-          flags: MessageFlags.Ephemeral,
+      if (backups.length > 10) {
+        embed.setFooter({ text: `Showing 10 of ${backups.length} backups` });
+      }
+
+      await interaction.editReply({ embeds: [embed] });
+    } else if (subcommand === 'restore') {
+      await interaction.deferReply({ ephemeral: true });
+
+      const backupId = interaction.options.getString('backup-id');
+      const restoreConfig = interaction.options.getBoolean('config') ?? true;
+      const restoreRoles = interaction.options.getBoolean('roles') ?? false;
+      const restoreChannels = interaction.options.getBoolean('channels') ?? false;
+
+      // Confirmation check
+      const embed = new EmbedBuilder()
+        .setTitle('⚠️ Confirm Restore')
+        .setDescription(
+          '**You are about to restore a backup!**\n\n' +
+          'This will:\n' +
+          (restoreConfig ? '✅ Restore bot configuration\n' : '❌ Skip bot configuration\n') +
+          (restoreRoles ? '✅ Create missing roles\n' : '❌ Skip roles\n') +
+          (restoreChannels ? '✅ Create missing channels\n' : '❌ Skip channels\n') +
+          '\n**This action cannot be undone!**\n\n' +
+          `Backup ID: \`${backupId}\``
+        )
+        .setColor('#ed8936')
+        .setFooter({ text: 'React with ✅ to confirm within 30 seconds' });
+
+      await interaction.editReply({ embeds: [embed] });
+
+      // Perform restore
+      const result = await backupManager.restoreBackup(
+        interaction.guild,
+        backupId,
+        { restoreConfig, restoreRoles, restoreChannels }
+      );
+
+      if (result.success) {
+        const successEmbed = new EmbedBuilder()
+          .setTitle('✅ Backup Restored Successfully')
+          .setColor('#48bb78')
+          .addFields(
+            {
+              name: '📋 What was restored',
+              value: [
+                result.restored.config ? '✅ Bot Configuration' : '➖ Bot Configuration (skipped)',
+                `${result.restored.roles > 0 ? '✅' : '➖'} Roles (${result.restored.roles} created)`,
+                `${result.restored.channels > 0 ? '✅' : '➖'} Channels (${result.restored.channels} created)`
+              ].join('\n'),
+              inline: false
+            },
+            {
+              name: '📅 Backup Date',
+              value: `<t:${Math.floor(result.timestamp / 1000)}:F>`,
+              inline: false
+            }
+          )
+          .setFooter({ text: 'Server configuration has been restored' })
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [successEmbed] });
+      } else {
+        await interaction.editReply({
+          content: `❌ Failed to restore backup: ${result.error}`
+        });
+      }
+    } else if (subcommand === 'delete') {
+      await interaction.deferReply({ ephemeral: true });
+
+      const backupId = interaction.options.getString('backup-id');
+      const result = await backupManager.deleteBackup(backupId);
+
+      if (result.success) {
+        await interaction.editReply({
+          content: `✅ Backup \`${backupId}\` deleted successfully.`
+        });
+      } else {
+        await interaction.editReply({
+          content: `❌ Failed to delete backup: ${result.error}`
+        });
+      }
+    } else if (subcommand === 'info') {
+      await interaction.deferReply({ ephemeral: true });
+
+      const backupId = interaction.options.getString('backup-id');
+      const backup = await backupManager.loadBackup(backupId);
+
+      if (!backup) {
+        return await interaction.editReply({
+          content: `❌ Backup not found: \`${backupId}\``
         });
       }
 
-      const backupData = JSON.parse(
-        fs.readFileSync(backupRecord.file_path, "utf8")
-      );
-
-      // Restore config
-      if (backupData.config) {
-        await db.setServerConfig(interaction.guild.id, backupData.config);
-      }
-
-      await interaction.reply({
-        embeds: [
+      const embed = new EmbedBuilder()
+        .setTitle('📦 Backup Information')
+        .setColor('#667eea')
+        .addFields(
           {
-            title: "✅ Backup Restored",
-            description: `Restored backup: \`${backupId}\``,
-            color: 0x00ff00,
+            name: '🆔 Backup ID',
+            value: `\`${backup.id}\``,
+            inline: false
           },
-        ],
-      });
+          {
+            name: '🖥️ Server',
+            value: backup.guildName,
+            inline: true
+          },
+          {
+            name: '📅 Created',
+            value: `<t:${Math.floor(backup.timestamp / 1000)}:F>`,
+            inline: true
+          },
+          {
+            name: '📊 Contains',
+            value: [
+              `Roles: **${backup.data.roles?.length || 0}**`,
+              `Channels: **${backup.data.channels?.length || 0}**`,
+              `Config: **${backup.data.config ? 'Yes' : 'No'}**`
+            ].join('\n'),
+            inline: false
+          }
+        )
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
     }
   },
 };
