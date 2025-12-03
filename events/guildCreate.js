@@ -7,6 +7,35 @@ module.exports = {
   async execute(guild, client) {
     console.log(`🆕 Joined new server: ${guild.name} (${guild.id})`);
 
+    // Track invite source if present
+    let inviteSource = "direct"; // default
+    try {
+      // Try to get the invite used
+      const invites = await guild.invites.fetch().catch(() => null);
+      if (invites) {
+        // Check for invites with tracking parameters
+        // This would need to be tracked via a separate system
+        // For now, we'll check guild vanity URL or use "direct"
+      }
+      
+      // Check if guild has a vanity URL - might be from website or bot list
+      if (guild.vanityURLCode) {
+        inviteSource = "vanity";
+      }
+
+      // Track the guild join with source
+      await db.trackGuildJoin(
+        guild.id,
+        inviteSource,
+        guild.name,
+        guild.memberCount || 0
+      );
+      
+      console.log(`   📊 Tracked join from source: ${inviteSource}`);
+    } catch (error) {
+      console.error("Failed to track invite source:", error.message);
+    }
+
     // Log server join
     try {
       const owner = await guild.fetchOwner().catch(() => null);

@@ -777,6 +777,35 @@ class Database {
             ON ip_logs(discord_user_id)
         `);
 
+    // Invite source tracking table
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS invite_sources (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source TEXT NOT NULL UNIQUE,
+                description TEXT,
+                total_joins INTEGER DEFAULT 0,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            )
+        `);
+
+    // Track which servers joined from which source
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS guild_invite_tracking (
+                guild_id TEXT PRIMARY KEY,
+                source TEXT NOT NULL,
+                invited_at INTEGER NOT NULL,
+                guild_name TEXT,
+                member_count INTEGER
+            )
+        `);
+
+    // Create indexes for invite tracking
+    this.db.run(`
+            CREATE INDEX IF NOT EXISTS idx_guild_tracking_source 
+            ON guild_invite_tracking(source)
+        `);
+
     // Add default bot list links if table is empty
     this.db.get(
       "SELECT COUNT(*) as count FROM botlist_links",
@@ -3042,6 +3071,101 @@ class Database {
         if (err) reject(err);
         else resolve(row?.count || 0);
       });
+    });
+  }
+
+  // ==================== INVITE SOURCE TRACKING ====================
+
+  // Create invite source
+  createInviteSource(source, description = null) {
+    return new Promise((resolve, reject) => {
+      const now = Date.now();
+      this.db.run(
+        'INSERT INTO invite_sources (source, description, created_at, updated_at) VALUES (?, ?, ?, ?)',
+        [source, description, now, now],
+        function(err) {
+          if (err) reject(err);
+          else resolve({ id: this.lastID, source, description });
+        }
+      );
+    });
+  }
+
+  // Get all invite sources
+  getAllInviteSources() {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        'SELECT * FROM invite_sources ORDER BY total_joins DESC, created_at DESC',
+        [],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+  }
+
+  // Delete invite source
+  deleteInviteSource(source) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        'DELETE FROM invite_sources WHERE source = ?',
+        [source],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
+
+  // Track guild join with source
+  trackGuildJoin(guildId, source, guildName, memberCount) {
+    return new Promise((resolve, reject) => {
+      const now = Date.now();
+      
+      // Insert guild tracking
+      this.db.run(
+        'INSERT OR REPLACE INTO guild_invite_tracking (guild_id, source, invited_at, guild_name, member_count) VALUES (?, ?, ?, ?, ?)',
+        [guildId, source, now, guildName, memberCount],
+        (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          // Increment total_joins for this source
+          this.db.run(
+            'UPDATE invite_sources SET total_joins = total_joins + 1, updated_at = ? WHERE source = ?',
+            [now, source],
+            (err2) => {
+              if (err2) reject(err2);
+              else resolve();
+            }
+          );
+        }
+      );
+    });
+  }
+
+  // Get invite source stats
+  getInviteSourceStats() {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        `SELECT 
+          source,
+          COUNT(*) as total_joins,
+          MIN(invited_at) as first_join,
+          MAX(invited_at) as last_join
+        FROM guild_invite_tracking
+        GROUP BY source
+        ORDER BY total_joins DESC`,
+        [],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
     });
   }
 }

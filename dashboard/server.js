@@ -1403,6 +1403,63 @@ class DashboardServer {
       }
     });
 
+    // ==================== INVITE SOURCE TRACKING ====================
+
+    // GET /api/admin/invite-sources - List all invite sources
+    this.app.get("/api/admin/invite-sources", async (req, res) => {
+      try {
+        const sources = await db.getAllInviteSources();
+        res.json({ sources });
+      } catch (error) {
+        console.error("Error fetching invite sources:", error);
+        res.status(500).json({ error: "Failed to fetch invite sources" });
+      }
+    });
+
+    // POST /api/admin/invite-sources - Create new invite source
+    this.app.post("/api/admin/invite-sources", async (req, res) => {
+      try {
+        const { source, description } = req.body;
+
+        if (!source) {
+          return res.status(400).json({ error: "Source is required" });
+        }
+
+        const result = await db.createInviteSource(source, description);
+        res.json({ success: true, source: result });
+      } catch (error) {
+        console.error("Error creating invite source:", error);
+        if (error.message?.includes("UNIQUE")) {
+          res.status(400).json({ error: "Source already exists" });
+        } else {
+          res.status(500).json({ error: "Failed to create invite source" });
+        }
+      }
+    });
+
+    // DELETE /api/admin/invite-sources/:source - Delete invite source
+    this.app.delete("/api/admin/invite-sources/:source", async (req, res) => {
+      try {
+        const { source } = req.params;
+        await db.deleteInviteSource(source);
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error deleting invite source:", error);
+        res.status(500).json({ error: "Failed to delete invite source" });
+      }
+    });
+
+    // GET /api/admin/invite-stats - Get invite source statistics
+    this.app.get("/api/admin/invite-stats", async (req, res) => {
+      try {
+        const stats = await db.getInviteSourceStats();
+        res.json({ stats });
+      } catch (error) {
+        console.error("Error fetching invite stats:", error);
+        res.status(500).json({ error: "Failed to fetch invite stats" });
+      }
+    });
+
     // GET /api/v1/showcase-servers - Get top servers for showcase
     this.app.get("/api/v1/showcase-servers", async (req, res) => {
       try {
