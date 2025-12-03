@@ -1,263 +1,225 @@
 const {
   SlashCommandBuilder,
-  PermissionFlagsBits,
   EmbedBuilder,
-  MessageFlags,
+  PermissionFlagsBits,
 } = require("discord.js");
-const db = require("../utils/database");
-const logger = require("../utils/logger");
-const axios = require("axios");
+const webhookHub = require("../utils/webhookHub");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("webhook")
-    .setDescription("Create and manage webhooks for external integrations")
+    .setDescription("Manage external webhook integrations")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("create")
-        .setDescription("Create a webhook for events")
-        .addStringOption((option) =>
-          option
-            .setName("name")
-            .setDescription("Webhook name")
-            .setRequired(true)
-        )
+        .setName("add")
+        .setDescription("Add a new webhook integration")
         .addStringOption((option) =>
           option.setName("url").setDescription("Webhook URL").setRequired(true)
         )
         .addStringOption((option) =>
           option
             .setName("events")
-            .setDescription("Comma-separated events to listen for")
-            .setRequired(false)
+            .setDescription("Events to trigger (comma-separated)")
+            .setRequired(true)
+        )
+        .addStringOption((option) =>
+          option.setName("name").setDescription("Webhook name/label")
         )
     )
     .addSubcommand((subcommand) =>
-      subcommand.setName("list").setDescription("List all webhooks")
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName("test")
-        .setDescription("Test a webhook")
-        .addIntegerOption((option) =>
-          option.setName("id").setDescription("Webhook ID").setRequired(true)
-        )
+      subcommand.setName("list").setDescription("List all webhook integrations")
     )
     .addSubcommand((subcommand) =>
       subcommand
         .setName("delete")
-        .setDescription("Delete a webhook")
+        .setDescription("Delete a webhook integration")
         .addIntegerOption((option) =>
           option.setName("id").setDescription("Webhook ID").setRequired(true)
         )
     )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("toggle")
+        .setDescription("Enable/disable a webhook")
+        .addIntegerOption((option) =>
+          option.setName("id").setDescription("Webhook ID").setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("events")
+        .setDescription("List all available webhook events")
+    ),
 
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
 
-    if (subcommand === "create") {
-      await this.createWebhook(interaction);
-    } else if (subcommand === "list") {
-      await this.listWebhooks(interaction);
-    } else if (subcommand === "test") {
-      await this.testWebhook(interaction);
-    } else if (subcommand === "delete") {
-      await this.deleteWebhook(interaction);
-    }
-  },
+    if (subcommand === "add") {
+      await interaction.deferReply({ ephemeral: true });
 
-  async createWebhook(interaction) {
-    const name = interaction.options.getString("name");
-    const url = interaction.options.getString("url");
-    const eventsString = interaction.options.getString("events") || "all";
+      const url = interaction.options.getString("url");
+      const eventsRaw = interaction.options.getString("events");
+      const name = interaction.options.getString("name") || "Unnamed webhook";
 
-    // Validate URL
-    try {
-      new URL(url);
-    } catch (error) {
-      return interaction.reply({
-        content:
-          "❌ Invalid webhook URL. Please provide a valid HTTP/HTTPS URL.",
-        flags: MessageFlags.Ephemeral,
-      });
-    }
-
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-    try {
-      const events = eventsString.split(",").map((e) => e.trim());
-
-      // Store webhook (using notifications table or create new table)
-      const webhookId = await new Promise((resolve, reject) => {
-        db.db.run(
-          "INSERT INTO notifications (guild_id, notification_type, webhook_url, channel_id, enabled) VALUES (?, ?, ?, ?, 1)",
-          [interaction.guild.id, `webhook_${name}`, url, null],
-          function (err) {
-            if (err) reject(err);
-            else resolve(this.lastID);
-          }
-        );
-      });
-
-      const embed = new EmbedBuilder()
-        .setTitle("✅ Webhook Created")
-        .setDescription(`Webhook **${name}** has been created successfully`)
-        .addFields(
-          {
-            name: "🔗 URL",
-            value: url.substring(0, 50) + "...",
-            inline: false,
-          },
-          {
-            name: "📋 Events",
-            value: events.length > 0 ? events.join(", ") : "All events",
-            inline: false,
-          },
-          {
-            name: "💡 Usage",
-            value:
-              "This webhook will receive events as JSON payloads. Check our documentation for payload formats.",
-          }
-        )
-        .setColor(0x00ff00)
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] });
-    } catch (error) {
-      logger.error("Error creating webhook:", error);
-      await interaction.editReply({
-        content: "❌ An error occurred while creating the webhook.",
-      });
-    }
-  },
-
-  async listWebhooks(interaction) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-    try {
-      const webhooks = await new Promise((resolve, reject) => {
-        db.db.all(
-          "SELECT * FROM notifications WHERE guild_id = ? AND webhook_url IS NOT NULL",
-          [interaction.guild.id],
-          (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows || []);
-          }
-        );
-      });
-
-      if (webhooks.length === 0) {
-        return interaction.editReply({
+      // Validate URL
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        return await interaction.editReply({
           content:
-            "❌ No webhooks configured. Use `/webhook create` to create one.",
+            "❌ Invalid webhook URL. Must start with http:// or https://",
         });
       }
 
-      const embed = new EmbedBuilder()
-        .setTitle("🔗 Webhooks")
-        .setDescription(
-          webhooks
-            .map(
-              (w) =>
-                `**#${w.id}** - ${w.notification_type.replace(
-                  "webhook_",
-                  ""
-                )}\n` +
-                `URL: ${w.webhook_url?.substring(0, 40)}...\n` +
-                `Status: ${w.enabled ? "✅ Active" : "❌ Disabled"}`
-            )
-            .join("\n\n")
-        )
-        .setColor(0x0099ff)
-        .setTimestamp();
+      // Parse and validate events
+      const events = eventsRaw.split(",").map((e) => e.trim());
+      const availableEvents = webhookHub.getAvailableEvents();
+      const invalidEvents = events.filter((e) => !availableEvents.includes(e));
 
-      await interaction.editReply({ embeds: [embed] });
-    } catch (error) {
-      logger.error("Error listing webhooks:", error);
-      await interaction.editReply({
-        content: "❌ An error occurred while listing webhooks.",
-      });
-    }
-  },
-
-  async testWebhook(interaction) {
-    const id = interaction.options.getInteger("id");
-
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-    try {
-      const webhook = await new Promise((resolve, reject) => {
-        db.db.get(
-          "SELECT * FROM notifications WHERE id = ? AND guild_id = ? AND webhook_url IS NOT NULL",
-          [id, interaction.guild.id],
-          (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-          }
-        );
-      });
-
-      if (!webhook) {
-        return interaction.editReply({
-          content: "❌ Webhook not found.",
+      if (invalidEvents.length > 0) {
+        return await interaction.editReply({
+          content: `❌ Invalid events: ${invalidEvents.join(
+            ", "
+          )}\n\nUse \`/webhook events\` to see available events.`,
         });
       }
 
-      // Send test payload
       try {
-        await axios.post(webhook.webhook_url, {
-          event: "test",
-          message: "This is a test webhook from Nexus Bot",
-          timestamp: new Date().toISOString(),
-          guild_id: interaction.guild.id,
-          guild_name: interaction.guild.name,
-        });
+        const result = await webhookHub.registerWebhook(
+          interaction.guild.id,
+          url,
+          events,
+          name
+        );
 
-        await interaction.editReply({
-          content: `✅ Test webhook sent to ${webhook.webhook_url.substring(
-            0,
-            40
-          )}...`,
-        });
+        const embed = new EmbedBuilder()
+          .setTitle("✅ Webhook Integration Added")
+          .setColor("#48bb78")
+          .addFields(
+            {
+              name: "📝 Name",
+              value: name,
+              inline: true,
+            },
+            {
+              name: "🆔 ID",
+              value: `${result.id}`,
+              inline: true,
+            },
+            {
+              name: "🔔 Events",
+              value: events.join(", "),
+              inline: false,
+            }
+          )
+          .setDescription(
+            "Webhook will receive JSON data when these events occur."
+          )
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
       } catch (error) {
         await interaction.editReply({
-          content: `❌ Failed to send test webhook: ${error.message}`,
+          content: `❌ Failed to add webhook: ${error.message}`,
         });
       }
-    } catch (error) {
-      logger.error("Error testing webhook:", error);
-      await interaction.editReply({
-        content: "❌ An error occurred while testing the webhook.",
+    } else if (subcommand === "list") {
+      await interaction.deferReply({ ephemeral: true });
+
+      const webhooks = await webhookHub.getWebhooks(interaction.guild.id);
+
+      if (webhooks.length === 0) {
+        return await interaction.editReply({
+          content:
+            "📋 No webhooks configured. Use `/webhook add` to create one!",
+        });
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle("🔗 Webhook Integrations")
+        .setDescription(`${webhooks.length} active integration(s)`)
+        .setColor("#667eea")
+        .setTimestamp();
+
+      webhooks.forEach((hook) => {
+        const events = JSON.parse(hook.events);
+        embed.addFields({
+          name: `${hook.enabled ? "✅" : "❌"} ${hook.name}`,
+          value: [
+            `**ID:** ${hook.id}`,
+            `**Events:** ${events.length}`,
+            `**Triggers:** ${hook.trigger_count}`,
+            `**Last:** ${
+              hook.last_triggered
+                ? `<t:${Math.floor(hook.last_triggered / 1000)}:R>`
+                : "Never"
+            }`,
+          ].join("\n"),
+          inline: true,
+        });
       });
-    }
-  },
 
-  async deleteWebhook(interaction) {
-    const id = interaction.options.getInteger("id");
+      await interaction.editReply({ embeds: [embed] });
+    } else if (subcommand === "delete") {
+      await interaction.deferReply({ ephemeral: true });
 
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const id = interaction.options.getInteger("id");
+      const result = await webhookHub.deleteWebhook(id);
 
-    try {
-      await new Promise((resolve, reject) => {
-        db.db.run(
-          "UPDATE notifications SET enabled = 0 WHERE id = ? AND guild_id = ?",
-          [id, interaction.guild.id],
-          (err) => {
-            if (err) reject(err);
-            else resolve();
+      if (result.deleted) {
+        await interaction.editReply({
+          content: `✅ Webhook integration #${id} deleted.`,
+        });
+      } else {
+        await interaction.editReply({
+          content: `❌ Webhook #${id} not found.`,
+        });
+      }
+    } else if (subcommand === "toggle") {
+      await interaction.deferReply({ ephemeral: true });
+
+      const id = interaction.options.getInteger("id");
+      const result = await webhookHub.toggleWebhook(id);
+
+      if (result.updated) {
+        await interaction.editReply({
+          content: `✅ Webhook #${id} toggled.`,
+        });
+      } else {
+        await interaction.editReply({
+          content: `❌ Webhook #${id} not found.`,
+        });
+      }
+    } else if (subcommand === "events") {
+      const events = webhookHub.getAvailableEvents();
+
+      const embed = new EmbedBuilder()
+        .setTitle("🔔 Available Webhook Events")
+        .setDescription("These events can trigger your webhooks:")
+        .setColor("#667eea")
+        .addFields(
+          {
+            name: "👥 Member Events",
+            value: "• member.join\n• member.leave\n• member.ban\n• member.kick",
+            inline: true,
+          },
+          {
+            name: "🛡️ Security Events",
+            value: "• raid.detected\n• nuke.detected\n• threat.high",
+            inline: true,
+          },
+          {
+            name: "⚙️ System Events",
+            value:
+              "• server.health.critical\n• command.executed\n• config.changed",
+            inline: true,
           }
-        );
-      });
+        )
+        .setFooter({
+          text: "Separate multiple events with commas when adding webhook",
+        })
+        .setTimestamp();
 
-      await interaction.editReply({
-        content: `✅ Webhook #${id} deleted`,
-      });
-    } catch (error) {
-      logger.error("Error deleting webhook:", error);
-      await interaction.editReply({
-        content: "❌ An error occurred while deleting the webhook.",
-      });
+      await interaction.reply({ embeds: [embed], ephemeral: true });
     }
   },
 };
