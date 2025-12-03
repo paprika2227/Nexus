@@ -2921,6 +2921,59 @@ class DashboardServer {
       }
     });
 
+    // POST /api/admin/newsletter/send - Send newsletter to all subscribers
+    this.app.post("/api/admin/newsletter/send", async (req, res) => {
+      try {
+        // Check admin password
+        const adminPassword = req.headers["x-admin-password"];
+        if (adminPassword !== process.env.ADMIN_PASSWORD) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const { subject, htmlContent, textContent } = req.body;
+
+        if (!subject || !htmlContent) {
+          return res
+            .status(400)
+            .json({ error: "Subject and content required" });
+        }
+
+        const emailSender = require("../utils/emailSender");
+        const result = await emailSender.sendNewsletter(
+          subject,
+          htmlContent,
+          textContent
+        );
+
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // POST /api/admin/newsletter/test - Send test email
+    this.app.post("/api/admin/newsletter/test", async (req, res) => {
+      try {
+        // Check admin password
+        const adminPassword = req.headers["x-admin-password"];
+        if (adminPassword !== process.env.ADMIN_PASSWORD) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const { subject, content } = req.body;
+        const emailSender = require("../utils/emailSender");
+        const result = await emailSender.sendTestEmail(
+          "nexusbot0@proton.me",
+          subject,
+          content
+        );
+
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     console.log("[API] Public API v1 endpoints registered");
     console.log("[API] 🔥 POWERFUL API v2 - 35 endpoints active!");
     console.log("[Newsletter] Self-hosted newsletter system active");

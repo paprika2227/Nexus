@@ -128,12 +128,41 @@
       </div>
     </div>
 
+    <!-- Compose Newsletter -->
+    <div class="subscribers-list" style="margin-bottom: 30px;">
+      <h2 style="margin-bottom: 20px;">✍️ Compose & Send Newsletter</h2>
+      
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Subject:</label>
+        <input type="text" id="emailSubject" placeholder="Nexus v3.1.0 Released - Major Update!" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #ddd; font-size: 16px;">
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Message (HTML):</label>
+        <textarea id="emailContent" rows="10" placeholder="<h2>Big Update!</h2><p>Check out what's new...</p>" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #ddd; font-size: 14px; font-family: monospace;"></textarea>
+        <small style="color: #666;">Tip: Use the template in newsletter-templates/update-template.html or write custom HTML</small>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button class="btn" onclick="sendTestEmail()" style="background: #667eea; flex: 1;">📧 Send Test (to yourself)</button>
+        <button class="btn" onclick="sendToAll()" style="background: #00ff88; color: #1a202c; flex: 2; font-size: 18px; font-weight: bold;">🚀 Send to All Subscribers</button>
+      </div>
+
+      <div id="sendStatus" style="margin-top: 15px; padding: 15px; border-radius: 8px; display: none;"></div>
+    </div>
+
+    <!-- Subscriber Stats -->
     <div class="subscribers-list">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2>📧 Subscriber List</h2>
+        <h2>📧 Subscriber Management</h2>
         <button class="btn btn-export" onclick="exportList()">📥 Export CSV</button>
       </div>
-      <div id="subscribersList">Loading...</div>
+      <div id="subscribersList">
+        <div style="text-align: center; padding: 40px; color: #999;">
+          <p>Use Export CSV to download the full subscriber list!</p>
+          <p style="margin-top: 10px; font-size: 14px;">Or use the composer above to send emails automatically.</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -172,6 +201,103 @@
       }
     }
 
+    async function sendTestEmail() {
+      const subject = document.getElementById('emailSubject').value;
+      const content = document.getElementById('emailContent').value;
+      const status = document.getElementById('sendStatus');
+
+      if (!subject || !content) {
+        alert('❌ Please fill in subject and content!');
+        return;
+      }
+
+      status.style.display = 'block';
+      status.style.background = '#fff3cd';
+      status.style.color = '#856404';
+      status.textContent = '📧 Sending test email to nexusbot0@proton.me...';
+
+      try {
+        const response = await fetch(`${BASE_URL}/api/admin/newsletter/test`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': ADMIN_PASSWORD
+          },
+          body: JSON.stringify({ subject, content })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          status.style.background = '#d4edda';
+          status.style.color = '#155724';
+          status.textContent = '✅ Test email sent! Check your inbox.';
+        } else {
+          status.style.background = '#f8d7da';
+          status.style.color = '#721c24';
+          status.textContent = '❌ ' + result.error;
+        }
+      } catch (error) {
+        status.style.background = '#f8d7da';
+        status.style.color = '#721c24';
+        status.textContent = '❌ Failed: ' + error.message;
+      }
+    }
+
+    async function sendToAll() {
+      const subject = document.getElementById('emailSubject').value;
+      const content = document.getElementById('emailContent').value;
+      const status = document.getElementById('sendStatus');
+
+      if (!subject || !content) {
+        alert('❌ Please fill in subject and content!');
+        return;
+      }
+
+      const stats = await fetch(`${BASE_URL}/api/admin/newsletter/stats`, {
+        headers: { 'x-admin-password': ADMIN_PASSWORD }
+      }).then(r => r.json());
+
+      const confirmed = confirm(`🚀 Send newsletter to ${stats.active} subscribers?\n\nThis cannot be undone!`);
+      if (!confirmed) return;
+
+      status.style.display = 'block';
+      status.style.background = '#fff3cd';
+      status.style.color = '#856404';
+      status.textContent = `📧 Sending to ${stats.active} subscribers... This may take a minute.`;
+
+      try {
+        const response = await fetch(`${BASE_URL}/api/admin/newsletter/send`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': ADMIN_PASSWORD
+          },
+          body: JSON.stringify({ subject, htmlContent: content })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          status.style.background = '#d4edda';
+          status.style.color = '#155724';
+          status.textContent = `🎉 SUCCESS! Sent to ${result.sent}/${result.total} subscribers!${result.failed > 0 ? ` (${result.failed} failed)` : ''}`;
+          
+          // Clear form
+          document.getElementById('emailSubject').value = '';
+          document.getElementById('emailContent').value = '';
+        } else {
+          status.style.background = '#f8d7da';
+          status.style.color = '#721c24';
+          status.textContent = '❌ ' + result.error;
+        }
+      } catch (error) {
+        status.style.background = '#f8d7da';
+        status.style.color = '#721c24';
+        status.textContent = '❌ Failed: ' + error.message;
+      }
+    }
+
     async function exportList() {
       try {
         const response = await fetch(`${BASE_URL}/api/admin/newsletter/export`, {
@@ -200,7 +326,7 @@
     loadStats();
     loadSubscribers();
 
-    // Refresh every 30 seconds
+    // Refresh stats every 30 seconds
     setInterval(loadStats, 30000);
   </script>
 </body>
