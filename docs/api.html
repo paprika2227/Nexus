@@ -221,7 +221,7 @@
           <h4>Example Request:</h4>
           <div class="code-example">
             <pre>
-fetch('https://your-url.ngrok-free.app/api/v1/stats', {
+fetch('https://regular-puma-clearly.ngrok-free.app/api/v1/stats', {
   headers: {
     'ngrok-skip-browser-warning': 'true'
   }
@@ -793,7 +793,7 @@ fetch('https://your-url.ngrok-free.app/api/v1/stats', {
         <div class="code-example">
           <pre>
 // Get bot stats
-const response = await fetch('https://your-url.ngrok-free.app/api/v1/stats', {
+const response = await fetch('https://regular-puma-clearly.ngrok-free.app/api/v1/stats', {
   headers: {
     'ngrok-skip-browser-warning': 'true'
   }
@@ -808,7 +808,7 @@ console.log(`Nexus is in ${stats.serverCount} servers!`);</pre
           <pre>
 import requests
 
-response = requests.get('https://your-url.ngrok-free.app/api/v1/stats')
+response = requests.get('https://regular-puma-clearly.ngrok-free.app/api/v1/stats')
 stats = response.json()
 print(f"Servers: {stats['serverCount']}")</pre
           >
@@ -819,7 +819,7 @@ print(f"Servers: {stats['serverCount']}")</pre
           <pre>
 const axios = require('axios');
 
-const { data } = await axios.get('https://your-url.ngrok-free.app/api/v1/stats');
+const { data } = await axios.get('https://regular-puma-clearly.ngrok-free.app/api/v1/stats');
 console.log(`Server Count: ${data.serverCount}`);</pre
           >
         </div>
@@ -828,7 +828,7 @@ console.log(`Server Count: ${data.serverCount}`);</pre
         <div class="code-example">
           <pre>
 // Admin endpoints require password header
-fetch('https://your-url.ngrok-free.app/api/admin/command-analytics', {
+fetch('https://regular-puma-clearly.ngrok-free.app/api/admin/command-analytics', {
   headers: {
     'x-admin-password': 'your-admin-password',
     'ngrok-skip-browser-warning': 'true'
