@@ -46,7 +46,7 @@ module.exports = {
       try {
         // Track performance and log in parallel (EXCEEDS WICK - faster response)
         const startTime = Date.now();
-        
+
         // Log command usage in parallel (non-blocking)
         Promise.all([
           Promise.resolve(
@@ -80,17 +80,20 @@ module.exports = {
                 } else resolve();
               }
             );
-          })
+          }),
         ]).catch((err) => {
-          logger.debug(`[interactionCreate] Command logging failed (non-blocking):`, err.message);
+          logger.debug(
+            `[interactionCreate] Command logging failed (non-blocking):`,
+            err.message
+          );
         }); // Don't block command execution if logging fails
-        
+
         // Start performance tracking
         const perfTimer = performanceMonitor.start(command.data.name);
 
         try {
           await command.execute(interaction);
-          
+
           // Record successful execution
           performanceMonitor.end(perfTimer, true);
         } catch (cmdError) {
@@ -266,10 +269,7 @@ module.exports = {
         }
 
         // Handle quick command buttons
-        if (
-          interaction.customId &&
-          interaction.customId.startsWith("quick_")
-        ) {
+        if (interaction.customId && interaction.customId.startsWith("quick_")) {
           const quickCommand = client.commands.get("quick");
           if (quickCommand) {
             try {
@@ -741,7 +741,8 @@ module.exports = {
           } catch (error) {
             if (error.code === 50013) {
               return interaction.reply({
-                content: "❌ I don't have permission to create channels! Please give me **Manage Channels** permission.",
+                content:
+                  "❌ I don't have permission to create channels! Please give me **Manage Channels** permission.",
                 flags: MessageFlags.Ephemeral,
               });
             }
@@ -813,8 +814,12 @@ module.exports = {
             } = require("discord.js");
 
             // Get the captcha question from verification data
-            const verification = client.verificationSystem.pendingVerifications.get(verificationId);
-            const captchaQuestion = verification?.captchaQuestion || "Answer the captcha question";
+            const verification =
+              client.verificationSystem.pendingVerifications.get(
+                verificationId
+              );
+            const captchaQuestion =
+              verification?.captchaQuestion || "Answer the captcha question";
 
             const modal = new ModalBuilder()
               .setCustomId(`captcha_modal_${verificationId}`)
