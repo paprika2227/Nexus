@@ -1,5 +1,5 @@
 // Create database tables for API features
-const db = require('./database');
+const db = require("./database");
 
 // Create all API-related tables
 db.db.run(`
@@ -64,7 +64,6 @@ db.db.run(`
   )
 `);
 
-console.log('[API Tables] All API database tables created');
+console.log("[API Tables] All API database tables created");
 
 module.exports = {};
-

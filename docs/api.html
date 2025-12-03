@@ -364,13 +364,333 @@ fetch('https://your-url.ngrok-free.app/api/v1/stats', {
         </div>
       </div>
 
-      <!-- Admin Endpoints -->
-      <div class="api-section">
-        <h2>🔒 Admin Endpoints</h2>
-        <p>
-          These endpoints require authentication with the
-          <code>x-admin-password</code> header.
-        </p>
+       <!-- Server Management API -->
+       <div class="api-section">
+         <h2>🎛️ Server Management API</h2>
+         <p>Control and configure servers remotely (requires auth)</p>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/server/:id/configure</span>
+           </div>
+           <p class="endpoint-description">Update server configuration remotely</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/server/:id/backup</span>
+           </div>
+           <p class="endpoint-description">Create a server backup</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/server/:id/restore</span>
+           </div>
+           <p class="endpoint-description">Restore server from backup</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method">GET</span>
+             <span class="endpoint-path">/api/v1/server/:id/health</span>
+           </div>
+           <p class="endpoint-description">Get server health score (0-100)</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/server/:id/analyze</span>
+           </div>
+           <p class="endpoint-description">Run complete health analysis</p>
+         </div>
+       </div>
+
+       <!-- Moderation API -->
+       <div class="api-section">
+         <h2>⚔️ Moderation API</h2>
+         <p>Perform moderation actions via API (requires auth)</p>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/moderation/ban</span>
+           </div>
+           <p class="endpoint-description">Ban a user</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/moderation/kick</span>
+           </div>
+           <p class="endpoint-description">Kick a user</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/moderation/warn</span>
+           </div>
+           <p class="endpoint-description">Issue a warning</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/moderation/bulk</span>
+           </div>
+           <p class="endpoint-description">Bulk ban/kick multiple users</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method">GET</span>
+             <span class="endpoint-path">/api/v1/moderation/logs</span>
+           </div>
+           <p class="endpoint-description">Get moderation logs with filters</p>
+         </div>
+       </div>
+
+       <!-- User Intelligence API -->
+       <div class="api-section">
+         <h2>🔍 User Intelligence API</h2>
+         <p>Analyze users and detect suspicious behavior</p>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method">GET</span>
+             <span class="endpoint-path">/api/v1/user/:id/risk</span>
+           </div>
+           <p class="endpoint-description">Get user risk score (0-100)</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method">GET</span>
+             <span class="endpoint-path">/api/v1/user/:id/history</span>
+           </div>
+           <p class="endpoint-description">Get user's moderation history</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/user/:id/analyze</span>
+           </div>
+           <p class="endpoint-description">Deep analysis: risk + churn prediction</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method">GET</span>
+             <span class="endpoint-path">/api/v1/users/risky</span>
+           </div>
+           <p class="endpoint-description">Get top risky users in a server</p>
+         </div>
+       </div>
+
+       <!-- AI Prediction API -->
+       <div class="api-section">
+         <h2>🤖 AI Prediction API</h2>
+         <p>Machine learning powered predictions</p>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/predict/threat</span>
+           </div>
+           <p class="endpoint-description">Predict raid probability with AI</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/predict/retention</span>
+           </div>
+           <p class="endpoint-description">Predict member churn rate</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method">GET</span>
+             <span class="endpoint-path">/api/v1/patterns/global</span>
+           </div>
+           <p class="endpoint-description">Get global threat patterns across all servers</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/threat/report</span>
+           </div>
+           <p class="endpoint-description">Report new threat pattern</p>
+         </div>
+       </div>
+
+       <!-- Analytics & Export API -->
+       <div class="api-section">
+         <h2>📊 Analytics & Export API</h2>
+         <p>Get insights and export data</p>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method">GET</span>
+             <span class="endpoint-path">/api/v1/analytics/commands</span>
+           </div>
+           <p class="endpoint-description">Command usage statistics</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method">GET</span>
+             <span class="endpoint-path">/api/v1/analytics/security</span>
+           </div>
+           <p class="endpoint-description">Security metrics and threat stats</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/export/logs</span>
+           </div>
+           <p class="endpoint-description">Export logs as JSON or CSV</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/export/data</span>
+           </div>
+           <p class="endpoint-description">Export complete server data</p>
+         </div>
+       </div>
+
+       <!-- Webhooks & Commands API -->
+       <div class="api-section">
+         <h2>🔧 Webhooks & Commands API</h2>
+         <p>Manage webhooks and custom commands</p>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/webhooks/create</span>
+           </div>
+           <p class="endpoint-description">Create webhook integration</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/webhooks/test</span>
+           </div>
+           <p class="endpoint-description">Test webhook endpoint</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/commands/create</span>
+           </div>
+           <p class="endpoint-description">Create custom command</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method">GET</span>
+             <span class="endpoint-path">/api/v1/commands/list</span>
+           </div>
+           <p class="endpoint-description">List all custom commands</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method delete">DELETE</span>
+             <span class="endpoint-path">/api/v1/commands/:name</span>
+           </div>
+           <p class="endpoint-description">Delete custom command</p>
+         </div>
+       </div>
+
+       <!-- Workflows & Automation API -->
+       <div class="api-section">
+         <h2>⚡ Workflows & Automation API</h2>
+         <p>Create and manage automated workflows</p>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/workflows/create</span>
+           </div>
+           <p class="endpoint-description">Create automation workflow</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/workflows/trigger</span>
+           </div>
+           <p class="endpoint-description">Manually trigger workflow</p>
+         </div>
+       </div>
+
+       <!-- Community API -->
+       <div class="api-section">
+         <h2>👥 Community API</h2>
+         <p>Community engagement and feedback (no auth required)</p>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/appeals/create</span>
+           </div>
+           <p class="endpoint-description">Submit ban appeal</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method">GET</span>
+             <span class="endpoint-path">/api/v1/appeals/list</span>
+           </div>
+           <p class="endpoint-description">List pending appeals (auth required)</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/showcase/nominate</span>
+           </div>
+           <p class="endpoint-description">Nominate server for showcase</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/testimonial/submit</span>
+           </div>
+           <p class="endpoint-description">Share your success story</p>
+         </div>
+
+         <div class="endpoint">
+           <div class="endpoint-header">
+             <span class="method post">POST</span>
+             <span class="endpoint-path">/api/v1/feedback</span>
+           </div>
+           <p class="endpoint-description">Submit feedback or suggestions</p>
+         </div>
+       </div>
+
+       <!-- Admin Endpoints -->
+       <div class="api-section">
+         <h2>🔒 Admin Endpoints (Legacy)</h2>
+         <p>
+           These endpoints require authentication with the
+           <code>x-admin-password</code> header.
+         </p>
 
         <div class="endpoint">
           <div class="endpoint-header">
