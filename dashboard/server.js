@@ -1089,22 +1089,26 @@ class DashboardServer {
     // GET /api/admin/apikeys - List all API keys
     this.app.get("/api/admin/apikeys", async (req, res) => {
       try {
-        // TODO: Add admin auth check here
+        console.log("[API Keys] Listing all API keys...");
         const keys = await db.listAPIKeys();
+        console.log(`[API Keys] Found ${keys.length} keys`);
         res.json(keys);
       } catch (error) {
-        console.error("Error listing API keys:", error);
-        res.status(500).json({ error: "Internal server error" });
+        console.error("[API Keys] Error listing API keys:", error);
+        res.status(500).json({ error: error.message || "Internal server error" });
       }
     });
 
     // POST /api/admin/apikeys/create - Create new API key
     this.app.post("/api/admin/apikeys/create", async (req, res) => {
       try {
-        // TODO: Add admin auth check here
+        console.log("[API Keys] Creating new API key...");
         const { discordUserId, discordUsername, email, purpose, notes } = req.body;
+        
+        console.log("[API Keys] Request body:", { discordUserId, discordUsername, email, purpose });
 
         if (!discordUserId || !discordUsername || !email || !purpose) {
+          console.log("[API Keys] Missing required fields");
           return res.status(400).json({ error: "Missing required fields" });
         }
 
@@ -1117,30 +1121,37 @@ class DashboardServer {
           notes || ""
         );
 
+        console.log("[API Keys] API key created successfully");
         res.json({
           success: true,
           apiKey: apiKey,
           message: "API key created successfully",
         });
       } catch (error) {
-        console.error("Error creating API key:", error);
-        res.status(500).json({ error: "Internal server error" });
+        console.error("[API Keys] Error creating API key:", error);
+        res.status(500).json({ error: error.message || "Internal server error" });
       }
     });
 
     // POST /api/admin/apikeys/:id/revoke - Revoke an API key
     this.app.post("/api/admin/apikeys/:id/revoke", async (req, res) => {
       try {
-        // TODO: Add admin auth check here
+        console.log("[API Keys] Revoking API key...");
         const keyId = req.params.id;
+        console.log("[API Keys] Key ID:", keyId);
 
         await new Promise((resolve, reject) => {
           db.db.run(
             `UPDATE api_keys SET is_active = 0 WHERE id = ?`,
             [keyId],
             (err) => {
-              if (err) reject(err);
-              else resolve();
+              if (err) {
+                console.error("[API Keys] Database error:", err);
+                reject(err);
+              } else {
+                console.log("[API Keys] API key revoked successfully");
+                resolve();
+              }
             }
           );
         });
@@ -1150,8 +1161,8 @@ class DashboardServer {
           message: "API key revoked successfully",
         });
       } catch (error) {
-        console.error("Error revoking API key:", error);
-        res.status(500).json({ error: "Internal server error" });
+        console.error("[API Keys] Error revoking API key:", error);
+        res.status(500).json({ error: error.message || "Internal server error" });
       }
     });
 
