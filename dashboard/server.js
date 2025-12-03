@@ -40,7 +40,7 @@ class DashboardServer {
       );
       res.header(
         "Access-Control-Allow-Headers",
-        "Content-Type, Authorization, ngrok-skip-browser-warning"
+        "Content-Type, Authorization, ngrok-skip-browser-warning, x-admin-password"
       );
       res.header("Access-Control-Allow-Credentials", "true");
 
