@@ -71,6 +71,17 @@ client.autoBackup = new AutoBackup(client);
 // Performance monitor is a singleton, automatically used in events/interactionCreate.js
 // No need to instantiate it here
 
+// Smart Status - Auto-updating bot status
+const SmartStatus = require("./utils/smartStatus");
+const smartStatus = new SmartStatus(client);
+
+client.once("ready", () => {
+  // Start smart status after bot is ready
+  setTimeout(() => {
+    smartStatus.start(2); // Rotate every 2 minutes
+  }, 5000); // Wait 5 seconds after ready
+});
+
 // Snapshot Scheduler (EXCEEDS WICK - automatic point-in-time snapshots)
 const SnapshotScheduler = require("./utils/snapshotScheduler");
 client.snapshotScheduler = new SnapshotScheduler(client);
