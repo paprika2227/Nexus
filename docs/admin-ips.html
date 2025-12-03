@@ -8,6 +8,28 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="pages.css">
   <style>
+    .admin-nav {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+    }
+    .admin-nav a {
+      display: inline-block;
+      padding: 12px 20px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 10px;
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .admin-nav a:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateX(-5px);
+    }
+  
     .admin-container {
       max-width: 1400px;
       margin: 100px auto;
@@ -143,6 +165,10 @@
   </style>
 </head>
 <body>
+  <div class="admin-nav">
+    <a href="admin.html">← Admin Hub</a>
+  </div>
+
   <div id="auth-screen" class="auth-screen">
     <h1>🔒 IP Logs - Admin</h1>
     <p>Enter admin password</p>
