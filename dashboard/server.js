@@ -1537,6 +1537,30 @@ class DashboardServer {
       }
     });
 
+    // GET /api/admin/server-health - Get health scores for all servers
+    this.app.get("/api/admin/server-health", async (req, res) => {
+      try {
+        const serverHealth = require("../utils/serverHealth");
+        const healthData = await serverHealth.getAllServersHealth(this.client);
+        res.json({ servers: healthData });
+      } catch (error) {
+        console.error("[Server Health] Error:", error);
+        res.status(500).json({ error: "Failed to fetch server health data" });
+      }
+    });
+
+    // GET /api/admin/server-health/:guildId - Get health for specific server
+    this.app.get("/api/admin/server-health/:guildId", async (req, res) => {
+      try {
+        const serverHealth = require("../utils/serverHealth");
+        const health = await serverHealth.calculateHealth(req.params.guildId);
+        res.json(health);
+      } catch (error) {
+        console.error("[Server Health] Error:", error);
+        res.status(500).json({ error: "Failed to fetch server health" });
+      }
+    });
+
     // ==================== INVITE SOURCE TRACKING ====================
 
     // GET /api/admin/invite-sources - List all invite sources
