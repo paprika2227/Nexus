@@ -865,195 +865,394 @@ fetch('https://regular-puma-clearly.ngrok-free.app/api/v1/stats', {
       </div>
 
       <!-- Interactive API Playground -->
-      <div class="api-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; border-radius: 15px; margin: 40px 0;">
-        <h2 style="color: white; margin-bottom: 10px;">🎮 Interactive API Playground</h2>
-        <p style="color: rgba(255,255,255,0.9); margin-bottom: 30px;">Test API endpoints live, right here in the docs! No Postman needed.</p>
-        
-        <div style="background: rgba(0,0,0,0.3); padding: 25px; border-radius: 10px; backdrop-filter: blur(10px);">
-          <div style="display: grid; gap: 15px;">
+      <div
+        class="api-section"
+        style="
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          padding: 40px;
+          border-radius: 15px;
+          margin: 40px 0;
+        "
+      >
+        <h2 style="color: white; margin-bottom: 10px">
+          🎮 Interactive API Playground
+        </h2>
+        <p style="color: rgba(255, 255, 255, 0.9); margin-bottom: 30px">
+          Test API endpoints live, right here in the docs! No Postman needed.
+        </p>
+
+        <div
+          style="
+            background: rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+          "
+        >
+          <div style="display: grid; gap: 15px">
             <!-- Endpoint Selection -->
             <div>
-              <label style="color: white; display: block; margin-bottom: 8px; font-weight: bold;">Select Endpoint:</label>
-              <select id="playgroundEndpoint" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #667eea; background: #1a202c; color: white; font-size: 14px; cursor: pointer;">
+              <label
+                style="
+                  color: white;
+                  display: block;
+                  margin-bottom: 8px;
+                  font-weight: bold;
+                "
+                >Select Endpoint:</label
+              >
+              <select
+                id="playgroundEndpoint"
+                style="
+                  width: 100%;
+                  padding: 12px;
+                  border-radius: 8px;
+                  border: 2px solid #667eea;
+                  background: #1a202c;
+                  color: white;
+                  font-size: 14px;
+                  cursor: pointer;
+                "
+              >
                 <optgroup label="📊 Public (No Auth)">
-                  <option value="GET|/api/v1/stats">GET /api/v1/stats - Bot Statistics</option>
-                  <option value="GET|/api/v1/version">GET /api/v1/version - Version Info</option>
-                  <option value="GET|/api/v1/recent-activity">GET /api/v1/recent-activity - Recent Activity</option>
+                  <option value="GET|/api/v1/stats">
+                    GET /api/v1/stats - Bot Statistics
+                  </option>
+                  <option value="GET|/api/v1/version">
+                    GET /api/v1/version - Version Info
+                  </option>
+                  <option value="GET|/api/v1/recent-activity">
+                    GET /api/v1/recent-activity - Recent Activity
+                  </option>
                 </optgroup>
                 <optgroup label="🔍 User Intelligence">
-                  <option value="GET|/api/v1/user/{userId}/risk?serverId={serverId}">GET /api/v1/user/:id/risk - Risk Score</option>
+                  <option
+                    value="GET|/api/v1/user/{userId}/risk?serverId={serverId}"
+                  >
+                    GET /api/v1/user/:id/risk - Risk Score
+                  </option>
                 </optgroup>
                 <optgroup label="🤖 AI Predictions">
-                  <option value="POST|/api/v1/predict/threat">POST /api/v1/predict/threat - Threat Prediction</option>
+                  <option value="POST|/api/v1/predict/threat">
+                    POST /api/v1/predict/threat - Threat Prediction
+                  </option>
                 </optgroup>
                 <optgroup label="👥 Community">
-                  <option value="POST|/api/v1/feedback">POST /api/v1/feedback - Submit Feedback</option>
+                  <option value="POST|/api/v1/feedback">
+                    POST /api/v1/feedback - Submit Feedback
+                  </option>
                 </optgroup>
               </select>
             </div>
 
             <!-- Request Body (for POST) -->
-            <div id="requestBodySection" style="display: none;">
-              <label style="color: white; display: block; margin-bottom: 8px; font-weight: bold;">Request Body (JSON):</label>
-              <textarea id="requestBody" rows="6" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #667eea; background: #1a202c; color: #00ff00; font-family: 'Courier New', monospace; font-size: 13px; resize: vertical;" placeholder='{\n  "key": "value"\n}'></textarea>
+            <div id="requestBodySection" style="display: none">
+              <label
+                style="
+                  color: white;
+                  display: block;
+                  margin-bottom: 8px;
+                  font-weight: bold;
+                "
+                >Request Body (JSON):</label
+              >
+              <textarea
+                id="requestBody"
+                rows="6"
+                style="
+                  width: 100%;
+                  padding: 12px;
+                  border-radius: 8px;
+                  border: 2px solid #667eea;
+                  background: #1a202c;
+                  color: #00ff00;
+                  font-family: 'Courier New', monospace;
+                  font-size: 13px;
+                  resize: vertical;
+                "
+                placeholder='{\n  "key": "value"\n}'
+              ></textarea>
             </div>
 
             <!-- API Key Input -->
-            <div id="apiKeySection" style="display: none;">
-              <label style="color: white; display: block; margin-bottom: 8px; font-weight: bold;">🔐 API Key (Optional):</label>
-              <input type="password" id="apiKeyInput" placeholder="your-api-key" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #667eea; background: #1a202c; color: white; font-size: 14px;">
-              <small style="color: rgba(255,255,255,0.7); display: block; margin-top: 5px;">Required for moderation & protected endpoints</small>
+            <div id="apiKeySection" style="display: none">
+              <label
+                style="
+                  color: white;
+                  display: block;
+                  margin-bottom: 8px;
+                  font-weight: bold;
+                "
+                >🔐 API Key (Optional):</label
+              >
+              <input
+                type="password"
+                id="apiKeyInput"
+                placeholder="your-api-key"
+                style="
+                  width: 100%;
+                  padding: 12px;
+                  border-radius: 8px;
+                  border: 2px solid #667eea;
+                  background: #1a202c;
+                  color: white;
+                  font-size: 14px;
+                "
+              />
+              <small
+                style="
+                  color: rgba(255, 255, 255, 0.7);
+                  display: block;
+                  margin-top: 5px;
+                "
+                >Required for moderation & protected endpoints</small
+              >
             </div>
 
             <!-- Send Button -->
-            <button onclick="testEndpoint()" style="background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%); color: #1a202c; padding: 15px 30px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,255,136,0.3);">
+            <button
+              onclick="testEndpoint()"
+              style="
+                background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+                color: #1a202c;
+                padding: 15px 30px;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.3s;
+                box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+              "
+            >
               🚀 Send Request
             </button>
 
             <!-- Loading Indicator -->
-            <div id="loadingIndicator" style="display: none; color: white; text-align: center; padding: 10px;">
-              <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-              <span style="margin-left: 10px;">Sending request...</span>
+            <div
+              id="loadingIndicator"
+              style="
+                display: none;
+                color: white;
+                text-align: center;
+                padding: 10px;
+              "
+            >
+              <div
+                style="
+                  display: inline-block;
+                  width: 20px;
+                  height: 20px;
+                  border: 3px solid rgba(255, 255, 255, 0.3);
+                  border-top-color: white;
+                  border-radius: 50%;
+                  animation: spin 0.8s linear infinite;
+                "
+              ></div>
+              <span style="margin-left: 10px">Sending request...</span>
             </div>
 
             <!-- Response Display -->
-            <div id="responseSection" style="display: none;">
-              <label style="color: white; display: block; margin-bottom: 8px; font-weight: bold;">
-                Response: <span id="responseStatus" style="padding: 4px 12px; border-radius: 5px; font-size: 13px;"></span>
+            <div id="responseSection" style="display: none">
+              <label
+                style="
+                  color: white;
+                  display: block;
+                  margin-bottom: 8px;
+                  font-weight: bold;
+                "
+              >
+                Response:
+                <span
+                  id="responseStatus"
+                  style="padding: 4px 12px; border-radius: 5px; font-size: 13px"
+                ></span>
               </label>
-              <pre id="responseBody" style="background: #0d1117; color: #00ff00; padding: 20px; border-radius: 8px; border: 2px solid #30363d; overflow-x: auto; max-height: 400px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6;"></pre>
-              <small style="color: rgba(255,255,255,0.7); display: block; margin-top: 8px;">
+              <pre
+                id="responseBody"
+                style="
+                  background: #0d1117;
+                  color: #00ff00;
+                  padding: 20px;
+                  border-radius: 8px;
+                  border: 2px solid #30363d;
+                  overflow-x: auto;
+                  max-height: 400px;
+                  font-family: 'Courier New', monospace;
+                  font-size: 13px;
+                  line-height: 1.6;
+                "
+              ></pre>
+              <small
+                style="
+                  color: rgba(255, 255, 255, 0.7);
+                  display: block;
+                  margin-top: 8px;
+                "
+              >
                 ⏱️ Response Time: <span id="responseTime">--</span>ms
               </small>
             </div>
           </div>
         </div>
 
-        <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; border-left: 4px solid #00ff88;">
-          <p style="color: white; margin: 0; font-size: 14px;">
-            <strong>💡 Pro Tip:</strong> This playground uses the live production API at 
-            <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px;">https://regular-puma-clearly.ngrok-free.app</code>
+        <div
+          style="
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            border-left: 4px solid #00ff88;
+          "
+        >
+          <p style="color: white; margin: 0; font-size: 14px">
+            <strong>💡 Pro Tip:</strong> This playground uses the live
+            production API at
+            <code
+              style="
+                background: rgba(0, 0, 0, 0.3);
+                padding: 2px 6px;
+                border-radius: 3px;
+              "
+              >https://regular-puma-clearly.ngrok-free.app</code
+            >
           </p>
         </div>
       </div>
 
       <style>
         @keyframes spin {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
         }
-        
-        #playgroundEndpoint:hover, #requestBody:hover, #apiKeyInput:hover {
+
+        #playgroundEndpoint:hover,
+        #requestBody:hover,
+        #apiKeyInput:hover {
           border-color: #00ff88;
         }
-        
+
         button:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(0,255,136,0.4);
+          box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
         }
-        
+
         button:active {
           transform: translateY(0);
         }
       </style>
 
       <script>
-        const BASE_URL = 'https://regular-puma-clearly.ngrok-free.app';
-        
+        const BASE_URL = "https://regular-puma-clearly.ngrok-free.app";
+
         // Show/hide request body based on method
-        document.getElementById('playgroundEndpoint').addEventListener('change', function() {
-          const value = this.value;
-          const method = value.split('|')[0];
-          const bodySection = document.getElementById('requestBodySection');
-          const apiKeySection = document.getElementById('apiKeySection');
-          
-          if (method === 'POST') {
-            bodySection.style.display = 'block';
-            
-            // Pre-fill example bodies
-            const endpoint = value.split('|')[1];
-            if (endpoint.includes('feedback')) {
-              document.getElementById('requestBody').value = JSON.stringify({
-                type: 'api_test',
-                message: 'Testing from the API playground!',
-                contact: 'developer@example.com'
-              }, null, 2);
-            } else if (endpoint.includes('threat')) {
-              document.getElementById('requestBody').value = JSON.stringify({
-                serverId: '1234567890'
-              }, null, 2);
+        document
+          .getElementById("playgroundEndpoint")
+          .addEventListener("change", function () {
+            const value = this.value;
+            const method = value.split("|")[0];
+            const bodySection = document.getElementById("requestBodySection");
+            const apiKeySection = document.getElementById("apiKeySection");
+
+            if (method === "POST") {
+              bodySection.style.display = "block";
+
+              // Pre-fill example bodies
+              const endpoint = value.split("|")[1];
+              if (endpoint.includes("feedback")) {
+              document.getElementById("requestBody").value = JSON.stringify(
+                {
+                  type: "api_test",
+                  message: "Testing from the API playground!",
+                  contact: "nexusbot0@proton.me",
+                },
+                null,
+                2
+              );
+              } else if (endpoint.includes("threat")) {
+                document.getElementById("requestBody").value = JSON.stringify(
+                  {
+                    serverId: "1234567890",
+                  },
+                  null,
+                  2
+                );
+              }
+            } else {
+              bodySection.style.display = "none";
             }
-          } else {
-            bodySection.style.display = 'none';
-          }
-          
-          // Always show API key option
-          apiKeySection.style.display = 'block';
-        });
-        
+
+            // Always show API key option
+            apiKeySection.style.display = "block";
+          });
+
         async function testEndpoint() {
-          const select = document.getElementById('playgroundEndpoint');
-          const [method, endpoint] = select.value.split('|');
-          const apiKey = document.getElementById('apiKeyInput').value;
-          const requestBody = document.getElementById('requestBody').value;
-          
-          const loadingIndicator = document.getElementById('loadingIndicator');
-          const responseSection = document.getElementById('responseSection');
-          const responseStatus = document.getElementById('responseStatus');
-          const responseBodyEl = document.getElementById('responseBody');
-          const responseTimeEl = document.getElementById('responseTime');
-          
+          const select = document.getElementById("playgroundEndpoint");
+          const [method, endpoint] = select.value.split("|");
+          const apiKey = document.getElementById("apiKeyInput").value;
+          const requestBody = document.getElementById("requestBody").value;
+
+          const loadingIndicator = document.getElementById("loadingIndicator");
+          const responseSection = document.getElementById("responseSection");
+          const responseStatus = document.getElementById("responseStatus");
+          const responseBodyEl = document.getElementById("responseBody");
+          const responseTimeEl = document.getElementById("responseTime");
+
           // Show loading
-          loadingIndicator.style.display = 'block';
-          responseSection.style.display = 'none';
-          
+          loadingIndicator.style.display = "block";
+          responseSection.style.display = "none";
+
           const startTime = performance.now();
-          
+
           try {
             // Build URL (replace placeholders with demo values)
             let url = BASE_URL + endpoint;
-            url = url.replace('{userId}', '123456789');
-            url = url.replace('{serverId}', '987654321');
-            
+            url = url.replace("{userId}", "123456789");
+            url = url.replace("{serverId}", "987654321");
+
             const options = {
               method: method,
               headers: {
-                'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true'
-              }
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "true",
+              },
             };
-            
+
             if (apiKey) {
-              options.headers['x-api-key'] = apiKey;
+              options.headers["x-api-key"] = apiKey;
             }
-            
-            if (method === 'POST' && requestBody) {
+
+            if (method === "POST" && requestBody) {
               options.body = requestBody;
             }
-            
+
             const response = await fetch(url, options);
             const endTime = performance.now();
             const data = await response.json();
-            
+
             // Hide loading
-            loadingIndicator.style.display = 'none';
-            
+            loadingIndicator.style.display = "none";
+
             // Show response
-            responseSection.style.display = 'block';
-            responseStatus.textContent = response.status + ' ' + response.statusText;
-            responseStatus.style.background = response.ok ? '#00ff88' : '#ff4444';
-            responseStatus.style.color = '#1a202c';
-            
+            responseSection.style.display = "block";
+            responseStatus.textContent =
+              response.status + " " + response.statusText;
+            responseStatus.style.background = response.ok
+              ? "#00ff88"
+              : "#ff4444";
+            responseStatus.style.color = "#1a202c";
+
             responseBodyEl.textContent = JSON.stringify(data, null, 2);
             responseTimeEl.textContent = Math.round(endTime - startTime);
-            
           } catch (error) {
-            loadingIndicator.style.display = 'none';
-            responseSection.style.display = 'block';
-            responseStatus.textContent = 'Error';
-            responseStatus.style.background = '#ff4444';
-            responseStatus.style.color = 'white';
-            responseBodyEl.textContent = 'Error: ' + error.message;
-            responseTimeEl.textContent = '--';
+            loadingIndicator.style.display = "none";
+            responseSection.style.display = "block";
+            responseStatus.textContent = "Error";
+            responseStatus.style.background = "#ff4444";
+            responseStatus.style.color = "white";
+            responseBodyEl.textContent = "Error: " + error.message;
+            responseTimeEl.textContent = "--";
           }
         }
       </script>
@@ -1264,7 +1463,7 @@ pip install nexus-bot-sdk</pre
           </li>
           <li>💬 Join our Discord support server</li>
           <li>🐛 Report issues on GitHub</li>
-          <li>📧 Email: support@nexusbot.example</li>
+          <li>📧 Email: nexusbot0@proton.me</li>
         </ul>
       </div>
 
