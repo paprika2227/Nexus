@@ -39,8 +39,8 @@ class Logger {
 
     let logMessage = `${timestamp} ${prefix} ${coloredCategory} ${coloredMessage}`;
 
-    // Add data if provided
-    if (data) {
+    // Add data if provided (and it's actually defined)
+    if (data !== null && data !== undefined) {
       logMessage += "\n" + chalk.gray(JSON.stringify(data, null, 2));
     }
 
