@@ -33,16 +33,16 @@ function updateStats() {
 
   // Status
   document.getElementById("status-dot").className = "status-dot online";
-  document.getElementById("status-text").textContent = "All Systems Operational";
-  document.getElementById("last-update").textContent = new Date().toLocaleTimeString();
+  document.getElementById("status-text").textContent =
+    "All Systems Operational";
+  document.getElementById("last-update").textContent =
+    new Date().toLocaleTimeString();
 }
 
 // Fetch from Top.gg API (public endpoint, no auth needed)
 async function fetchTopGGStats() {
   try {
-    const response = await fetch(
-      "https://top.gg/api/bots/1444739230679957646"
-    );
+    const response = await fetch("https://top.gg/api/bots/1444739230679957646");
 
     if (response.ok) {
       const data = await response.json();
@@ -54,34 +54,17 @@ async function fetchTopGGStats() {
       }
     }
   } catch (error) {
-    console.log("Could not fetch Top.gg stats (public endpoint may be disabled)");
+    console.log(
+      "Could not fetch Top.gg stats (public endpoint may be disabled)"
+    );
   }
 }
 
-// Simulate real-time updates (increments slowly)
-function simulateGrowth() {
-  // Increment stats slightly to show "live" feel
-  const random = Math.random();
-
-  if (random > 0.7) {
-    statsCache.raidsStoped += Math.floor(Math.random() * 3);
-  }
-  if (random > 0.8) {
-    statsCache.nukesPrevented += Math.floor(Math.random() * 2);
-  }
-  if (random > 0.6) {
-    statsCache.threatsDetected += Math.floor(Math.random() * 5);
-  }
-
-  statsCache.uptime += 30; // Add 30 seconds
-
-  updateStats();
-}
-
-// Auto-refresh every 30 seconds
+// Auto-refresh uptime every 30 seconds
 setInterval(() => {
-  simulateGrowth();
-  // fetchTopGGStats(); // Uncomment if you want to fetch real data
+  statsCache.uptime += 30; // Add 30 seconds
+  updateStats();
+   fetchTopGGStats(); // Fetch real data from Top.gg (if public API available)
 }, 30000);
 
 // Initial load
@@ -205,4 +188,3 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
-
