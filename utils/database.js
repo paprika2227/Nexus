@@ -702,19 +702,23 @@ class Database {
             )
         `);
 
-    // API keys table for public API
+    // API keys table for public API (bound to Discord users)
     this.db.run(`
             CREATE TABLE IF NOT EXISTS api_keys (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                key TEXT NOT NULL UNIQUE,
-                user_id TEXT,
-                name TEXT,
+                api_key TEXT NOT NULL UNIQUE,
+                discord_user_id TEXT NOT NULL,
+                discord_username TEXT,
+                email TEXT,
+                purpose TEXT,
                 created_at INTEGER,
+                created_by_admin TEXT,
                 last_used INTEGER,
                 rate_limit INTEGER DEFAULT 100,
                 requests_today INTEGER DEFAULT 0,
                 total_requests INTEGER DEFAULT 0,
-                is_active INTEGER DEFAULT 1
+                is_active INTEGER DEFAULT 1,
+                notes TEXT
             )
         `);
 
@@ -725,7 +729,8 @@ class Database {
                 api_key TEXT,
                 endpoint TEXT,
                 timestamp INTEGER,
-                ip_address TEXT
+                ip_address TEXT,
+                discord_user_id TEXT
             )
         `);
 
@@ -2791,15 +2796,15 @@ class Database {
   }
 
   // API Key Management
-  async createAPIKey(userId, name) {
+  async createAPIKey(discordUserId, discordUsername, email, purpose, createdByAdmin = "Manual", notes = "") {
     const crypto = require("crypto");
     const key = "nx_" + crypto.randomBytes(32).toString("hex");
 
     return new Promise((resolve, reject) => {
       this.db.run(
-        `INSERT INTO api_keys (key, user_id, name, created_at) 
-         VALUES (?, ?, ?, ?)`,
-        [key, userId, name, Date.now()],
+        `INSERT INTO api_keys (api_key, discord_user_id, discord_username, email, purpose, created_at, created_by_admin, notes) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [key, discordUserId, discordUsername, email, purpose, Date.now(), createdByAdmin, notes],
         (err) => {
           if (err) reject(err);
           else resolve(key);
@@ -2808,16 +2813,21 @@ class Database {
     });
   }
 
-  async validateAPIKey(key) {
+  async validateAPIKey(key, discordUserId = null) {
     return new Promise((resolve, reject) => {
-      this.db.get(
-        `SELECT * FROM api_keys WHERE key = ? AND is_active = 1`,
-        [key],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
+      let query = `SELECT * FROM api_keys WHERE api_key = ? AND is_active = 1`;
+      let params = [key];
+      
+      // If Discord user ID provided, verify it matches
+      if (discordUserId) {
+        query += ` AND discord_user_id = ?`;
+        params.push(discordUserId);
+      }
+      
+      this.db.get(query, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
     });
   }
 
@@ -2826,7 +2836,7 @@ class Database {
       // Reset daily counter if it's a new day
       const today = new Date().setHours(0, 0, 0, 0);
 
-      this.db.get(`SELECT * FROM api_keys WHERE key = ?`, [key], (err, row) => {
+      this.db.get(`SELECT * FROM api_keys WHERE api_key = ?`, [key], (err, row) => {
         if (err) {
           reject(err);
           return;
@@ -2844,7 +2854,7 @@ class Database {
         if (lastUsedDay < today) {
           // New day, reset counter
           this.db.run(
-            `UPDATE api_keys SET requests_today = 1, last_used = ?, total_requests = total_requests + 1 WHERE key = ?`,
+            `UPDATE api_keys SET requests_today = 1, last_used = ?, total_requests = total_requests + 1 WHERE api_key = ?`,
             [Date.now(), key],
             (err) => {
               if (err) reject(err);
@@ -2861,7 +2871,7 @@ class Database {
         } else {
           // Increment counter
           this.db.run(
-            `UPDATE api_keys SET requests_today = requests_today + 1, last_used = ?, total_requests = total_requests + 1 WHERE key = ?`,
+            `UPDATE api_keys SET requests_today = requests_today + 1, last_used = ?, total_requests = total_requests + 1 WHERE api_key = ?`,
             [Date.now(), key],
             (err) => {
               if (err) reject(err);
@@ -2877,15 +2887,46 @@ class Database {
     });
   }
 
-  async logAPIRequest(key, endpoint, ipAddress) {
+  async logAPIRequest(key, endpoint, ipAddress, discordUserId = null) {
     return new Promise((resolve, reject) => {
       this.db.run(
-        `INSERT INTO api_requests (api_key, endpoint, timestamp, ip_address) 
-         VALUES (?, ?, ?, ?)`,
-        [key, endpoint, Date.now(), ipAddress],
+        `INSERT INTO api_requests (api_key, endpoint, timestamp, ip_address, discord_user_id) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [key, endpoint, Date.now(), ipAddress, discordUserId],
         (err) => {
           if (err) reject(err);
           else resolve(true);
+        }
+      );
+    });
+  }
+
+  // Get API usage for a specific user
+  async getAPIUsage(discordUserId) {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        `SELECT * FROM api_keys WHERE discord_user_id = ?`,
+        [discordUserId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+  }
+
+  // List all API keys (admin only)
+  async listAPIKeys() {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        `SELECT id, discord_user_id, discord_username, email, purpose, created_at, last_used, 
+                rate_limit, requests_today, total_requests, is_active 
+         FROM api_keys 
+         ORDER BY created_at DESC`,
+        [],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
         }
       );
     });
