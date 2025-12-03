@@ -1,50 +1,118 @@
-// Simple in-memory cache for frequently accessed data
+// Simple in-memory cache for performance optimization
 class Cache {
   constructor() {
-    this.data = new Map();
-    this.ttl = new Map(); // Time-to-live
+    this.store = new Map();
+    this.stats = {
+      hits: 0,
+      misses: 0,
+      sets: 0,
+    };
   }
 
-  set(key, value, ttl = 60000) {
-    // Default 1 minute TTL
-    this.data.set(key, value);
-    this.ttl.set(key, Date.now() + ttl);
-  }
-
+  /**
+   * Get value from cache
+   * @param {string} key - Cache key
+   * @returns {*} Cached value or null if not found/expired
+   */
   get(key) {
-    const expiry = this.ttl.get(key);
-    if (expiry && Date.now() > expiry) {
-      this.data.delete(key);
-      this.ttl.delete(key);
+    const item = this.store.get(key);
+
+    if (!item) {
+      this.stats.misses++;
       return null;
     }
-    return this.data.get(key);
+
+    // Check if expired
+    if (item.expires && Date.now() > item.expires) {
+      this.store.delete(key);
+      this.stats.misses++;
+      return null;
+    }
+
+    this.stats.hits++;
+    return item.value;
   }
 
+  /**
+   * Set value in cache
+   * @param {string} key - Cache key
+   * @param {*} value - Value to cache
+   * @param {number} ttl - Time to live in seconds (default: 300 = 5min)
+   */
+  set(key, value, ttl = 300) {
+    this.store.set(key, {
+      value,
+      expires: ttl > 0 ? Date.now() + ttl * 1000 : null,
+    });
+    this.stats.sets++;
+  }
+
+  /**
+   * Delete specific key
+   */
   delete(key) {
-    this.data.delete(key);
-    this.ttl.delete(key);
+    this.store.delete(key);
   }
 
+  /**
+   * Clear all cache
+   */
   clear() {
-    this.data.clear();
-    this.ttl.clear();
+    this.store.clear();
   }
 
-  // Clean up expired entries
+  /**
+   * Clear expired entries
+   */
   cleanup() {
     const now = Date.now();
-    for (const [key, expiry] of this.ttl.entries()) {
-      if (now > expiry) {
-        this.data.delete(key);
-        this.ttl.delete(key);
+    let cleaned = 0;
+
+    for (const [key, item] of this.store.entries()) {
+      if (item.expires && now > item.expires) {
+        this.store.delete(key);
+        cleaned++;
       }
     }
+
+    return cleaned;
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getStats() {
+    const hitRate =
+      this.stats.hits + this.stats.misses > 0
+        ? (
+            (this.stats.hits / (this.stats.hits + this.stats.misses)) *
+            100
+          ).toFixed(2)
+        : 0;
+
+    return {
+      ...this.stats,
+      hitRate: `${hitRate}%`,
+      size: this.store.size,
+    };
+  }
+
+  /**
+   * Auto-cleanup every interval
+   */
+  startAutoCleanup(intervalMs = 300000) {
+    // 5 minutes
+    setInterval(() => {
+      const cleaned = this.cleanup();
+      if (cleaned > 0) {
+        console.log(`[Cache] Cleaned ${cleaned} expired entries`);
+      }
+    }, intervalMs);
   }
 }
 
-// Run cleanup every 5 minutes
+// Singleton instance
 const cache = new Cache();
-setInterval(() => cache.cleanup(), 5 * 60 * 1000);
+cache.startAutoCleanup();
 
 module.exports = cache;
