@@ -68,9 +68,8 @@ client.autoBackup = new AutoBackup(client);
 
 // Webhook Server removed - web verification no longer supported
 
-// Performance Monitor
-const PerformanceMonitor = require("./utils/performanceMonitor");
-client.performanceMonitor = new PerformanceMonitor();
+// Performance monitor is a singleton, automatically used in events/interactionCreate.js
+// No need to instantiate it here
 
 // Snapshot Scheduler (EXCEEDS WICK - automatic point-in-time snapshots)
 const SnapshotScheduler = require("./utils/snapshotScheduler");
