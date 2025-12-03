@@ -14,11 +14,26 @@ class DashboardServer {
     this.app.use(express.json());
     this.app.use(express.static(path.join(__dirname, "public")));
     
-    // CORS for GitHub Pages
+    // CORS for GitHub Pages and localhost
     this.app.use((req, res, next) => {
-      res.header("Access-Control-Allow-Origin", "https://azzraya.github.io");
-      res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-      res.header("Access-Control-Allow-Headers", "Content-Type");
+      const origin = req.headers.origin;
+      const allowedOrigins = [
+        "https://azzraya.github.io",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+        "null" // For local file:// protocol
+      ];
+      
+      if (allowedOrigins.includes(origin) || origin && origin.startsWith("http://localhost")) {
+        res.header("Access-Control-Allow-Origin", origin);
+      } else {
+        res.header("Access-Control-Allow-Origin", "https://azzraya.github.io");
+      }
+      
+      res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+      res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      res.header("Access-Control-Allow-Credentials", "true");
+      
       if (req.method === "OPTIONS") {
         return res.sendStatus(200);
       }

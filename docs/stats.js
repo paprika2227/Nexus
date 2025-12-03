@@ -16,10 +16,19 @@ let statsCache = {
 // Fetch live stats from bot API
 async function fetchLiveStats() {
   try {
-    const response = await fetch(API_URL);
+    console.log("🔄 Fetching stats from:", API_URL);
+    const response = await fetch(API_URL, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    console.log("📡 Response status:", response.status);
     
     if (response.ok) {
       const data = await response.json();
+      console.log("📊 Received data:", data);
       
       // Update cache with real data
       if (data.servers !== undefined) statsCache.servers = data.servers;
@@ -33,9 +42,12 @@ async function fetchLiveStats() {
       
       console.log("✅ Fetched live stats from bot API");
       return true;
+    } else {
+      console.log("⚠️ API returned non-OK status:", response.status);
     }
   } catch (error) {
-    console.log("⚠️ Could not fetch live stats from bot API, using fallback");
+    console.log("⚠️ Could not fetch live stats from bot API:", error.message);
+    console.log("📋 Error details:", error);
     // Try Top.gg as fallback
     await fetchTopGGStats();
   }
