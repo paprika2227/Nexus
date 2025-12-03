@@ -1,7 +1,5 @@
 // Live stats from bot API
 const API_URL = "https://regular-puma-clearly.ngrok-free.app/api/stats";
-const ANALYTICS_URL =
-  "https://regular-puma-clearly.ngrok-free.app/api/analytics/health";
 
 let statsCache = {
   servers: 0,
@@ -148,48 +146,7 @@ function updateStats() {
   }
 }
 
-// Fetch analytics data
-async function fetchAnalytics() {
-  try {
-    console.log("🔄 Fetching analytics from:", ANALYTICS_URL);
-    const response = await fetch(ANALYTICS_URL, {
-      mode: "cors",
-      headers: {
-        Accept: "application/json",
-        "ngrok-skip-browser-warning": "true",
-      },
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log("📊 Received analytics:", data);
-
-      // Update analytics displays
-      const protectedEl = document.getElementById("protected-servers");
-      const avgScoreEl = document.getElementById("avg-security-score");
-      const antiNukeEl = document.getElementById("servers-anti-nuke");
-      const antiRaidEl = document.getElementById("servers-anti-raid");
-      const autoModEl = document.getElementById("servers-auto-mod");
-      const activeThreatsEl = document.getElementById("active-threats");
-      const threatUpdateEl = document.getElementById("threat-update");
-
-      if (protectedEl) protectedEl.textContent = data.protectedServers || 0;
-      if (avgScoreEl)
-        avgScoreEl.textContent = (data.averageSecurityScore || 0) + "%";
-      if (antiNukeEl) antiNukeEl.textContent = data.serversWithAntiNuke || 0;
-      if (antiRaidEl) antiRaidEl.textContent = data.serversWithAntiRaid || 0;
-      if (autoModEl) autoModEl.textContent = data.serversWithAutoMod || 0;
-      if (activeThreatsEl)
-        activeThreatsEl.textContent = data.activeThreats || 0;
-      if (threatUpdateEl)
-        threatUpdateEl.textContent = new Date().toLocaleTimeString();
-
-      console.log("✅ Analytics updated");
-    }
-  } catch (error) {
-    console.log("⚠️ Could not fetch analytics:", error.message);
-  }
-}
+// Analytics removed
 
 // Fetch from Top.gg API (public endpoint, no auth needed)
 async function fetchTopGGStats() {
@@ -223,14 +180,12 @@ setInterval(() => {
   fetchLiveStats().then((success) => {
     updateStats();
   });
-  fetchAnalytics();
 }, 30000);
 
 // Initial load
 fetchLiveStats().then(() => {
   updateStats();
 });
-fetchAnalytics();
 
 // Add CSS for stats page
 const style = document.createElement("style");
