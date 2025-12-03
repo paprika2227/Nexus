@@ -447,11 +447,50 @@ class DashboardServer {
             );
           });
 
+          // Vote counts per bot list
+          const topggVotes = await new Promise((resolve) => {
+            db.db.get(
+              "SELECT COUNT(*) as count FROM vote_rewards WHERE botlist = 'topgg'",
+              [],
+              (err, row) => {
+                if (err) resolve(0);
+                else resolve(row?.count || 0);
+              }
+            );
+          });
+
+          const dblVotes = await new Promise((resolve) => {
+            db.db.get(
+              "SELECT COUNT(*) as count FROM vote_rewards WHERE botlist = 'discordbotlist'",
+              [],
+              (err, row) => {
+                if (err) resolve(0);
+                else resolve(row?.count || 0);
+              }
+            );
+          });
+
+          const voidVotes = await new Promise((resolve) => {
+            db.db.get(
+              "SELECT COUNT(*) as count FROM vote_rewards WHERE botlist = 'voidbots'",
+              [],
+              (err, row) => {
+                if (err) resolve(0);
+                else resolve(row?.count || 0);
+              }
+            );
+          });
+
           stats.voting = {
             totalVotes,
             uniqueVoters,
             recentVotes,
             longestStreak,
+            byPlatform: {
+              topgg: topggVotes,
+              discordBotList: dblVotes,
+              voidBots: voidVotes,
+            },
           };
         } catch (voteError) {
           console.error("Error fetching vote stats:", voteError);
@@ -460,6 +499,11 @@ class DashboardServer {
             uniqueVoters: 0,
             recentVotes: 0,
             longestStreak: 0,
+            byPlatform: {
+              topgg: 0,
+              discordBotList: 0,
+              voidBots: 0,
+            },
           };
         }
 

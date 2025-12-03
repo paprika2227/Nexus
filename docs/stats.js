@@ -50,6 +50,16 @@ async function fetchLiveStats() {
         statsCache.voting.uniqueVoters = data.voting.uniqueVoters || 0;
         statsCache.voting.recentVotes = data.voting.recentVotes || 0;
         statsCache.voting.longestStreak = data.voting.longestStreak || 0;
+
+        // Update bot list vote counts
+        if (data.voting.byPlatform) {
+          document.getElementById("topgg-votes").textContent =
+            data.voting.byPlatform.topgg || 0;
+          document.getElementById("dbl-votes").textContent =
+            data.voting.byPlatform.discordBotList || 0;
+          document.getElementById("void-votes").textContent =
+            data.voting.byPlatform.voidBots || 0;
+        }
       }
 
       // Calculate estimated security stats based on real server count
@@ -175,9 +185,10 @@ async function fetchTopGGStats() {
 // Fetch REAL security analytics from bot API
 async function fetchSecurityAnalytics() {
   try {
-    const SECURITY_URL = "https://regular-puma-clearly.ngrok-free.app/api/v1/security-analytics";
+    const SECURITY_URL =
+      "https://regular-puma-clearly.ngrok-free.app/api/v1/security-analytics";
     console.log("🔄 Fetching security analytics from:", SECURITY_URL);
-    
+
     const response = await fetch(SECURITY_URL, {
       mode: "cors",
       headers: {
@@ -200,12 +211,15 @@ async function fetchSecurityAnalytics() {
       const threatUpdateEl = document.getElementById("threat-update");
 
       if (protectedEl) protectedEl.textContent = data.protectedServers || 0;
-      if (avgScoreEl) avgScoreEl.textContent = (data.averageSecurityScore || 0) + "%";
+      if (avgScoreEl)
+        avgScoreEl.textContent = (data.averageSecurityScore || 0) + "%";
       if (antiNukeEl) antiNukeEl.textContent = data.serversWithAntiNuke || 0;
       if (antiRaidEl) antiRaidEl.textContent = data.serversWithAntiRaid || 0;
       if (autoModEl) autoModEl.textContent = data.serversWithAutoMod || 0;
-      if (activeThreatsEl) activeThreatsEl.textContent = data.activeThreats || 0;
-      if (threatUpdateEl) threatUpdateEl.textContent = new Date().toLocaleTimeString();
+      if (activeThreatsEl)
+        activeThreatsEl.textContent = data.activeThreats || 0;
+      if (threatUpdateEl)
+        threatUpdateEl.textContent = new Date().toLocaleTimeString();
 
       console.log("✅ Security analytics updated with REAL data");
     }
@@ -230,7 +244,6 @@ fetchLiveStats().then(() => {
   updateStats();
 });
 fetchSecurityAnalytics();
-fetchTopGGStats();
 
 // Add CSS for stats page
 const style = document.createElement("style");
