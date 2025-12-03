@@ -449,9 +449,9 @@
           return;
         }
 
-        container.innerHTML = links
-          .map((link) => {
-            const fullUrl = `${BASE_INVITE_URL}&source=${link.source}`;
+         container.innerHTML = links
+           .map((link) => {
+             const fullUrl = `${BASE_INVITE_URL}?source=${link.source}`;
             return `
                     <div class="link-card">
                         <div class="link-header">
