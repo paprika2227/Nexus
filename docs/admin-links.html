@@ -384,17 +384,17 @@
               }
             );
 
-           if (response.status === 401) {
-             localStorage.removeItem("nexus_admin_password");
-             alert("Invalid password");
-             window.location.reload();
-             return;
-           }
+            if (response.status === 401) {
+              localStorage.removeItem("nexus_admin_password");
+              alert("Invalid password");
+              window.location.reload();
+              return;
+            }
 
-           if (!response.ok) {
-             const errorData = await response.json().catch(() => ({}));
-             throw new Error(errorData.error || "Failed to create link");
-           }
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.error || "Failed to create link");
+            }
 
             showSuccess(`Link created: ${sanitizedSource}`);
             document.getElementById("createLinkForm").reset();
@@ -452,9 +452,9 @@
           return;
         }
 
-         container.innerHTML = links
-           .map((link) => {
-             const fullUrl = `${BASE_INVITE_URL}?source=${link.source}`;
+        container.innerHTML = links
+          .map((link) => {
+            const fullUrl = `${BASE_INVITE_URL}?source=${link.source}`;
             return `
                     <div class="link-card">
                         <div class="link-header">
@@ -466,14 +466,40 @@
                                     : ""
                                 }
                             </div>
-                            <div class="link-stats">
-                                <div class="stat">
-                                    <div class="stat-value">${
-                                      link.total_joins || 0
-                                    }</div>
-                                    <div class="stat-label">Joins</div>
-                                </div>
-                            </div>
+                             <div class="link-stats">
+                                 <div class="stat">
+                                     <div class="stat-value">${
+                                       link.total_clicks || 0
+                                     }</div>
+                                     <div class="stat-label">Clicks</div>
+                                 </div>
+                                 <div class="stat">
+                                     <div class="stat-value">${
+                                       link.total_joins || 0
+                                     }</div>
+                                     <div class="stat-label">Joins</div>
+                                 </div>
+                                 <div class="stat">
+                                     <div class="stat-value" style="color: ${
+                                       link.total_clicks > 0
+                                         ? link.total_joins /
+                                             link.total_clicks >=
+                                           0.3
+                                           ? "#10b981"
+                                           : link.total_joins /
+                                               link.total_clicks >=
+                                             0.1
+                                           ? "#f59e0b"
+                                           : "#ef4444"
+                                         : "#999"
+                                     }">${
+              link.total_clicks > 0
+                ? Math.round((link.total_joins / link.total_clicks) * 100)
+                : 0
+            }%</div>
+                                     <div class="stat-label">Rate</div>
+                                 </div>
+                             </div>
                         </div>
                         <div class="link-url">${fullUrl}</div>
                         <div class="link-actions">

@@ -783,6 +783,7 @@ class Database {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 source TEXT NOT NULL UNIQUE,
                 description TEXT,
+                total_clicks INTEGER DEFAULT 0,
                 total_joins INTEGER DEFAULT 0,
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL
@@ -3208,13 +3209,28 @@ class Database {
     referrer = null
   ) {
     return new Promise((resolve, reject) => {
+      const now = Date.now();
+      
       // Store anonymously first, will be associated with user later
       this.db.run(
         "INSERT INTO pending_invite_sources (user_id, source, timestamp, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)",
-        ["anonymous", source, Date.now(), ipAddress, userAgent],
+        ["anonymous", source, now, ipAddress, userAgent],
         (err) => {
-          if (err) reject(err);
-          else resolve();
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          // Also increment click count for this source
+          this.db.run(
+            "UPDATE invite_sources SET total_clicks = total_clicks + 1, updated_at = ? WHERE source = ?",
+            [now, source],
+            (err2) => {
+              // Don't fail if source doesn't exist yet
+              if (err2) console.log(`[Invite Tracking] Note: Source '${source}' not found in invite_sources table`);
+              resolve();
+            }
+          );
         }
       );
     });
