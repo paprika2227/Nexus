@@ -729,6 +729,23 @@ class DashboardServer {
   }
 
   setupPublicAPI() {
+    // GET /api/v1/version - Get API and bot version
+    this.app.get("/api/v1/version", (req, res) => {
+      const packageJson = require("../package.json");
+      res.json({
+        botVersion: packageJson.version,
+        apiVersion: "1.0.0",
+        botName: "Nexus",
+        uptime: Math.floor(process.uptime()),
+        endpoints: {
+          server: "/api/v1/server/:id",
+          warnings: "/api/v1/user/:userId/warnings",
+          leaderboard: "/api/v1/votes/leaderboard",
+          stats: "/api/v1/bot/stats",
+        },
+      });
+    });
+
     // GET /api/v1/server/:id - Get server info and config
     this.app.get(
       "/api/v1/server/:id",
