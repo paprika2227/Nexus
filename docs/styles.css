@@ -286,15 +286,17 @@ footer p {
 
 .btn-nav {
   background: #fff;
-  color: #667eea;
+  color: #667eea !important;
   padding: 8px 20px;
   border-radius: 5px;
   opacity: 1 !important;
   font-weight: 600;
+  text-decoration: none !important;
 }
 
 .btn-nav:hover {
   transform: scale(1.05);
+  background: #f0f0f0;
 }
 
 /* Mobile Navigation */
