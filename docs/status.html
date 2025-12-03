@@ -327,6 +327,7 @@
           <a href="faq.html">FAQ</a>
           <a href="stats.html">Stats</a>
           <a href="status.html" class="active">Status</a>
+          <a href="api.html">API</a>
           <a href="changelog.html">Changelog</a>
 
           <a
@@ -482,11 +483,11 @@
         try {
           console.log("🔄 Fetching bot status from:", API_URL);
           const response = await fetch(API_URL, {
-            mode: 'cors',
+            mode: "cors",
             headers: {
-              'Accept': 'application/json',
-              'ngrok-skip-browser-warning': 'true'
-            }
+              Accept: "application/json",
+              "ngrok-skip-browser-warning": "true",
+            },
           });
 
           console.log("📡 Response status:", response.status);
@@ -494,7 +495,7 @@
           if (response.ok) {
             const data = await response.json();
             console.log("📊 Received data:", data);
-            
+
             botStats.servers = data.servers || 0;
             botStats.uptime = data.uptime || 0;
             botStats.ping = data.ping || 0;
@@ -627,14 +628,14 @@
       // Load incidents from JSON file
       async function loadIncidents() {
         try {
-          const response = await fetch('incidents.json');
+          const response = await fetch("incidents.json");
           if (response.ok) {
             const data = await response.json();
             displayIncidents(data.incidents);
             displayMaintenance(data.maintenance);
           }
         } catch (error) {
-          console.log('Could not load incidents.json');
+          console.log("Could not load incidents.json");
         }
       }
 
@@ -650,7 +651,7 @@
           }
 
           // Display each incident
-          incidents.forEach(incident => {
+          incidents.forEach((incident) => {
             const incidentEl = document.createElement("div");
             incidentEl.className = `incident ${incident.status}`;
 
@@ -664,18 +665,26 @@
             }
 
             const startDate = new Date(incident.startTime);
-            const endDate = incident.endTime ? new Date(incident.endTime) : null;
+            const endDate = incident.endTime
+              ? new Date(incident.endTime)
+              : null;
 
-            let timelineHTML = '';
+            let timelineHTML = "";
             if (incident.timeline && incident.timeline.length > 0) {
               timelineHTML = `
                 <div class="incident-timeline">
-                  ${incident.timeline.map(item => `
+                  ${incident.timeline
+                    .map(
+                      (item) => `
                     <div class="timeline-item">
-                      <span class="timeline-time">${new Date(item.time).toLocaleTimeString()}</span>
+                      <span class="timeline-time">${new Date(
+                        item.time
+                      ).toLocaleTimeString()}</span>
                       <span class="timeline-text">${item.text}</span>
                     </div>
-                  `).join('')}
+                  `
+                    )
+                    .join("")}
                 </div>
               `;
             }
@@ -707,7 +716,7 @@
           }
 
           // Display each maintenance
-          maintenance.forEach(item => {
+          maintenance.forEach((item) => {
             const maintenanceEl = document.createElement("div");
             maintenanceEl.className = "incident investigating";
 

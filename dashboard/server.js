@@ -382,8 +382,9 @@ class DashboardServer {
       }
     });
 
-    this.app.get("/api/stats", (req, res) => {
+    this.app.get("/api/stats", async (req, res) => {
       try {
+        // Basic bot stats
         const stats = {
           servers: this.client.guilds.cache.size,
           users: this.client.guilds.cache.reduce(
@@ -394,7 +395,268 @@ class DashboardServer {
           ping: this.client.ws.ping,
           memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
         };
+
+        // Get vote statistics from database
+        try {
+          // Total votes across all users
+          const totalVotes = await new Promise((resolve, reject) => {
+            db.db.get(
+              "SELECT SUM(total_votes) as total FROM vote_rewards",
+              [],
+              (err, row) => {
+                if (err) reject(err);
+                else resolve(row?.total || 0);
+              }
+            );
+          });
+
+          // Unique voters
+          const uniqueVoters = await new Promise((resolve, reject) => {
+            db.db.get(
+              "SELECT COUNT(*) as count FROM vote_rewards WHERE total_votes > 0",
+              [],
+              (err, row) => {
+                if (err) reject(err);
+                else resolve(row?.count || 0);
+              }
+            );
+          });
+
+          // Recent votes (last 30 days)
+          const recentVotes = await new Promise((resolve, reject) => {
+            db.db.get(
+              "SELECT SUM(recent_votes) as total FROM vote_rewards",
+              [],
+              (err, row) => {
+                if (err) reject(err);
+                else resolve(row?.total || 0);
+              }
+            );
+          });
+
+          // Longest streak ever
+          const longestStreak = await new Promise((resolve, reject) => {
+            db.db.get(
+              "SELECT MAX(longest_streak) as max FROM vote_rewards",
+              [],
+              (err, row) => {
+                if (err) reject(err);
+                else resolve(row?.max || 0);
+              }
+            );
+          });
+
+          stats.voting = {
+            totalVotes,
+            uniqueVoters,
+            recentVotes,
+            longestStreak,
+          };
+        } catch (voteError) {
+          console.error("Error fetching vote stats:", voteError);
+          stats.voting = {
+            totalVotes: 0,
+            uniqueVoters: 0,
+            recentVotes: 0,
+            longestStreak: 0,
+          };
+        }
+
         res.json(stats);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Get recent global security events (public endpoint)
+    this.app.get("/api/security/recent", async (req, res) => {
+      try {
+        const limit = parseInt(req.query.limit) || 10;
+        const events = await db.getRecentSecurityEvents(limit);
+        res.json(events);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Get global threat statistics (public endpoint)
+    this.app.get("/api/security/stats", async (req, res) => {
+      try {
+        const stats = await db.getGlobalSecurityStats();
+        res.json(stats);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Get server health analytics (public endpoint)
+    this.app.get("/api/analytics/health", async (req, res) => {
+      try {
+        const health = {
+          totalServers: this.client.guilds.cache.size,
+          protectedServers: await db.getProtectedServersCount(),
+          averageSecurityScore: await db.getAverageSecurityScore(),
+          activeThreats: await db.getActiveThreatsCount(),
+          serversWithAntiNuke: await db.getServersWithFeatureCount(
+            "anti_nuke_enabled"
+          ),
+          serversWithAntiRaid: await db.getServersWithFeatureCount(
+            "anti_raid_enabled"
+          ),
+          serversWithAutoMod: await db.getServersWithFeatureCount(
+            "auto_mod_enabled"
+          ),
+        };
+        res.json(health);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Rate Limiting Middleware for Public API
+    const checkAPIKey = async (req, res, next) => {
+      const apiKey = req.headers["x-api-key"] || req.query.api_key;
+
+      if (!apiKey) {
+        return res.status(401).json({
+          error: "API key required",
+          message:
+            "Please provide an API key via X-API-Key header or api_key query parameter",
+        });
+      }
+
+      const keyData = await db.validateAPIKey(apiKey);
+      if (!keyData) {
+        return res.status(401).json({ error: "Invalid API key" });
+      }
+
+      const rateLimit = await db.checkRateLimit(apiKey);
+      if (!rateLimit.allowed) {
+        return res.status(429).json({
+          error: "Rate limit exceeded",
+          limit: rateLimit.limit,
+          message:
+            "You have reached your daily request limit. Please try again tomorrow.",
+        });
+      }
+
+      // Log the request
+      await db.logAPIRequest(apiKey, req.path, req.ip);
+
+      // Add rate limit headers
+      res.setHeader("X-RateLimit-Remaining", rateLimit.remaining);
+      res.setHeader("X-RateLimit-Limit", keyData.rate_limit);
+
+      req.apiKey = keyData;
+      next();
+    };
+
+    // API Documentation endpoint (no key required)
+    this.app.get("/api/v1/docs", (req, res) => {
+      res.json({
+        version: "1.0.0",
+        name: "Nexus Public API",
+        description: "Access Nexus bot data programmatically",
+        authentication:
+          "API Key required (X-API-Key header or api_key query parameter)",
+        rateLimit: "100 requests per day per key",
+        requestKey: "Contact nexusbot0@proton.me to request an API key",
+        endpoints: {
+          "/api/v1/server/:id": {
+            method: "GET",
+            description: "Get server information and configuration",
+            params: { id: "Discord server ID" },
+          },
+          "/api/v1/user/:userId/warnings": {
+            method: "GET",
+            description: "Get user warnings in a specific server",
+            params: { userId: "Discord user ID" },
+            query: { guild_id: "Discord server ID (required)" },
+          },
+          "/api/v1/votes/leaderboard": {
+            method: "GET",
+            description: "Get voting leaderboard",
+            query: {
+              type: "total, streak, or longest (default: total)",
+              limit: "Number of results (default: 10, max: 100)",
+            },
+          },
+        },
+      });
+    });
+
+    // Public API Endpoints (require API key)
+    this.app.get("/api/v1/server/:id", checkAPIKey, async (req, res) => {
+      try {
+        const guild = this.client.guilds.cache.get(req.params.id);
+        if (!guild) {
+          return res.status(404).json({ error: "Server not found" });
+        }
+
+        const config = await db.getServerConfig(req.params.id);
+        const stats = await db.getServerStats(req.params.id);
+
+        res.json({
+          id: guild.id,
+          name: guild.name,
+          memberCount: guild.memberCount,
+          features: {
+            antiNuke: config.anti_nuke_enabled,
+            antiRaid: config.anti_raid_enabled,
+            autoMod: config.auto_mod_enabled,
+          },
+          stats: stats,
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    this.app.get(
+      "/api/v1/user/:userId/warnings",
+      checkAPIKey,
+      async (req, res) => {
+        try {
+          const guildId = req.query.guild_id;
+          if (!guildId) {
+            return res
+              .status(400)
+              .json({ error: "guild_id query parameter required" });
+          }
+
+          const warnings = await db.getWarnings(guildId, req.params.userId);
+          res.json({ warnings });
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
+      }
+    );
+
+    this.app.get("/api/v1/votes/leaderboard", checkAPIKey, async (req, res) => {
+      try {
+        const type = req.query.type || "total";
+        const limit = Math.min(parseInt(req.query.limit) || 10, 100);
+
+        const leaderboard = await new Promise((resolve, reject) => {
+          let orderBy = "total_votes";
+          if (type === "streak") orderBy = "current_streak";
+          if (type === "longest") orderBy = "longest_streak";
+
+          db.db.all(
+            `SELECT user_id, total_votes, current_streak, longest_streak 
+             FROM vote_rewards 
+             WHERE ${orderBy} > 0 
+             ORDER BY ${orderBy} DESC 
+             LIMIT ?`,
+            [limit],
+            (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows || []);
+            }
+          );
+        });
+
+        res.json({ leaderboard });
       } catch (error) {
         res.status(500).json({ error: error.message });
       }
@@ -414,7 +676,426 @@ class DashboardServer {
     res.status(401).json({ error: "Unauthorized" });
   }
 
+  // ===== PUBLIC API v1 Routes =====
+
+  // API Key Authentication Middleware
+  async apiAuth(req, res, next) {
+    try {
+      // Get API key from header or query param
+      const apiKey =
+        req.headers["x-api-key"] ||
+        req.query.api_key ||
+        req.headers.authorization?.replace("Bearer ", "");
+
+      if (!apiKey) {
+        return res.status(401).json({ error: "API key required" });
+      }
+
+      // Validate API key
+      const keyData = await db.validateAPIKey(apiKey);
+      if (!keyData) {
+        return res.status(401).json({ error: "Invalid API key" });
+      }
+
+      // Check rate limit
+      const rateCheck = await db.checkRateLimit(apiKey);
+      if (!rateCheck.allowed) {
+        return res.status(429).json({
+          error: rateCheck.reason,
+          limit: rateCheck.limit,
+        });
+      }
+
+      // Log the request
+      await db.logAPIRequest(
+        apiKey,
+        req.path,
+        req.ip || req.connection.remoteAddress
+      );
+
+      // Attach rate limit headers
+      res.set({
+        "X-RateLimit-Limit": keyData.rate_limit,
+        "X-RateLimit-Remaining": rateCheck.remaining,
+      });
+
+      // Attach key data to request
+      req.apiKey = keyData;
+      next();
+    } catch (error) {
+      console.error("API auth error:", error);
+      res.status(500).json({ error: "Authentication error" });
+    }
+  }
+
+  setupPublicAPI() {
+    // GET /api/v1/server/:id - Get server info and config
+    this.app.get(
+      "/api/v1/server/:id",
+      this.apiAuth.bind(this),
+      async (req, res) => {
+        try {
+          const serverId = req.params.id;
+          const guild = this.client.guilds.cache.get(serverId);
+
+          if (!guild) {
+            return res.status(404).json({ error: "Server not found" });
+          }
+
+          const config = await db.getServerConfig(serverId);
+
+          res.json({
+            id: guild.id,
+            name: guild.name,
+            memberCount: guild.memberCount,
+            features: {
+              antiNuke: config?.anti_nuke_enabled || false,
+              antiRaid: config?.anti_raid_enabled || false,
+              autoMod: config?.auto_mod_enabled || false,
+            },
+            stats: {
+              totalBans: await this.getServerStat(serverId, "bans"),
+              totalKicks: await this.getServerStat(serverId, "kicks"),
+              warnings: await this.getServerStat(serverId, "warnings"),
+            },
+          });
+        } catch (error) {
+          console.error("API error:", error);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      }
+    );
+
+    // GET /api/v1/user/:userId/warnings - Get user warnings
+    this.app.get(
+      "/api/v1/user/:userId/warnings",
+      this.apiAuth.bind(this),
+      async (req, res) => {
+        try {
+          const { userId } = req.params;
+          const { guild_id } = req.query;
+
+          if (!guild_id) {
+            return res
+              .status(400)
+              .json({ error: "guild_id query parameter required" });
+          }
+
+          const warnings = await new Promise((resolve, reject) => {
+            db.db.all(
+              `SELECT * FROM warnings WHERE user_id = ? AND guild_id = ? ORDER BY timestamp DESC`,
+              [userId, guild_id],
+              (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+              }
+            );
+          });
+
+          res.json({ warnings });
+        } catch (error) {
+          console.error("API error:", error);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      }
+    );
+
+    // GET /api/v1/votes/leaderboard - Get voting leaderboard
+    this.app.get(
+      "/api/v1/votes/leaderboard",
+      this.apiAuth.bind(this),
+      async (req, res) => {
+        try {
+          const type = req.query.type || "total";
+          const limit = Math.min(parseInt(req.query.limit) || 10, 100);
+
+          let orderBy;
+          switch (type) {
+            case "streak":
+              orderBy = "current_streak DESC";
+              break;
+            case "longest":
+              orderBy = "longest_streak DESC";
+              break;
+            default:
+              orderBy = "total_votes DESC";
+          }
+
+          const leaderboard = await new Promise((resolve, reject) => {
+            db.db.all(
+              `SELECT user_id, total_votes, current_streak, longest_streak 
+               FROM vote_rewards 
+               WHERE total_votes > 0 
+               ORDER BY ${orderBy} 
+               LIMIT ?`,
+              [limit],
+              (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+              }
+            );
+          });
+
+          res.json({ leaderboard });
+        } catch (error) {
+          console.error("API error:", error);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      }
+    );
+
+    // GET /api/v1/bot/stats - Get bot global stats
+    this.app.get(
+      "/api/v1/bot/stats",
+      this.apiAuth.bind(this),
+      async (req, res) => {
+        try {
+          res.json({
+            servers: this.client.guilds.cache.size,
+            users: this.client.guilds.cache.reduce(
+              (acc, guild) => acc + guild.memberCount,
+              0
+            ),
+            uptime: Math.floor(process.uptime()),
+            commands: 85,
+          });
+        } catch (error) {
+          console.error("API error:", error);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      }
+    );
+
+    console.log("[API] Public API v1 endpoints registered");
+  }
+
+  // ===== Analytics System =====
+
+  setupAnalytics() {
+    // POST /api/analytics/track - Track user interactions
+    this.app.post("/api/analytics/track", async (req, res) => {
+      try {
+        const { sessionId, events, metadata } = req.body;
+
+        if (!events || !Array.isArray(events)) {
+          return res.status(400).json({ error: "Invalid events data" });
+        }
+
+        // Store each event in the database
+        for (const event of events) {
+          await new Promise((resolve, reject) => {
+            db.db.run(
+              `INSERT INTO analytics_events (session_id, event_type, page, data, timestamp, user_agent, ip_address)
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [
+                sessionId,
+                event.type,
+                event.page,
+                JSON.stringify(event.data),
+                event.timestamp,
+                metadata?.userAgent || req.headers["user-agent"],
+                req.ip || req.connection.remoteAddress,
+              ],
+              (err) => {
+                if (err) reject(err);
+                else resolve();
+              }
+            );
+          });
+        }
+
+        res.json({ success: true, tracked: events.length });
+      } catch (error) {
+        console.error("Analytics track error:", error);
+        // Don't send error to client - analytics should fail silently
+        res.json({ success: true });
+      }
+    });
+
+    // GET /api/analytics/dashboard - Get analytics dashboard data (admin only)
+    this.app.get("/api/analytics/dashboard", async (req, res) => {
+      try {
+        // Get last 7 days of data
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+        const stats = {
+          totalPageviews: 0,
+          uniqueSessions: 0,
+          totalClicks: 0,
+          avgSessionDuration: 0,
+          topPages: [],
+          clickHeatmap: [],
+          hourlyTraffic: [],
+        };
+
+        // Total pageviews
+        const pageviews = await new Promise((resolve, reject) => {
+          db.db.get(
+            `SELECT COUNT(*) as count FROM analytics_events 
+             WHERE event_type = 'pageview' AND timestamp > ?`,
+            [sevenDaysAgo],
+            (err, row) => {
+              if (err) reject(err);
+              else resolve(row?.count || 0);
+            }
+          );
+        });
+        stats.totalPageviews = pageviews;
+
+        // Unique sessions
+        const sessions = await new Promise((resolve, reject) => {
+          db.db.get(
+            `SELECT COUNT(DISTINCT session_id) as count FROM analytics_events 
+             WHERE timestamp > ?`,
+            [sevenDaysAgo],
+            (err, row) => {
+              if (err) reject(err);
+              else resolve(row?.count || 0);
+            }
+          );
+        });
+        stats.uniqueSessions = sessions;
+
+        // Total clicks
+        const clicks = await new Promise((resolve, reject) => {
+          db.db.get(
+            `SELECT COUNT(*) as count FROM analytics_events 
+             WHERE event_type = 'click' AND timestamp > ?`,
+            [sevenDaysAgo],
+            (err, row) => {
+              if (err) reject(err);
+              else resolve(row?.count || 0);
+            }
+          );
+        });
+        stats.totalClicks = clicks;
+
+        // Top pages
+        const topPages = await new Promise((resolve, reject) => {
+          db.db.all(
+            `SELECT page, COUNT(*) as views 
+             FROM analytics_events 
+             WHERE event_type = 'pageview' AND timestamp > ?
+             GROUP BY page 
+             ORDER BY views DESC 
+             LIMIT 10`,
+            [sevenDaysAgo],
+            (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows || []);
+            }
+          );
+        });
+        stats.topPages = topPages;
+
+        // Click heatmap data (most clicked elements)
+        const clickData = await new Promise((resolve, reject) => {
+          db.db.all(
+            `SELECT data, COUNT(*) as clicks 
+             FROM analytics_events 
+             WHERE event_type = 'click' AND timestamp > ?
+             GROUP BY data 
+             ORDER BY clicks DESC 
+             LIMIT 20`,
+            [sevenDaysAgo],
+            (err, rows) => {
+              if (err) reject(err);
+              else
+                resolve(
+                  (rows || []).map((r) => ({
+                    ...JSON.parse(r.data),
+                    clicks: r.clicks,
+                  }))
+                );
+            }
+          );
+        });
+        stats.clickHeatmap = clickData;
+
+        res.json(stats);
+      } catch (error) {
+        console.error("Analytics dashboard error:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
+
+    // GET /api/analytics/health - Simple health check with basic stats
+    this.app.get("/api/analytics/health", async (req, res) => {
+      try {
+        const last24h = Date.now() - 24 * 60 * 60 * 1000;
+
+        const stats = {
+          online: true,
+          pageviews24h: 0,
+          uniqueVisitors24h: 0,
+        };
+
+        const pageviews = await new Promise((resolve, reject) => {
+          db.db.get(
+            `SELECT COUNT(*) as count FROM analytics_events 
+             WHERE event_type = 'pageview' AND timestamp > ?`,
+            [last24h],
+            (err, row) => {
+              if (err) reject(err);
+              else resolve(row?.count || 0);
+            }
+          );
+        });
+        stats.pageviews24h = pageviews;
+
+        const visitors = await new Promise((resolve, reject) => {
+          db.db.get(
+            `SELECT COUNT(DISTINCT session_id) as count FROM analytics_events 
+             WHERE timestamp > ?`,
+            [last24h],
+            (err, row) => {
+              if (err) reject(err);
+              else resolve(row?.count || 0);
+            }
+          );
+        });
+        stats.uniqueVisitors24h = visitors;
+
+        res.json(stats);
+      } catch (error) {
+        console.error("Analytics health error:", error);
+        res.json({ online: false });
+      }
+    });
+
+    console.log("[Analytics] Analytics endpoints registered");
+  }
+
+  async getServerStat(serverId, type) {
+    return new Promise((resolve, reject) => {
+      let query;
+      switch (type) {
+        case "bans":
+          query = `SELECT COUNT(*) as count FROM mod_logs WHERE guild_id = ? AND action = 'ban'`;
+          break;
+        case "kicks":
+          query = `SELECT COUNT(*) as count FROM mod_logs WHERE guild_id = ? AND action = 'kick'`;
+          break;
+        case "warnings":
+          query = `SELECT COUNT(*) as count FROM warnings WHERE guild_id = ?`;
+          break;
+        default:
+          resolve(0);
+          return;
+      }
+
+      db.db.get(query, [serverId], (err, row) => {
+        if (err) reject(err);
+        else resolve(row?.count || 0);
+      });
+    });
+  }
+
   start(port = 3000) {
+    // Setup public API and analytics
+    this.setupPublicAPI();
+    this.setupAnalytics();
+
     this.app.listen(port, () => {
       console.log(`[Dashboard] Running on http://localhost:${port}`);
       console.log(

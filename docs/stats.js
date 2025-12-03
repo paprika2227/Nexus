@@ -1,5 +1,7 @@
 // Live stats from bot API
 const API_URL = "https://regular-puma-clearly.ngrok-free.app/api/stats";
+const ANALYTICS_URL =
+  "https://regular-puma-clearly.ngrok-free.app/api/analytics/health";
 
 let statsCache = {
   servers: 0,
@@ -11,6 +13,12 @@ let statsCache = {
   serversRecovered: 0,
   ping: 0,
   memoryUsage: 0,
+  voting: {
+    totalVotes: 0,
+    uniqueVoters: 0,
+    recentVotes: 0,
+    longestStreak: 0,
+  },
 };
 
 // Fetch live stats from bot API
@@ -18,29 +26,37 @@ async function fetchLiveStats() {
   try {
     console.log("🔄 Fetching stats from:", API_URL);
     const response = await fetch(API_URL, {
-      mode: 'cors',
+      mode: "cors",
       headers: {
-        'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      }
+        Accept: "application/json",
+        "ngrok-skip-browser-warning": "true",
+      },
     });
-    
+
     console.log("📡 Response status:", response.status);
-    
+
     if (response.ok) {
       const data = await response.json();
       console.log("📊 Received data:", data);
-      
+
       // Update cache with real data
       if (data.servers !== undefined) statsCache.servers = data.servers;
       if (data.users !== undefined) statsCache.users = data.users;
       if (data.uptime !== undefined) statsCache.uptime = data.uptime;
       if (data.ping !== undefined) statsCache.ping = data.ping;
       if (data.memory !== undefined) statsCache.memoryUsage = data.memory;
-      
+
+      // Update voting stats
+      if (data.voting) {
+        statsCache.voting.totalVotes = data.voting.totalVotes || 0;
+        statsCache.voting.uniqueVoters = data.voting.uniqueVoters || 0;
+        statsCache.voting.recentVotes = data.voting.recentVotes || 0;
+        statsCache.voting.longestStreak = data.voting.longestStreak || 0;
+      }
+
       // Calculate estimated security stats based on real server count
       calculateScaledStats();
-      
+
       console.log("✅ Fetched live stats from bot API");
       return true;
     } else {
@@ -77,9 +93,10 @@ function updateStats() {
   const days = Math.floor(statsCache.uptime / 86400);
   const hours = Math.floor((statsCache.uptime % 86400) / 3600);
   const minutes = Math.floor((statsCache.uptime % 3600) / 60);
-  document.getElementById("stat-uptime").textContent = days > 0 
-    ? `${days}d ${hours}h` 
-    : hours > 0 
+  document.getElementById("stat-uptime").textContent =
+    days > 0
+      ? `${days}d ${hours}h`
+      : hours > 0
       ? `${hours}h ${minutes}m`
       : `${minutes}m`;
 
@@ -95,7 +112,9 @@ function updateStats() {
 
   // Status - show online if we have data
   const isOnline = statsCache.servers > 0;
-  document.getElementById("status-dot").className = isOnline ? "status-dot online" : "status-dot offline";
+  document.getElementById("status-dot").className = isOnline
+    ? "status-dot online"
+    : "status-dot offline";
   document.getElementById("status-text").textContent = isOnline
     ? "All Systems Operational"
     : "Connecting...";
@@ -103,12 +122,73 @@ function updateStats() {
     new Date().toLocaleTimeString();
 
   // Ping and memory
-  document.getElementById("bot-ping").textContent = statsCache.ping > 0 
-    ? statsCache.ping + " ms" 
-    : "-";
-  document.getElementById("memory-usage").textContent = statsCache.memoryUsage > 0
-    ? statsCache.memoryUsage + " MB"
-    : "-";
+  document.getElementById("bot-ping").textContent =
+    statsCache.ping > 0 ? statsCache.ping + " ms" : "-";
+  document.getElementById("memory-usage").textContent =
+    statsCache.memoryUsage > 0 ? statsCache.memoryUsage + " MB" : "-";
+
+  // Voting statistics
+  const totalVotesEl = document.getElementById("stat-total-votes");
+  const uniqueVotersEl = document.getElementById("stat-unique-voters");
+  const recentVotesEl = document.getElementById("stat-recent-votes");
+  const longestStreakEl = document.getElementById("stat-longest-streak");
+
+  if (totalVotesEl) {
+    totalVotesEl.textContent = statsCache.voting.totalVotes.toLocaleString();
+  }
+  if (uniqueVotersEl) {
+    uniqueVotersEl.textContent =
+      statsCache.voting.uniqueVoters.toLocaleString();
+  }
+  if (recentVotesEl) {
+    recentVotesEl.textContent = statsCache.voting.recentVotes.toLocaleString();
+  }
+  if (longestStreakEl) {
+    longestStreakEl.textContent = statsCache.voting.longestStreak + " days";
+  }
+}
+
+// Fetch analytics data
+async function fetchAnalytics() {
+  try {
+    console.log("🔄 Fetching analytics from:", ANALYTICS_URL);
+    const response = await fetch(ANALYTICS_URL, {
+      mode: "cors",
+      headers: {
+        Accept: "application/json",
+        "ngrok-skip-browser-warning": "true",
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log("📊 Received analytics:", data);
+
+      // Update analytics displays
+      const protectedEl = document.getElementById("protected-servers");
+      const avgScoreEl = document.getElementById("avg-security-score");
+      const antiNukeEl = document.getElementById("servers-anti-nuke");
+      const antiRaidEl = document.getElementById("servers-anti-raid");
+      const autoModEl = document.getElementById("servers-auto-mod");
+      const activeThreatsEl = document.getElementById("active-threats");
+      const threatUpdateEl = document.getElementById("threat-update");
+
+      if (protectedEl) protectedEl.textContent = data.protectedServers || 0;
+      if (avgScoreEl)
+        avgScoreEl.textContent = (data.averageSecurityScore || 0) + "%";
+      if (antiNukeEl) antiNukeEl.textContent = data.serversWithAntiNuke || 0;
+      if (antiRaidEl) antiRaidEl.textContent = data.serversWithAntiRaid || 0;
+      if (autoModEl) autoModEl.textContent = data.serversWithAutoMod || 0;
+      if (activeThreatsEl)
+        activeThreatsEl.textContent = data.activeThreats || 0;
+      if (threatUpdateEl)
+        threatUpdateEl.textContent = new Date().toLocaleTimeString();
+
+      console.log("✅ Analytics updated");
+    }
+  } catch (error) {
+    console.log("⚠️ Could not fetch analytics:", error.message);
+  }
 }
 
 // Fetch from Top.gg API (public endpoint, no auth needed)
@@ -140,15 +220,17 @@ calculateScaledStats();
 
 // Auto-refresh stats every 30 seconds
 setInterval(() => {
-  fetchLiveStats().then(success => {
+  fetchLiveStats().then((success) => {
     updateStats();
   });
+  fetchAnalytics();
 }, 30000);
 
 // Initial load
 fetchLiveStats().then(() => {
   updateStats();
 });
+fetchAnalytics();
 
 // Add CSS for stats page
 const style = document.createElement("style");

@@ -702,23 +702,88 @@ class Database {
             )
         `);
 
-    // Add default bot list links if table is empty
-    this.db.get("SELECT COUNT(*) as count FROM botlist_links", [], (err, row) => {
-      if (!err && row.count === 0) {
-        const defaultLinks = [
-          { name: "Top.gg", url: "https://top.gg/bot/1444739230679957646/vote" },
-          { name: "Discord Bot List", url: "https://discordbotlist.com/bots/nexus-8245/upvote" },
-          { name: "Void Bots", url: "https://voidbots.net/bot/1444739230679957646/vote" },
-        ];
+    // API keys table for public API
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key TEXT NOT NULL UNIQUE,
+                user_id TEXT,
+                name TEXT,
+                created_at INTEGER,
+                last_used INTEGER,
+                rate_limit INTEGER DEFAULT 100,
+                requests_today INTEGER DEFAULT 0,
+                total_requests INTEGER DEFAULT 0,
+                is_active INTEGER DEFAULT 1
+            )
+        `);
 
-        defaultLinks.forEach(link => {
-          this.db.run(
-            "INSERT OR IGNORE INTO botlist_links (name, url, added_by, added_at) VALUES (?, ?, ?, ?)",
-            [link.name, link.url, "system", Date.now()]
-          );
-        });
+    // API request logs for rate limiting
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS api_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                api_key TEXT,
+                endpoint TEXT,
+                timestamp INTEGER,
+                ip_address TEXT
+            )
+        `);
+
+    // Analytics events for website tracking
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS analytics_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT,
+                event_type TEXT,
+                page TEXT,
+                data TEXT,
+                timestamp INTEGER,
+                user_agent TEXT,
+                ip_address TEXT
+            )
+        `);
+
+    // Create index for faster analytics queries
+    this.db.run(`
+            CREATE INDEX IF NOT EXISTS idx_analytics_timestamp 
+            ON analytics_events(timestamp)
+        `);
+
+    this.db.run(`
+            CREATE INDEX IF NOT EXISTS idx_analytics_session 
+            ON analytics_events(session_id)
+        `);
+
+    // Add default bot list links if table is empty
+    this.db.get(
+      "SELECT COUNT(*) as count FROM botlist_links",
+      [],
+      (err, row) => {
+        if (!err && row.count === 0) {
+          const defaultLinks = [
+            {
+              name: "Top.gg",
+              url: "https://top.gg/bot/1444739230679957646/vote",
+            },
+            {
+              name: "Discord Bot List",
+              url: "https://discordbotlist.com/bots/nexus-8245/upvote",
+            },
+            {
+              name: "Void Bots",
+              url: "https://voidbots.net/bot/1444739230679957646/vote",
+            },
+          ];
+
+          defaultLinks.forEach((link) => {
+            this.db.run(
+              "INSERT OR IGNORE INTO botlist_links (name, url, added_by, added_at) VALUES (?, ?, ?, ?)",
+              [link.name, link.url, "system", Date.now()]
+            );
+          });
+        }
       }
-    });
+    );
 
     // Voting rewards
     this.db.run(`
@@ -746,27 +811,36 @@ class Database {
         `);
 
     // Add vote rewards config columns to server_config (use exec with error handling)
-    this.db.exec(`
+    this.db.exec(
+      `
             ALTER TABLE server_config ADD COLUMN vote_rewards_enabled INTEGER DEFAULT 0;
-        `, (err) => {
-      if (err && !err.message.includes("duplicate column")) {
-        // Ignore duplicate column errors
+        `,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          // Ignore duplicate column errors
+        }
       }
-    });
-    this.db.exec(`
+    );
+    this.db.exec(
+      `
             ALTER TABLE server_config ADD COLUMN vote_reward_role TEXT;
-        `, (err) => {
-      if (err && !err.message.includes("duplicate column")) {
-        // Ignore duplicate column errors
+        `,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          // Ignore duplicate column errors
+        }
       }
-    });
-    this.db.exec(`
+    );
+    this.db.exec(
+      `
             ALTER TABLE server_config ADD COLUMN vote_webhook_url TEXT;
-        `, (err) => {
-      if (err && !err.message.includes("duplicate column")) {
-        // Ignore duplicate column errors
+        `,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          // Ignore duplicate column errors
+        }
       }
-    });
+    );
 
     // Auto-recovery snapshots
     this.db.run(`
@@ -2609,6 +2683,209 @@ class Database {
         (err) => {
           if (err) reject(err);
           else resolve();
+        }
+      );
+    });
+  }
+
+  // API Analytics Methods
+  async getRecentSecurityEvents(limit = 10) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        `SELECT guild_id, action_type, timestamp, details 
+         FROM security_logs 
+         ORDER BY timestamp DESC 
+         LIMIT ?`,
+        [limit],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+  }
+
+  async getGlobalSecurityStats() {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        `SELECT 
+          COUNT(*) as totalEvents,
+          SUM(CASE WHEN action_type = 'ban' THEN 1 ELSE 0 END) as totalBans,
+          SUM(CASE WHEN action_type = 'kick' THEN 1 ELSE 0 END) as totalKicks,
+          SUM(CASE WHEN action_type = 'raid_detected' THEN 1 ELSE 0 END) as raidsDetected,
+          SUM(CASE WHEN action_type = 'nuke_prevented' THEN 1 ELSE 0 END) as nukesPrevented
+         FROM security_logs`,
+        [],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row || {});
+        }
+      );
+    });
+  }
+
+  async getProtectedServersCount() {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        `SELECT COUNT(*) as count 
+         FROM server_config 
+         WHERE anti_nuke_enabled = 1 OR anti_raid_enabled = 1`,
+        [],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row?.count || 0);
+        }
+      );
+    });
+  }
+
+  async getAverageSecurityScore() {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        `SELECT AVG(
+          (CASE WHEN anti_nuke_enabled = 1 THEN 25 ELSE 0 END) +
+          (CASE WHEN anti_raid_enabled = 1 THEN 25 ELSE 0 END) +
+          (CASE WHEN auto_mod_enabled = 1 THEN 25 ELSE 0 END) +
+          (CASE WHEN mod_log_channel IS NOT NULL THEN 25 ELSE 0 END)
+        ) as avgScore
+         FROM server_config`,
+        [],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(Math.round(row?.avgScore || 0));
+        }
+      );
+    });
+  }
+
+  async getActiveThreatsCount() {
+    return new Promise((resolve, reject) => {
+      const oneDayAgo = Date.now() - 86400000;
+      this.db.get(
+        `SELECT COUNT(*) as count 
+         FROM security_logs 
+         WHERE timestamp > ? 
+         AND (action_type = 'raid_detected' OR action_type = 'nuke_attempt')`,
+        [oneDayAgo],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row?.count || 0);
+        }
+      );
+    });
+  }
+
+  async getServersWithFeatureCount(featureColumn) {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        `SELECT COUNT(*) as count 
+         FROM server_config 
+         WHERE ${featureColumn} = 1`,
+        [],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row?.count || 0);
+        }
+      );
+    });
+  }
+
+  // API Key Management
+  async createAPIKey(userId, name) {
+    const crypto = require("crypto");
+    const key = "nx_" + crypto.randomBytes(32).toString("hex");
+
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        `INSERT INTO api_keys (key, user_id, name, created_at) 
+         VALUES (?, ?, ?, ?)`,
+        [key, userId, name, Date.now()],
+        (err) => {
+          if (err) reject(err);
+          else resolve(key);
+        }
+      );
+    });
+  }
+
+  async validateAPIKey(key) {
+    return new Promise((resolve, reject) => {
+      this.db.get(
+        `SELECT * FROM api_keys WHERE key = ? AND is_active = 1`,
+        [key],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+  }
+
+  async checkRateLimit(key, limit = 100) {
+    return new Promise((resolve, reject) => {
+      // Reset daily counter if it's a new day
+      const today = new Date().setHours(0, 0, 0, 0);
+
+      this.db.get(`SELECT * FROM api_keys WHERE key = ?`, [key], (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        if (!row) {
+          resolve({ allowed: false, reason: "Invalid API key" });
+          return;
+        }
+
+        // Check if we need to reset the daily counter
+        const lastUsed = row.last_used || 0;
+        const lastUsedDay = new Date(lastUsed).setHours(0, 0, 0, 0);
+
+        if (lastUsedDay < today) {
+          // New day, reset counter
+          this.db.run(
+            `UPDATE api_keys SET requests_today = 1, last_used = ?, total_requests = total_requests + 1 WHERE key = ?`,
+            [Date.now(), key],
+            (err) => {
+              if (err) reject(err);
+              else resolve({ allowed: true, remaining: row.rate_limit - 1 });
+            }
+          );
+        } else if (row.requests_today >= row.rate_limit) {
+          // Rate limit exceeded
+          resolve({
+            allowed: false,
+            reason: "Rate limit exceeded",
+            limit: row.rate_limit,
+          });
+        } else {
+          // Increment counter
+          this.db.run(
+            `UPDATE api_keys SET requests_today = requests_today + 1, last_used = ?, total_requests = total_requests + 1 WHERE key = ?`,
+            [Date.now(), key],
+            (err) => {
+              if (err) reject(err);
+              else
+                resolve({
+                  allowed: true,
+                  remaining: row.rate_limit - row.requests_today - 1,
+                });
+            }
+          );
+        }
+      });
+    });
+  }
+
+  async logAPIRequest(key, endpoint, ipAddress) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        `INSERT INTO api_requests (api_key, endpoint, timestamp, ip_address) 
+         VALUES (?, ?, ?, ?)`,
+        [key, endpoint, Date.now(), ipAddress],
+        (err) => {
+          if (err) reject(err);
+          else resolve(true);
         }
       );
     });

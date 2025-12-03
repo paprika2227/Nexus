@@ -4,7 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Live Stats - Nexus Discord Bot</title>
-    <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/avatars/1444739230679957646/32f2d77d44c2f3989fecd858be53f396.webp?size=256" />
+    <link
+      rel="icon"
+      type="image/webp"
+      href="https://cdn.discordapp.com/avatars/1444739230679957646/32f2d77d44c2f3989fecd858be53f396.webp?size=256"
+    />
     <meta
       name="description"
       content="Real-time statistics for Nexus Discord bot - server count, user count, and more."
@@ -24,6 +28,7 @@
           <a href="docs.html">Docs</a>
           <a href="faq.html">FAQ</a>
           <a href="stats.html" class="active">Stats</a>
+          <a href="api.html">API</a>
           <a href="changelog.html">Changelog</a>
 
           <a
@@ -74,6 +79,36 @@
             <div class="stat-icon">📝</div>
             <div class="stat-number" id="stat-commands">85+</div>
             <div class="stat-label">Commands</div>
+          </div>
+        </div>
+
+        <!-- Voting Statistics -->
+        <div class="feature-category">
+          <h2>🗳️ Community Voting</h2>
+          <div class="stats-display">
+            <div class="stat-box">
+              <div class="stat-icon">📊</div>
+              <div class="stat-number" id="stat-total-votes">Loading...</div>
+              <div class="stat-label">Total Votes</div>
+            </div>
+
+            <div class="stat-box">
+              <div class="stat-icon">👤</div>
+              <div class="stat-number" id="stat-unique-voters">Loading...</div>
+              <div class="stat-label">Unique Voters</div>
+            </div>
+
+            <div class="stat-box">
+              <div class="stat-icon">📅</div>
+              <div class="stat-number" id="stat-recent-votes">Loading...</div>
+              <div class="stat-label">Votes (30 Days)</div>
+            </div>
+
+            <div class="stat-box">
+              <div class="stat-icon">🔥</div>
+              <div class="stat-number" id="stat-longest-streak">Loading...</div>
+              <div class="stat-label">Longest Streak</div>
+            </div>
           </div>
         </div>
 
@@ -131,6 +166,57 @@
           </div>
         </div>
 
+        <!-- Advanced Analytics -->
+        <div class="feature-category">
+          <h2>🛡️ Security Analytics</h2>
+          <div class="cards-grid">
+            <div class="card">
+              <h3>Protected Servers</h3>
+              <div class="stat-item">
+                <span>Active Protection</span>
+                <span id="protected-servers" class="stat-value-large">-</span>
+              </div>
+              <div class="stat-item">
+                <span>Avg Security Score</span>
+                <span id="avg-security-score">-</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Feature Adoption</h3>
+              <div class="stat-item">
+                <span>Anti-Nuke</span>
+                <span id="servers-anti-nuke">-</span>
+              </div>
+              <div class="stat-item">
+                <span>Anti-Raid</span>
+                <span id="servers-anti-raid">-</span>
+              </div>
+              <div class="stat-item">
+                <span>Auto-Mod</span>
+                <span id="servers-auto-mod">-</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Live Threat Monitor</h3>
+              <div class="stat-item">
+                <span>Active Threats (24h)</span>
+                <span
+                  id="active-threats"
+                  class="stat-value-large"
+                  style="color: #ff4444"
+                  >-</span
+                >
+              </div>
+              <div class="stat-item">
+                <span>Last Updated</span>
+                <span id="threat-update">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Growth Stats -->
         <div class="feature-category">
           <h2>📈 Growth Metrics</h2>
@@ -164,7 +250,9 @@
               <div class="status-dot" id="status-dot"></div>
               <div>
                 <div class="status-text" id="status-text">Checking...</div>
-                <div class="status-subtext">Last updated: <span id="last-update">Never</span></div>
+                <div class="status-subtext">
+                  Last updated: <span id="last-update">Never</span>
+                </div>
               </div>
             </div>
 
@@ -213,6 +301,6 @@
     </footer>
 
     <script src="stats.js"></script>
+    <script src="analytics.js"></script>
   </body>
 </html>
-

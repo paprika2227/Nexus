@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Public API - Nexus Bot</title>
+    <link
+      rel="icon"
+      type="image/webp"
+      href="https://cdn.discordapp.com/avatars/1444739230679957646/32f2d77d44c2f3989fecd858be53f396.webp?size=256"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="pages.css" />
+    <style>
+      .api-endpoint {
+        background: rgba(255, 255, 255, 0.05);
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 8px;
+      }
+
+      .api-endpoint h3 {
+        color: #667eea;
+        margin-bottom: 10px;
+      }
+
+      .method-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-right: 10px;
+      }
+
+      .method-get {
+        background: #00d1b2;
+        color: white;
+      }
+
+      .code-block {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 10px 0;
+        font-family: "Courier New", monospace;
+        font-size: 0.9rem;
+      }
+
+      .param-table {
+        width: 100%;
+        margin: 15px 0;
+      }
+
+      .param-table th,
+      .param-table td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .param-table th {
+        background: rgba(255, 255, 255, 0.05);
+        font-weight: 700;
+      }
+
+      .request-btn {
+        background: #667eea;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        margin-top: 15px;
+      }
+
+      .request-btn:hover {
+        background: #5568d3;
+      }
+
+      .highlight {
+        color: #ffd700;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="container">
+        <a href="index.html" class="nav-brand">NEXUS</a>
+        <div class="nav-links">
+          <a href="features.html">Features</a>
+          <a href="commands.html">Commands</a>
+          <a href="comparison.html">vs Wick</a>
+          <a href="setup.html">Setup</a>
+          <a href="docs.html">Docs</a>
+          <a href="faq.html">FAQ</a>
+          <a href="stats.html">Stats</a>
+          <a href="api.html" class="active">API</a>
+
+          <a
+            href="https://regular-puma-clearly.ngrok-free.app"
+            target="_blank"
+            class="btn-dashboard"
+            >Dashboard</a
+          >
+          <a
+            href="https://discord.com/oauth2/authorize?client_id=1444739230679957646&permissions=268443574&scope=bot%20applications.commands"
+            class="btn-nav"
+            >Invite</a
+          >
+        </div>
+      </div>
+    </nav>
+
+    <div class="container" style="margin-top: 100px">
+      <header class="page-header">
+        <h1>🔌 Public API</h1>
+        <p>Access Nexus bot data programmatically</p>
+      </header>
+
+      <div class="content-section">
+        <!-- Introduction -->
+        <div class="section">
+          <h2>Getting Started</h2>
+          <p>
+            The Nexus Public API allows you to access bot data, server
+            statistics, and user information programmatically. All endpoints
+            require an API key for authentication.
+          </p>
+
+          <h3>Authentication</h3>
+          <p>
+            Include your API key in requests using either the
+            <code>X-API-Key</code> header or <code>api_key</code> query
+            parameter:
+          </p>
+          <div class="code-block">
+            curl -H "X-API-Key: nx_your_api_key_here"
+            https://regular-puma-clearly.ngrok-free.app/api/v1/server/123456789
+          </div>
+
+          <h3>Rate Limiting</h3>
+          <p>
+            API keys are limited to
+            <span class="highlight">100 requests per day</span>. Rate limit
+            information is included in response headers:
+          </p>
+          <ul>
+            <li><code>X-RateLimit-Limit</code>: Your daily limit</li>
+            <li>
+              <code>X-RateLimit-Remaining</code>: Requests remaining today
+            </li>
+          </ul>
+
+          <h3>Request an API Key</h3>
+          <p>
+            To request an API key, contact us at
+            <a href="mailto:nexusbot0@proton.me" class="highlight"
+              >nexusbot0@proton.me</a
+            >
+            with:
+          </p>
+          <ul>
+            <li>Your Discord username</li>
+            <li>Intended use case</li>
+            <li>Estimated daily requests</li>
+          </ul>
+        </div>
+
+        <!-- Endpoints -->
+        <div class="section">
+          <h2>Endpoints</h2>
+
+          <!-- Server Info -->
+          <div class="api-endpoint">
+            <h3>
+              <span class="method-badge method-get">GET</span>
+              /api/v1/server/:id
+            </h3>
+            <p>Get server information and configuration</p>
+
+            <h4>Parameters</h4>
+            <table class="param-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>id</code></td>
+                  <td>string</td>
+                  <td>Discord server ID (path parameter)</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h4>Example Request</h4>
+            <div class="code-block">
+              curl -H "X-API-Key: nx_your_key"
+              https://regular-puma-clearly.ngrok-free.app/api/v1/server/1234567890
+            </div>
+
+            <h4>Example Response</h4>
+            <div class="code-block">
+              { "id": "1234567890", "name": "My Server", "memberCount": 1500,
+              "features": { "antiNuke": true, "antiRaid": true, "autoMod": false
+              }, "stats": { "totalBans": 45, "totalKicks": 123, "warnings": 78 }
+              }
+            </div>
+          </div>
+
+          <!-- User Warnings -->
+          <div class="api-endpoint">
+            <h3>
+              <span class="method-badge method-get">GET</span>
+              /api/v1/user/:userId/warnings
+            </h3>
+            <p>Get user warnings in a specific server</p>
+
+            <h4>Parameters</h4>
+            <table class="param-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>userId</code></td>
+                  <td>string</td>
+                  <td>Discord user ID (path parameter)</td>
+                </tr>
+                <tr>
+                  <td><code>guild_id</code></td>
+                  <td>string</td>
+                  <td>Discord server ID (query parameter, required)</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h4>Example Request</h4>
+            <div class="code-block">
+              curl -H "X-API-Key: nx_your_key"
+              https://regular-puma-clearly.ngrok-free.app/api/v1/user/9876543210/warnings?guild_id=1234567890
+            </div>
+
+            <h4>Example Response</h4>
+            <div class="code-block">
+              { "warnings": [ { "id": 1, "reason": "Spam", "moderator_id":
+              "1111111111", "timestamp": 1704067200000 } ] }
+            </div>
+          </div>
+
+          <!-- Vote Leaderboard -->
+          <div class="api-endpoint">
+            <h3>
+              <span class="method-badge method-get">GET</span>
+              /api/v1/votes/leaderboard
+            </h3>
+            <p>Get voting leaderboard</p>
+
+            <h4>Query Parameters</h4>
+            <table class="param-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>type</code></td>
+                  <td>string</td>
+                  <td>total, streak, or longest</td>
+                  <td>total</td>
+                </tr>
+                <tr>
+                  <td><code>limit</code></td>
+                  <td>number</td>
+                  <td>Number of results (max: 100)</td>
+                  <td>10</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h4>Example Request</h4>
+            <div class="code-block">
+              curl -H "X-API-Key: nx_your_key"
+              https://regular-puma-clearly.ngrok-free.app/api/v1/votes/leaderboard?type=streak&limit=5
+            </div>
+
+            <h4>Example Response</h4>
+            <div class="code-block">
+              { "leaderboard": [ { "user_id": "1234567890", "total_votes": 150,
+              "current_streak": 30, "longest_streak": 45 } ] }
+            </div>
+          </div>
+        </div>
+
+        <!-- Error Codes -->
+        <div class="section">
+          <h2>Error Codes</h2>
+          <table class="param-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>401</code></td>
+                <td>Invalid or missing API key</td>
+              </tr>
+              <tr>
+                <td><code>429</code></td>
+                <td>Rate limit exceeded</td>
+              </tr>
+              <tr>
+                <td><code>404</code></td>
+                <td>Resource not found</td>
+              </tr>
+              <tr>
+                <td><code>500</code></td>
+                <td>Internal server error</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Support -->
+        <div class="section">
+          <h2>Support</h2>
+          <p>
+            Need help with the API? Join our
+            <a
+              href="https://discord.gg/EvFMz4VQPx"
+              target="_blank"
+              class="highlight"
+              >Discord server</a
+            >
+            or email
+            <a href="mailto:nexusbot0@proton.me" class="highlight"
+              >nexusbot0@proton.me</a
+            >.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-content">
+          <div>
+            <h3>NEXUS</h3>
+            <p>Elite Discord Protection</p>
+          </div>
+          <div class="footer-links">
+            <a href="privacy.html">Privacy</a>
+            <a href="terms.html">Terms</a>
+            <a href="contact.html">Contact</a>
+            <a href="api.html">API</a>
+            <a href="https://discord.gg/EvFMz4VQPx" target="_blank">Support</a>
+          </div>
+        </div>
+        <div style="text-align: center; margin-top: 30px; opacity: 0.7">
+          <p>&copy; 2025 Nexus. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Analytics -->
+    <script src="analytics.js"></script>
+  </body>
+</html>

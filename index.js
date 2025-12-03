@@ -2,14 +2,12 @@ const {
   Client,
   GatewayIntentBits,
   Collection,
-  PermissionsBitField,
 } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
 const db = require("./utils/database");
 const logger = require("./utils/logger");
-const AutoMod = require("./utils/automod");
 
 // API removed - not needed for local use
 

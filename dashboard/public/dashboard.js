@@ -66,8 +66,8 @@ function showServerSelection(servers) {
   }
 
   // Separate servers with bot vs without
-  const serversWithBot = servers.filter(s => s.hasBot);
-  const serversWithoutBot = servers.filter(s => !s.hasBot);
+  const serversWithBot = servers.filter((s) => s.hasBot);
+  const serversWithoutBot = servers.filter((s) => !s.hasBot);
 
   contentArea.innerHTML = `
     <div class="server-selection-page">
@@ -78,67 +78,103 @@ function showServerSelection(servers) {
         <input type="text" id="serverSearch" placeholder="Search servers..." class="server-search-input">
       </div>
 
-      ${serversWithBot.length > 0 ? `
+      ${
+        serversWithBot.length > 0
+          ? `
         <h3 style="margin: 30px 0 20px 0; opacity: 0.9;">Servers with Nexus</h3>
         <div class="servers-grid">
-          ${serversWithBot.map(s => `
-            <div class="server-card" onclick="selectServer('${s.id}')" data-searchable="${s.name.toLowerCase()}">
+          ${serversWithBot
+            .map(
+              (s) => `
+            <div class="server-card" onclick="selectServer('${
+              s.id
+            }')" data-searchable="${s.name.toLowerCase()}">
               <div class="server-icon">
-                ${s.icon 
-                  ? `<img src="${s.icon}" alt="${s.name}">` 
-                  : `<div class="server-icon-placeholder">${s.name.charAt(0)}</div>`
+                ${
+                  s.icon
+                    ? `<img src="${s.icon}" alt="${s.name}">`
+                    : `<div class="server-icon-placeholder">${s.name.charAt(
+                        0
+                      )}</div>`
                 }
               </div>
               <div class="server-info">
                 <h3 class="server-name">${s.name}</h3>
-                <p class="server-members">${s.memberCount ? s.memberCount.toLocaleString() + ' members' : 'Unknown members'}</p>
+                <p class="server-members">${
+                  s.memberCount
+                    ? s.memberCount.toLocaleString() + " members"
+                    : "Unknown members"
+                }</p>
               </div>
               <div class="server-arrow">→</div>
             </div>
-          `).join('')}
+          `
+            )
+            .join("")}
         </div>
-      ` : ''}
+      `
+          : ""
+      }
 
-      ${serversWithoutBot.length > 0 ? `
+      ${
+        serversWithoutBot.length > 0
+          ? `
         <h3 style="margin: 40px 0 20px 0; opacity: 0.9;">Invite Nexus to Your Servers</h3>
         <div class="servers-grid">
-          ${serversWithoutBot.map(s => `
+          ${serversWithoutBot
+            .map(
+              (s) => `
             <div class="server-card server-card-invite" data-searchable="${s.name.toLowerCase()}">
               <div class="server-icon">
-                ${s.icon 
-                  ? `<img src="${s.icon}" alt="${s.name}">` 
-                  : `<div class="server-icon-placeholder">${s.name.charAt(0)}</div>`
+                ${
+                  s.icon
+                    ? `<img src="${s.icon}" alt="${s.name}">`
+                    : `<div class="server-icon-placeholder">${s.name.charAt(
+                        0
+                      )}</div>`
                 }
               </div>
               <div class="server-info">
                 <h3 class="server-name">${s.name}</h3>
                 <p class="server-members" style="opacity: 0.6;">Bot not added</p>
               </div>
-              <a href="https://discord.com/oauth2/authorize?client_id=1444739230679957646&permissions=8&scope=bot%20applications.commands&guild_id=${s.id}" 
+              <a href="https://discord.com/oauth2/authorize?client_id=1444739230679957646&permissions=8&scope=bot%20applications.commands&guild_id=${
+                s.id
+              }" 
                  target="_blank" 
                  class="invite-btn-small"
                  onclick="event.stopPropagation()">
                 Invite Bot
               </a>
             </div>
-          `).join('')}
+          `
+            )
+            .join("")}
         </div>
-      ` : ''}
+      `
+          : ""
+      }
 
-      ${serversWithBot.length === 0 && serversWithoutBot.length === 0 ? `
+      ${
+        serversWithBot.length === 0 && serversWithoutBot.length === 0
+          ? `
         <div class="empty-state">
           <div class="empty-icon">🔒</div>
           <h2>No Admin Permissions</h2>
           <p>You don't have administrator permissions in any servers.</p>
         </div>
-      ` : ''}
+      `
+          : ""
+      }
     </div>
   `;
 
   // Add search functionality
   document.getElementById("serverSearch").addEventListener("input", (e) => {
     const searchTerm = e.target.value.toLowerCase();
-    const serverCards = document.querySelectorAll(".server-card[data-searchable]");
+    const serverCards = document.querySelectorAll(
+      ".server-card[data-searchable]"
+    );
 
     serverCards.forEach((card) => {
       const serverName = card.getAttribute("data-searchable");
@@ -192,13 +228,14 @@ async function loadServerData(serverId) {
 }
 
 function updateCurrentServerDisplay(server) {
-  const display = document.getElementById('currentServerDisplay');
+  const display = document.getElementById("currentServerDisplay");
   display.innerHTML = `
     <div class="current-server-info">
       <div class="current-server-icon">
-        ${server.icon 
-          ? `<img src="${server.icon}" alt="${server.name}">` 
-          : server.name.charAt(0)
+        ${
+          server.icon
+            ? `<img src="${server.icon}" alt="${server.name}">`
+            : server.name.charAt(0)
         }
       </div>
       <div class="current-server-details">
@@ -361,8 +398,12 @@ async function loadOverview(server) {
                         <span class="system-icon">📝</span>
                         <span>Logging</span>
                     </div>
-                    <span class="status-badge ${config.mod_log_channel ? 'status-active' : 'status-inactive'}">
-                        ${config.mod_log_channel ? 'ACTIVE' : 'INACTIVE'}
+                    <span class="status-badge ${
+                      config.mod_log_channel
+                        ? "status-active"
+                        : "status-inactive"
+                    }">
+                        ${config.mod_log_channel ? "ACTIVE" : "INACTIVE"}
                     </span>
                 </div>
                 <p class="system-description">
@@ -965,4 +1006,32 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
+
+  // Mobile menu functionality
+  const mobileMenuToggle = document.getElementById("mobileMenuToggle");
+  const sidebar = document.getElementById("sidebar");
+  const sidebarOverlay = document.getElementById("sidebarOverlay");
+
+  if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener("click", () => {
+      sidebar.classList.toggle("open");
+      sidebarOverlay.classList.toggle("active");
+    });
+
+    // Close sidebar when overlay is clicked
+    sidebarOverlay.addEventListener("click", () => {
+      sidebar.classList.remove("open");
+      sidebarOverlay.classList.remove("active");
+    });
+
+    // Close sidebar when a nav item is clicked on mobile
+    document.querySelectorAll(".nav-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        if (window.innerWidth <= 968) {
+          sidebar.classList.remove("open");
+          sidebarOverlay.classList.remove("active");
+        }
+      });
+    });
+  }
 });
