@@ -398,10 +398,10 @@ class DashboardServer {
 
         // Get vote statistics from database
         try {
-          // Total votes across all users
+          // Total votes across all users (from vote_streaks table)
           const totalVotes = await new Promise((resolve) => {
             db.db.get(
-              "SELECT SUM(total_votes) as total FROM vote_rewards",
+              "SELECT SUM(total_votes) as total FROM vote_streaks",
               [],
               (err, row) => {
                 if (err) resolve(0);
@@ -410,10 +410,10 @@ class DashboardServer {
             );
           });
 
-          // Unique voters
+          // Unique voters (from vote_streaks table)
           const uniqueVoters = await new Promise((resolve) => {
             db.db.get(
-              "SELECT COUNT(*) as count FROM vote_rewards WHERE total_votes > 0",
+              "SELECT COUNT(*) as count FROM vote_streaks WHERE total_votes > 0",
               [],
               (err, row) => {
                 if (err) resolve(0);
@@ -422,11 +422,12 @@ class DashboardServer {
             );
           });
 
-          // Recent votes (last 30 days)
+          // Recent votes (last 30 days - from vote_rewards table)
           const recentVotes = await new Promise((resolve) => {
+            const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
             db.db.get(
-              "SELECT SUM(recent_votes) as total FROM vote_rewards",
-              [],
+              "SELECT COUNT(*) as total FROM vote_rewards WHERE voted_at > ?",
+              [thirtyDaysAgo],
               (err, row) => {
                 if (err) resolve(0);
                 else resolve(row?.total || 0);
@@ -434,10 +435,10 @@ class DashboardServer {
             );
           });
 
-          // Longest streak ever
+          // Longest streak ever (from vote_streaks table)
           const longestStreak = await new Promise((resolve) => {
             db.db.get(
-              "SELECT MAX(longest_streak) as max FROM vote_rewards",
+              "SELECT MAX(longest_streak) as max FROM vote_streaks",
               [],
               (err, row) => {
                 if (err) resolve(0);
