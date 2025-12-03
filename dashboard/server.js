@@ -1561,6 +1561,103 @@ class DashboardServer {
       }
     });
 
+    // GET /api/admin/logs/search - Advanced log search with filters
+    this.app.get("/api/admin/logs/search", async (req, res) => {
+      try {
+        const { user, action, type, range, page = 1 } = req.query;
+        const limit = 50;
+        const offset = (page - 1) * limit;
+
+        // Build query based on filters
+        let query = '';
+        let params = [];
+        let conditions = [];
+
+        // Time range
+        if (range && range !== 'all') {
+          let since = Date.now();
+          switch(range) {
+            case '24h': since -= 24 * 60 * 60 * 1000; break;
+            case '7d': since -= 7 * 24 * 60 * 60 * 1000; break;
+            case '30d': since -= 30 * 24 * 60 * 60 * 1000; break;
+          }
+          conditions.push('timestamp > ?');
+          params.push(since);
+        }
+
+        // Action filter
+        if (action) {
+          conditions.push('action = ?');
+          params.push(action);
+        }
+
+        // User filter (search in user_id or user_tag)
+        if (user) {
+          conditions.push('(user_id LIKE ? OR user_tag LIKE ?)');
+          params.push(`%${user}%`, `%${user}%`);
+        }
+
+        // Log type filter
+        const tables = {
+          'moderation': 'moderation_logs',
+          'security': 'security_logs',
+          'raid': 'anti_raid_logs',
+          'all': null
+        };
+
+        const searchType = type || 'all';
+        const tablesToSearch = searchType === 'all' 
+          ? ['moderation_logs', 'security_logs', 'anti_raid_logs']
+          : [tables[searchType]];
+
+        let allLogs = [];
+
+        for (const table of tablesToSearch) {
+          const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+          query = `SELECT *, '${table}' as log_type FROM ${table} ${whereClause} ORDER BY timestamp DESC LIMIT ${limit} OFFSET ${offset}`;
+
+          const logs = await new Promise((resolve, reject) => {
+            db.db.all(query, params, (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows || []);
+            });
+          });
+
+          allLogs = allLogs.concat(logs);
+        }
+
+        // Sort by timestamp
+        allLogs.sort((a, b) => b.timestamp - a.timestamp);
+        allLogs = allLogs.slice(0, limit);
+
+        // Get total count
+        let totalCount = 0;
+        for (const table of tablesToSearch) {
+          const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+          const countQuery = `SELECT COUNT(*) as count FROM ${table} ${whereClause}`;
+
+          const count = await new Promise((resolve, reject) => {
+            db.db.get(countQuery, params, (err, row) => {
+              if (err) reject(err);
+              else resolve(row?.count || 0);
+            });
+          });
+
+          totalCount += count;
+        }
+
+        res.json({
+          logs: allLogs,
+          total: totalCount,
+          page: parseInt(page),
+          totalPages: Math.ceil(totalCount / limit)
+        });
+      } catch (error) {
+        console.error('[Log Search] Error:', error);
+        res.status(500).json({ error: 'Failed to search logs' });
+      }
+    });
+
     // ==================== INVITE SOURCE TRACKING ====================
 
     // GET /api/admin/invite-sources - List all invite sources
