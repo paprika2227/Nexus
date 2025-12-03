@@ -195,3 +195,4 @@ class EmailSender {
 
 // Export singleton
 module.exports = new EmailSender();
+
