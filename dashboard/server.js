@@ -49,6 +49,29 @@ class DashboardServer {
       next();
     });
 
+    // IP Logging Middleware
+    this.app.use(async (req, res, next) => {
+      try {
+        const ip = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
+        const cleanIP = ip?.replace('::ffff:', '') || 'unknown';
+        
+        // Log the visit
+        await db.logIP(
+          cleanIP,
+          req.path,
+          req.headers['user-agent'] || 'unknown',
+          req.headers['referer'] || req.headers['referrer'] || 'direct',
+          req.sessionID || 'unknown',
+          req.user?.id || null,
+          req.user?.username || null
+        );
+      } catch (error) {
+        // Silent fail - IP logging shouldn't break the site
+        console.log('[IP Log] Logging failed:', error.message);
+      }
+      next();
+    });
+
     // Session
     this.app.use(
       session({
@@ -1175,7 +1198,50 @@ class DashboardServer {
       }
     });
 
+    // GET /api/admin/ip-logs - View IP logs (admin only)
+    this.app.get("/api/admin/ip-logs", async (req, res) => {
+      try {
+        const limit = Math.min(parseInt(req.query.limit) || 100, 1000);
+        const logs = await db.getIPLogs(limit);
+        res.json(logs);
+      } catch (error) {
+        console.error("IP logs error:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
+
+    // GET /api/admin/ip-stats - Get IP statistics
+    this.app.get("/api/admin/ip-stats", async (req, res) => {
+      try {
+        const last24h = Date.now() - 24 * 60 * 60 * 1000;
+        const last7d = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+        const stats = {
+          uniqueVisitors24h: await db.getUniqueVisitors(last24h),
+          uniqueVisitors7d: await db.getUniqueVisitors(last7d),
+          uniqueVisitorsAllTime: await db.getUniqueVisitors(),
+          totalRequests: await new Promise((resolve) => {
+            db.db.get("SELECT COUNT(*) as count FROM ip_logs", [], (err, row) => {
+              if (err) resolve(0);
+              else resolve(row?.count || 0);
+            });
+          }),
+        };
+
+        res.json(stats);
+      } catch (error) {
+        console.error("IP stats error:", error);
+        res.json({
+          uniqueVisitors24h: 0,
+          uniqueVisitors7d: 0,
+          uniqueVisitorsAllTime: 0,
+          totalRequests: 0,
+        });
+      }
+    });
+
     console.log("[API] Public API v1 endpoints registered");
+    console.log("[IP Logging] IP tracking active");
   }
 
   // Analytics system removed - causing errors

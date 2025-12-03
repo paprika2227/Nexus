@@ -745,6 +745,38 @@ class Database {
             ON analytics_events(session_id)
         `);
 
+    // IP logging table
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS ip_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip_address TEXT NOT NULL,
+                discord_user_id TEXT,
+                discord_username TEXT,
+                page_url TEXT,
+                user_agent TEXT,
+                referrer TEXT,
+                timestamp INTEGER NOT NULL,
+                session_id TEXT,
+                location TEXT
+            )
+        `);
+
+    // Create indexes for IP logs
+    this.db.run(`
+            CREATE INDEX IF NOT EXISTS idx_ip_logs_timestamp 
+            ON ip_logs(timestamp)
+        `);
+
+    this.db.run(`
+            CREATE INDEX IF NOT EXISTS idx_ip_logs_ip 
+            ON ip_logs(ip_address)
+        `);
+
+    this.db.run(`
+            CREATE INDEX IF NOT EXISTS idx_ip_logs_user 
+            ON ip_logs(discord_user_id)
+        `);
+
     // Add default bot list links if table is empty
     this.db.get(
       "SELECT COUNT(*) as count FROM botlist_links",
@@ -2782,7 +2814,14 @@ class Database {
   }
 
   // API Key Management
-  async createAPIKey(discordUserId, discordUsername, email, purpose, createdByAdmin = "Manual", notes = "") {
+  async createAPIKey(
+    discordUserId,
+    discordUsername,
+    email,
+    purpose,
+    createdByAdmin = "Manual",
+    notes = ""
+  ) {
     const crypto = require("crypto");
     const key = "nx_" + crypto.randomBytes(32).toString("hex");
 
@@ -2790,7 +2829,16 @@ class Database {
       this.db.run(
         `INSERT INTO api_keys (api_key, discord_user_id, discord_username, email, purpose, created_at, created_by_admin, notes) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [key, discordUserId, discordUsername, email, purpose, Date.now(), createdByAdmin, notes],
+        [
+          key,
+          discordUserId,
+          discordUsername,
+          email,
+          purpose,
+          Date.now(),
+          createdByAdmin,
+          notes,
+        ],
         (err) => {
           if (err) reject(err);
           else resolve(key);
@@ -2803,13 +2851,13 @@ class Database {
     return new Promise((resolve, reject) => {
       let query = `SELECT * FROM api_keys WHERE api_key = ? AND is_active = 1`;
       let params = [key];
-      
+
       // If Discord user ID provided, verify it matches
       if (discordUserId) {
         query += ` AND discord_user_id = ?`;
         params.push(discordUserId);
       }
-      
+
       this.db.get(query, params, (err, row) => {
         if (err) reject(err);
         else resolve(row);
@@ -2822,54 +2870,58 @@ class Database {
       // Reset daily counter if it's a new day
       const today = new Date().setHours(0, 0, 0, 0);
 
-      this.db.get(`SELECT * FROM api_keys WHERE api_key = ?`, [key], (err, row) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+      this.db.get(
+        `SELECT * FROM api_keys WHERE api_key = ?`,
+        [key],
+        (err, row) => {
+          if (err) {
+            reject(err);
+            return;
+          }
 
-        if (!row) {
-          resolve({ allowed: false, reason: "Invalid API key" });
-          return;
-        }
+          if (!row) {
+            resolve({ allowed: false, reason: "Invalid API key" });
+            return;
+          }
 
-        // Check if we need to reset the daily counter
-        const lastUsed = row.last_used || 0;
-        const lastUsedDay = new Date(lastUsed).setHours(0, 0, 0, 0);
+          // Check if we need to reset the daily counter
+          const lastUsed = row.last_used || 0;
+          const lastUsedDay = new Date(lastUsed).setHours(0, 0, 0, 0);
 
-        if (lastUsedDay < today) {
-          // New day, reset counter
-          this.db.run(
-            `UPDATE api_keys SET requests_today = 1, last_used = ?, total_requests = total_requests + 1 WHERE api_key = ?`,
-            [Date.now(), key],
-            (err) => {
-              if (err) reject(err);
-              else resolve({ allowed: true, remaining: row.rate_limit - 1 });
-            }
-          );
-        } else if (row.requests_today >= row.rate_limit) {
-          // Rate limit exceeded
-          resolve({
-            allowed: false,
-            reason: "Rate limit exceeded",
-            limit: row.rate_limit,
-          });
-        } else {
-          // Increment counter
-          this.db.run(
-            `UPDATE api_keys SET requests_today = requests_today + 1, last_used = ?, total_requests = total_requests + 1 WHERE api_key = ?`,
-            [Date.now(), key],
-            (err) => {
-              if (err) reject(err);
-              else
-                resolve({
-                  allowed: true,
-                  remaining: row.rate_limit - row.requests_today - 1,
-                });
-            }
-          );
+          if (lastUsedDay < today) {
+            // New day, reset counter
+            this.db.run(
+              `UPDATE api_keys SET requests_today = 1, last_used = ?, total_requests = total_requests + 1 WHERE api_key = ?`,
+              [Date.now(), key],
+              (err) => {
+                if (err) reject(err);
+                else resolve({ allowed: true, remaining: row.rate_limit - 1 });
+              }
+            );
+          } else if (row.requests_today >= row.rate_limit) {
+            // Rate limit exceeded
+            resolve({
+              allowed: false,
+              reason: "Rate limit exceeded",
+              limit: row.rate_limit,
+            });
+          } else {
+            // Increment counter
+            this.db.run(
+              `UPDATE api_keys SET requests_today = requests_today + 1, last_used = ?, total_requests = total_requests + 1 WHERE api_key = ?`,
+              [Date.now(), key],
+              (err) => {
+                if (err) reject(err);
+                else
+                  resolve({
+                    allowed: true,
+                    remaining: row.rate_limit - row.requests_today - 1,
+                  });
+              }
+            );
+          }
         }
-      });
+      );
     });
   }
 
@@ -2915,6 +2967,81 @@ class Database {
           else resolve(rows || []);
         }
       );
+    });
+  }
+
+  // IP Logging Functions
+  async logIP(
+    ipAddress,
+    pageUrl,
+    userAgent,
+    referrer,
+    sessionId,
+    discordUserId = null,
+    discordUsername = null
+  ) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        `INSERT INTO ip_logs (ip_address, discord_user_id, discord_username, page_url, user_agent, referrer, timestamp, session_id) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          ipAddress,
+          discordUserId,
+          discordUsername,
+          pageUrl,
+          userAgent,
+          referrer,
+          Date.now(),
+          sessionId,
+        ],
+        (err) => {
+          if (err) reject(err);
+          else resolve(true);
+        }
+      );
+    });
+  }
+
+  async getIPLogs(limit = 100) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        `SELECT * FROM ip_logs ORDER BY timestamp DESC LIMIT ?`,
+        [limit],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+  }
+
+  async getIPLogsByUser(discordUserId) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        `SELECT * FROM ip_logs WHERE discord_user_id = ? ORDER BY timestamp DESC`,
+        [discordUserId],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+  }
+
+  async getUniqueVisitors(since = null) {
+    return new Promise((resolve, reject) => {
+      let query = "SELECT COUNT(DISTINCT ip_address) as count FROM ip_logs";
+      const params = [];
+
+      if (since) {
+        query += " WHERE timestamp > ?";
+        params.push(since);
+      }
+
+      this.db.get(query, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row?.count || 0);
+      });
     });
   }
 }
