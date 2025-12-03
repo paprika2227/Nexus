@@ -13,7 +13,7 @@ class DashboardServer {
     // Middleware
     this.app.use(express.json());
     this.app.use(express.static(path.join(__dirname, "public")));
-    
+
     // CORS for GitHub Pages and localhost
     this.app.use((req, res, next) => {
       const origin = req.headers.origin;
@@ -21,19 +21,28 @@ class DashboardServer {
         "https://azzraya.github.io",
         "http://localhost:5500",
         "http://127.0.0.1:5500",
-        "null" // For local file:// protocol
+        "null", // For local file:// protocol
       ];
-      
-      if (allowedOrigins.includes(origin) || origin && origin.startsWith("http://localhost")) {
+
+      if (
+        allowedOrigins.includes(origin) ||
+        (origin && origin.startsWith("http://localhost"))
+      ) {
         res.header("Access-Control-Allow-Origin", origin);
       } else {
         res.header("Access-Control-Allow-Origin", "https://azzraya.github.io");
       }
-      
-      res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-      res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+      res.header(
+        "Access-Control-Allow-Methods",
+        "GET, POST, PUT, DELETE, OPTIONS"
+      );
+      res.header(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization, ngrok-skip-browser-warning"
+      );
       res.header("Access-Control-Allow-Credentials", "true");
-      
+
       if (req.method === "OPTIONS") {
         return res.sendStatus(200);
       }
@@ -105,25 +114,44 @@ class DashboardServer {
     this.app.get("/api/servers", this.checkAuth, async (req, res) => {
       try {
         const userGuilds = req.user.guilds || [];
-        const botGuilds = this.client.guilds.cache.map((g) => ({
-          id: g.id,
-          name: g.name,
-          icon: g.iconURL(),
-          memberCount: g.memberCount,
-          ownerId: g.ownerId,
-          hasBot: true,
-        }));
+        const botGuilds = this.client.guilds.cache;
 
-        // Filter to only servers where user has admin and bot is present
-        const manageable = userGuilds
+        // Get all servers where user has admin permissions
+        const adminGuilds = userGuilds
           .filter((g) => (g.permissions & 0x8) === 0x8) // ADMINISTRATOR
-          .filter((ug) => botGuilds.some((bg) => bg.id === ug.id))
           .map((ug) => {
-            const botGuild = botGuilds.find((bg) => bg.id === ug.id);
-            return { ...ug, ...botGuild };
+            const botGuild = botGuilds.get(ug.id);
+
+            if (botGuild) {
+              // Bot is present
+              return {
+                id: ug.id,
+                name: ug.name,
+                icon: ug.icon
+                  ? `https://cdn.discordapp.com/icons/${ug.id}/${ug.icon}.png`
+                  : null,
+                memberCount: botGuild.memberCount,
+                ownerId: botGuild.ownerId,
+                hasBot: true,
+                canManage: true,
+              };
+            } else {
+              // Bot is NOT present
+              return {
+                id: ug.id,
+                name: ug.name,
+                icon: ug.icon
+                  ? `https://cdn.discordapp.com/icons/${ug.id}/${ug.icon}.png`
+                  : null,
+                memberCount: null, // Unknown
+                ownerId: null,
+                hasBot: false,
+                canManage: false,
+              };
+            }
           });
 
-        res.json(manageable);
+        res.json(adminGuilds);
       } catch (error) {
         res.status(500).json({ error: error.message });
       }
@@ -171,61 +199,78 @@ class DashboardServer {
     );
 
     // Get moderation logs
-    this.app.get("/api/server/:id/modlogs", this.checkAuth, async (req, res) => {
-      try {
-        const limit = parseInt(req.query.limit) || 50;
-        const userId = req.query.userId || null;
-        const logs = await db.getModLogs(req.params.id, userId, limit);
-        res.json(logs);
-      } catch (error) {
-        res.status(500).json({ error: error.message });
+    this.app.get(
+      "/api/server/:id/modlogs",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          const limit = parseInt(req.query.limit) || 50;
+          const userId = req.query.userId || null;
+          const logs = await db.getModLogs(req.params.id, userId, limit);
+          res.json(logs);
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
       }
-    });
+    );
 
     // Get warnings for a user
-    this.app.get("/api/server/:id/warnings", this.checkAuth, async (req, res) => {
-      try {
-        const userId = req.query.userId;
-        if (!userId) return res.status(400).json({ error: "userId required" });
-        
-        const warnings = await db.getWarnings(req.params.id, userId);
-        res.json(warnings);
-      } catch (error) {
-        res.status(500).json({ error: error.message });
+    this.app.get(
+      "/api/server/:id/warnings",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          const userId = req.query.userId;
+          if (!userId)
+            return res.status(400).json({ error: "userId required" });
+
+          const warnings = await db.getWarnings(req.params.id, userId);
+          res.json(warnings);
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
       }
-    });
+    );
 
     // Get security logs
-    this.app.get("/api/server/:id/security", this.checkAuth, async (req, res) => {
-      try {
-        const logs = await db.searchLogs(req.params.id, {
-          category: "security",
-          limit: parseInt(req.query.limit) || 50,
-        });
-        res.json(logs);
-      } catch (error) {
-        res.status(500).json({ error: error.message });
+    this.app.get(
+      "/api/server/:id/security",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          const logs = await db.searchLogs(req.params.id, {
+            category: "security",
+            limit: parseInt(req.query.limit) || 50,
+          });
+          res.json(logs);
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
       }
-    });
+    );
 
     // Get anti-raid statistics
-    this.app.get("/api/server/:id/antiraid", this.checkAuth, async (req, res) => {
-      try {
-        const logs = await new Promise((resolve, reject) => {
-          db.db.all(
-            "SELECT COUNT(*) as total FROM anti_raid_logs WHERE guild_id = ?",
-            [req.params.id],
-            (err, rows) => {
-              if (err) reject(err);
-              else resolve(rows[0]);
-            }
-          );
-        });
-        res.json({ raidsBlocked: logs.total || 0 });
-      } catch (error) {
-        res.status(500).json({ error: error.message });
+    this.app.get(
+      "/api/server/:id/antiraid",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          const logs = await new Promise((resolve, reject) => {
+            db.db.all(
+              "SELECT COUNT(*) as total FROM anti_raid_logs WHERE guild_id = ?",
+              [req.params.id],
+              (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows[0]);
+              }
+            );
+          });
+          res.json({ raidsBlocked: logs.total || 0 });
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
       }
-    });
+    );
 
     // Get server statistics
     this.app.get("/api/server/:id/stats", this.checkAuth, async (req, res) => {
@@ -234,41 +279,37 @@ class DashboardServer {
         if (!guild) return res.status(404).json({ error: "Server not found" });
 
         // Get counts from database
-        const [
-          modLogsCount,
-          warningsCount,
-          securityLogsCount,
-          antiRaidCount,
-        ] = await Promise.all([
-          new Promise((resolve) => {
-            db.db.get(
-              "SELECT COUNT(*) as count FROM moderation_logs WHERE guild_id = ?",
-              [req.params.id],
-              (err, row) => resolve(row?.count || 0)
-            );
-          }),
-          new Promise((resolve) => {
-            db.db.get(
-              "SELECT COUNT(*) as count FROM warnings WHERE guild_id = ?",
-              [req.params.id],
-              (err, row) => resolve(row?.count || 0)
-            );
-          }),
-          new Promise((resolve) => {
-            db.db.get(
-              "SELECT COUNT(*) as count FROM security_logs WHERE guild_id = ?",
-              [req.params.id],
-              (err, row) => resolve(row?.count || 0)
-            );
-          }),
-          new Promise((resolve) => {
-            db.db.get(
-              "SELECT COUNT(*) as count FROM anti_raid_logs WHERE guild_id = ?",
-              [req.params.id],
-              (err, row) => resolve(row?.count || 0)
-            );
-          }),
-        ]);
+        const [modLogsCount, warningsCount, securityLogsCount, antiRaidCount] =
+          await Promise.all([
+            new Promise((resolve) => {
+              db.db.get(
+                "SELECT COUNT(*) as count FROM moderation_logs WHERE guild_id = ?",
+                [req.params.id],
+                (err, row) => resolve(row?.count || 0)
+              );
+            }),
+            new Promise((resolve) => {
+              db.db.get(
+                "SELECT COUNT(*) as count FROM warnings WHERE guild_id = ?",
+                [req.params.id],
+                (err, row) => resolve(row?.count || 0)
+              );
+            }),
+            new Promise((resolve) => {
+              db.db.get(
+                "SELECT COUNT(*) as count FROM security_logs WHERE guild_id = ?",
+                [req.params.id],
+                (err, row) => resolve(row?.count || 0)
+              );
+            }),
+            new Promise((resolve) => {
+              db.db.get(
+                "SELECT COUNT(*) as count FROM anti_raid_logs WHERE guild_id = ?",
+                [req.params.id],
+                (err, row) => resolve(row?.count || 0)
+              );
+            }),
+          ]);
 
         res.json({
           memberCount: guild.memberCount,
@@ -283,14 +324,18 @@ class DashboardServer {
     });
 
     // Get recovery snapshots
-    this.app.get("/api/server/:id/snapshots", this.checkAuth, async (req, res) => {
-      try {
-        const snapshots = await db.getRecoverySnapshots(req.params.id, 10);
-        res.json(snapshots);
-      } catch (error) {
-        res.status(500).json({ error: error.message });
+    this.app.get(
+      "/api/server/:id/snapshots",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          const snapshots = await db.getRecoverySnapshots(req.params.id, 10);
+          res.json(snapshots);
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
       }
-    });
+    );
 
     // Admin authentication
     this.app.post("/api/admin/auth", async (req, res) => {
@@ -299,12 +344,14 @@ class DashboardServer {
         const adminPassword = process.env.ADMIN_PASSWORD;
 
         if (!adminPassword) {
-          return res.status(500).json({ error: "Admin password not configured" });
+          return res
+            .status(500)
+            .json({ error: "Admin password not configured" });
         }
 
         if (password === adminPassword) {
           // Generate simple token (in production, use JWT)
-          const token = Buffer.from(`admin:${Date.now()}`).toString('base64');
+          const token = Buffer.from(`admin:${Date.now()}`).toString("base64");
           res.json({ success: true, token });
         } else {
           res.status(401).json({ error: "Invalid password" });
@@ -318,13 +365,13 @@ class DashboardServer {
     this.app.post("/api/admin/incidents", async (req, res) => {
       try {
         const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
           return res.status(401).json({ error: "Unauthorized" });
         }
 
         const incident = {
           id: Date.now(),
-          ...req.body
+          ...req.body,
         };
 
         // In a real app, you'd save this to a database

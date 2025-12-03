@@ -65,6 +65,10 @@ function showServerSelection(servers) {
     return;
   }
 
+  // Separate servers with bot vs without
+  const serversWithBot = servers.filter(s => s.hasBot);
+  const serversWithoutBot = servers.filter(s => !s.hasBot);
+
   contentArea.innerHTML = `
     <div class="server-selection-page">
       <h1>SERVERS</h1>
@@ -74,42 +78,70 @@ function showServerSelection(servers) {
         <input type="text" id="serverSearch" placeholder="Search servers..." class="server-search-input">
       </div>
 
-      <div class="servers-grid" id="serversGrid">
-        ${servers
-          .map(
-            (s) => `
-          <div class="server-card" onclick="selectServer('${s.id}')">
-            <div class="server-icon">
-              ${
-                s.icon
-                  ? `<img src="${s.icon}" alt="${s.name}">`
-                  : `<div class="server-icon-placeholder">${s.name.charAt(
-                      0
-                    )}</div>`
-              }
+      ${serversWithBot.length > 0 ? `
+        <h3 style="margin: 30px 0 20px 0; opacity: 0.9;">Servers with Nexus</h3>
+        <div class="servers-grid">
+          ${serversWithBot.map(s => `
+            <div class="server-card" onclick="selectServer('${s.id}')" data-searchable="${s.name.toLowerCase()}">
+              <div class="server-icon">
+                ${s.icon 
+                  ? `<img src="${s.icon}" alt="${s.name}">` 
+                  : `<div class="server-icon-placeholder">${s.name.charAt(0)}</div>`
+                }
+              </div>
+              <div class="server-info">
+                <h3 class="server-name">${s.name}</h3>
+                <p class="server-members">${s.memberCount ? s.memberCount.toLocaleString() + ' members' : 'Unknown members'}</p>
+              </div>
+              <div class="server-arrow">→</div>
             </div>
-            <div class="server-info">
-              <h3 class="server-name">${s.name}</h3>
-              <p class="server-members">${s.memberCount.toLocaleString()} members</p>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      ${serversWithoutBot.length > 0 ? `
+        <h3 style="margin: 40px 0 20px 0; opacity: 0.9;">Invite Nexus to Your Servers</h3>
+        <div class="servers-grid">
+          ${serversWithoutBot.map(s => `
+            <div class="server-card server-card-invite" data-searchable="${s.name.toLowerCase()}">
+              <div class="server-icon">
+                ${s.icon 
+                  ? `<img src="${s.icon}" alt="${s.name}">` 
+                  : `<div class="server-icon-placeholder">${s.name.charAt(0)}</div>`
+                }
+              </div>
+              <div class="server-info">
+                <h3 class="server-name">${s.name}</h3>
+                <p class="server-members" style="opacity: 0.6;">Bot not added</p>
+              </div>
+              <a href="https://discord.com/oauth2/authorize?client_id=1444739230679957646&permissions=8&scope=bot%20applications.commands&guild_id=${s.id}" 
+                 target="_blank" 
+                 class="invite-btn-small"
+                 onclick="event.stopPropagation()">
+                Invite Bot
+              </a>
             </div>
-            <div class="server-arrow">→</div>
-          </div>
-        `
-          )
-          .join("")}
-      </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      ${serversWithBot.length === 0 && serversWithoutBot.length === 0 ? `
+        <div class="empty-state">
+          <div class="empty-icon">🔒</div>
+          <h2>No Admin Permissions</h2>
+          <p>You don't have administrator permissions in any servers.</p>
+        </div>
+      ` : ''}
     </div>
   `;
 
   // Add search functionality
   document.getElementById("serverSearch").addEventListener("input", (e) => {
     const searchTerm = e.target.value.toLowerCase();
-    const serverCards = document.querySelectorAll(".server-card");
+    const serverCards = document.querySelectorAll(".server-card[data-searchable]");
 
     serverCards.forEach((card) => {
-      const serverName = card
-        .querySelector(".server-name")
-        .textContent.toLowerCase();
+      const serverName = card.getAttribute("data-searchable");
       if (serverName.includes(searchTerm)) {
         card.style.display = "";
       } else {
