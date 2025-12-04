@@ -160,9 +160,26 @@ module.exports = {
                   components: [],
                 });
               } catch (error) {
+                let errorMsg = "❌ Failed to create channel. ";
+
+                if (error.code === 50013) {
+                  errorMsg +=
+                    "**Missing Permissions**: I need the `Manage Channels` permission.";
+                } else if (error.code === 50001) {
+                  errorMsg +=
+                    "**Missing Access**: I don't have access to create channels.";
+                } else if (error.code === 30013) {
+                  errorMsg +=
+                    "**Maximum Channels**: Server has reached the maximum number of channels.";
+                } else {
+                  errorMsg += `**Error**: ${error.message}`;
+                }
+
+                errorMsg +=
+                  "\n\n💡 **Manual Setup**: Create a channel called `#nexus-logs` and use `/config logchannel #nexus-logs` to configure it.";
+
                 await btnInt.update({
-                  content:
-                    "❌ Failed to create channel. Please create #nexus-logs manually.",
+                  content: errorMsg,
                   components: [],
                 });
               }
