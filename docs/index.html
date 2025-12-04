@@ -1925,6 +1925,8 @@
           const raidsBlocked = document.getElementById("liveRaidsBlocked");
           const nukesBlocked = document.getElementById("liveNukesBlocked");
           const threatsBlocked = document.getElementById("liveThreatsBlocked");
+          const commandsRun = document.getElementById("liveCommandsRun");
+          const uptime = document.getElementById("liveUptime");
           const ctaServerCount = document.getElementById("serverCount");
           const status = document.getElementById("botStatus");
 
@@ -1944,6 +1946,9 @@
           if (threatsBlocked)
             threatsBlocked.textContent =
               data.threatsDetected?.toLocaleString() || "0";
+          if (commandsRun)
+            commandsRun.textContent = data.commandsRun?.toLocaleString() || "0";
+          if (uptime) uptime.textContent = data.uptime || "24h+";
 
           // Bot is online!
           if (status) {
@@ -1959,7 +1964,7 @@
           const threatsBlocked = document.getElementById("liveThreatsBlocked");
           const commandsRun = document.getElementById("liveCommandsRun");
           const uptime = document.getElementById("liveUptime");
-          
+
           if (serverCount) serverCount.textContent = "18+";
           if (userCount) userCount.textContent = "1,000+";
           if (raidsBlocked) raidsBlocked.textContent = "0";
