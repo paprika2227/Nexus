@@ -2967,8 +2967,70 @@ class DashboardServer {
       }
     });
 
+    // GET /api/v1/compare-servers - Compare server configs (public)
+    this.app.get("/api/v1/compare-servers", async (req, res) => {
+      try {
+        const avgStats = await new Promise((resolve, reject) => {
+          db.db.get(
+            `SELECT 
+              AVG(CASE WHEN anti_raid_enabled = 1 THEN 1 ELSE 0 END) as avg_antiraid,
+              AVG(CASE WHEN anti_nuke_enabled = 1 THEN 1 ELSE 0 END) as avg_antinuke,
+              AVG(CASE WHEN heat_system_enabled = 1 THEN 1 ELSE 0 END) as avg_heat,
+              AVG(CASE WHEN auto_mod_enabled = 1 THEN 1 ELSE 0 END) as avg_automod,
+              COUNT(*) as total_servers
+            FROM server_config`,
+            (err, row) => {
+              if (err) reject(err);
+              else resolve(row);
+            }
+          );
+        });
+
+        res.json({
+          benchmark: {
+            antiRaidEnabled: Math.round(avgStats.avg_antiraid * 100),
+            antiNukeEnabled: Math.round(avgStats.avg_antinuke * 100),
+            heatSystemEnabled: Math.round(avgStats.avg_heat * 100),
+            autoModEnabled: Math.round(avgStats.avg_automod * 100),
+          },
+          totalServers: avgStats.total_servers,
+          message: "Percentage of servers with each feature enabled",
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // GET /api/v1/rate-limit-status - Check API key rate limit (requires key)
+    this.app.get("/api/v1/rate-limit-status", async (req, res) => {
+      try {
+        const apiKey =
+          req.headers["x-api-key"] || req.query.api_key;
+
+        if (!apiKey) {
+          return res.status(400).json({ error: "API key required" });
+        }
+
+        const keyData = await db.validateAPIKey(apiKey);
+        if (!keyData) {
+          return res.status(401).json({ error: "Invalid API key" });
+        }
+
+        const rateLimit = await db.checkRateLimit(apiKey);
+        
+        res.json({
+          limit: keyData.rate_limit,
+          used: keyData.requests_today,
+          remaining: rateLimit.remaining || 0,
+          resetAt: new Date().setHours(24, 0, 0, 0), // Midnight
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     console.log("[API] Public API v1 endpoints registered");
-    console.log("[API] 🔥 POWERFUL API v2 - 35 endpoints active!");
+    console.log("[API] 🔥 POWERFUL API v2 - 37 endpoints active!"); // Updated count
     console.log("[Referral] Referral tracking system active");
     console.log("[IP Logging] IP tracking active");
   }
