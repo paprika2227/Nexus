@@ -142,7 +142,7 @@ module.exports = {
                       deny: [PermissionFlagsBits.ViewChannel],
                     },
                     {
-                      id: client.user.id,
+                      id: interaction.user.id,
                       allow: [
                         PermissionFlagsBits.ViewChannel,
                         PermissionFlagsBits.SendMessages,
