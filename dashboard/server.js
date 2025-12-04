@@ -857,7 +857,7 @@ class DashboardServer {
     // API Documentation endpoint (no key required)
     this.app.get("/api/v1/docs", (req, res) => {
       res.json({
-        version: "1.0.0",
+        version: "2.0.0",
         name: "Nexus Public API",
         description: "Access Nexus bot data programmatically",
         authentication:
@@ -1063,7 +1063,7 @@ class DashboardServer {
       const packageJson = require("../package.json");
       res.json({
         botVersion: packageJson.version,
-        apiVersion: "1.0.0",
+        apiVersion: "2.0.0",
         botName: "Nexus",
         uptime: Math.floor(process.uptime()),
         endpoints: {
@@ -3494,8 +3494,19 @@ class DashboardServer {
     // GET /api/v1/changelog - API changelog (public)
     this.app.get("/api/v1/changelog", (req, res) => {
       res.json({
-        version: "1.0.0",
+        version: "2.0.0",
         updates: [
+          {
+            version: "2.0.0",
+            date: "2025-12-04",
+            changes: [
+              "NEW: /api/v1/adaptive-protection endpoint - View server-size-aware protection metrics",
+              "Updated API changelog with all bot versions (3.2.1 through 3.4.0)",
+              "Real-time server tier distribution tracking",
+              "Server size-aware threshold reporting",
+              "Bumped API version to 2.0.0 to reflect major new features",
+            ],
+          },
           {
             version: "3.3.1",
             date: "2025-12-04",
