@@ -1,206 +1,265 @@
 const {
   SlashCommandBuilder,
-  PermissionFlagsBits,
   EmbedBuilder,
+  PermissionFlagsBits,
 } = require("discord.js");
-const db = require("../utils/database");
+const growthTracker = require("../utils/growthTracker");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("analytics")
-    .setDescription("Advanced analytics and insights ")
-    .addStringOption((option) =>
-      option
-        .setName("type")
-        .setDescription("Analytics type")
-        .setRequired(true)
-        .addChoices(
-          { name: "Moderation Trends", value: "moderation" },
-          { name: "Security Trends", value: "security" },
-          { name: "User Activity", value: "activity" },
-          { name: "Threat Patterns", value: "threats" },
-          { name: "Performance Metrics", value: "performance" },
-          { name: "AI Insights", value: "insights" }
-        )
+    .setDescription("📊 View bot growth and usage analytics")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addSubcommand((sub) =>
+      sub.setName("overview").setDescription("View overall bot analytics")
     )
-    .addIntegerOption((option) =>
-      option
-        .setName("days")
-        .setDescription("Time period in days (1-30)")
-        .setMinValue(1)
-        .setMaxValue(30)
-        .setRequired(false)
+    .addSubcommand((sub) =>
+      sub
+        .setName("commands")
+        .setDescription("View most popular commands (last 7 days)")
     )
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .addSubcommand((sub) =>
+      sub.setName("growth").setDescription("View server growth metrics")
+    )
+    .addSubcommand((sub) =>
+      sub.setName("retention").setDescription("View server retention rate")
+    )
+    .addSubcommand((sub) =>
+      sub.setName("sources").setDescription("View where invites come from")
+    ),
+  category: "admin",
 
   async execute(interaction) {
-    const type = interaction.options.getString("type");
-    const days = interaction.options.getInteger("days") || 7;
-    const startTime = Date.now() - days * 86400000;
+    await interaction.deferReply({ ephemeral: true });
 
-    await interaction.deferReply();
+    const subcommand = interaction.options.getSubcommand();
 
-    if (type === "moderation") {
-      const actions = await new Promise((resolve, reject) => {
-        db.db.all(
-          "SELECT action, COUNT(*) as count, DATE(timestamp/1000, 'unixepoch') as date FROM moderation_logs WHERE guild_id = ? AND timestamp > ? GROUP BY action, date ORDER BY date DESC",
-          [interaction.guild.id, startTime],
-          (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows || []);
-          }
-        );
+    try {
+      if (subcommand === "overview") {
+        const metrics = await growthTracker.getTodayMetrics();
+        const retention = await growthTracker.getRetentionRate();
+        const history = await growthTracker.getGrowthHistory(7);
+
+        const embed = new EmbedBuilder()
+          .setTitle("📊 Bot Analytics Overview")
+          .setDescription("**Performance metrics and growth tracking**")
+          .addFields(
+            {
+              name: "📈 Today's Activity",
+              value:
+                `Servers Added: **${metrics.serversAdded}**\n` +
+                `Servers Removed: **${metrics.serversRemoved}**\n` +
+                `Commands Run: **${metrics.commandsRun}**\n` +
+                `Raids Detected: **${metrics.raidsDetected}**`,
+              inline: true,
+            },
+            {
+              name: "💚 Retention (30 Days)",
+              value:
+                `Adds: **${retention.adds}**\n` +
+                `Removes: **${retention.removes}**\n` +
+                `Rate: **${retention.retention}%**`,
+              inline: true,
+            },
+            {
+              name: "🏠 Current Status",
+              value:
+                `Total Servers: **${interaction.client.guilds.cache.size}**\n` +
+                `Total Users: **${interaction.client.guilds.cache.reduce(
+                  (a, g) => a + g.memberCount,
+                  0
+                )}**\n` +
+                `Uptime: **${this.formatUptime(interaction.client.uptime)}**`,
+              inline: false,
+            }
+          )
+          .setColor(0x00d1b2)
+          .setFooter({ text: "Use /analytics [subcommand] for detailed views" })
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+      } else if (subcommand === "commands") {
+        const topCommands = await growthTracker.getTopCommands(15);
+
+        if (topCommands.length === 0) {
+          return interaction.editReply({
+            content:
+              "📊 No command usage data yet (data tracked from last 7 days)",
+          });
+        }
+
+        const commandList = topCommands
+          .map(
+            (cmd, i) => `**${i + 1}.** \`/${cmd.command}\` - ${cmd.usage} uses`
+          )
+          .join("\n");
+
+        const embed = new EmbedBuilder()
+          .setTitle("📊 Most Popular Commands (Last 7 Days)")
+          .setDescription(commandList)
+          .setColor(0x3498db)
+          .setFooter({
+            text: `Total: ${topCommands.reduce(
+              (a, c) => a + c.usage,
+              0
+            )} commands run`,
+          })
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+      } else if (subcommand === "growth") {
+        const history = await growthTracker.getGrowthHistory(30);
+
+        if (history.length === 0) {
+          return interaction.editReply({
+            content: "📊 No growth history yet (snapshots created daily)",
+          });
+        }
+
+        // Calculate growth rate
+        const oldest = history[history.length - 1];
+        const newest = history[0];
+        const serverGrowth = newest.total_servers - oldest.total_servers;
+        const growthRate =
+          oldest.total_servers > 0
+            ? ((serverGrowth / oldest.total_servers) * 100).toFixed(1)
+            : 0;
+
+        const embed = new EmbedBuilder()
+          .setTitle("📈 Server Growth (Last 30 Days)")
+          .setDescription(
+            `**Change:** ${
+              serverGrowth >= 0 ? "+" : ""
+            }${serverGrowth} servers (${
+              growthRate >= 0 ? "+" : ""
+            }${growthRate}%)`
+          )
+          .addFields(
+            {
+              name: "📊 Current",
+              value: `Servers: **${newest.total_servers}**\nUsers: **${newest.total_users}**`,
+              inline: true,
+            },
+            {
+              name: "📅 30 Days Ago",
+              value: `Servers: **${oldest.total_servers}**\nUsers: **${oldest.total_users}**`,
+              inline: true,
+            },
+            {
+              name: "📈 Last 7 Days",
+              value:
+                history.length >= 7
+                  ? `Added: **${history
+                      .slice(0, 7)
+                      .reduce((a, d) => a + d.servers_added, 0)}**\n` +
+                    `Removed: **${history
+                      .slice(0, 7)
+                      .reduce((a, d) => a + d.servers_removed, 0)}**`
+                  : "Insufficient data",
+              inline: false,
+            }
+          )
+          .setColor(serverGrowth >= 0 ? 0x00ff00 : 0xff4444)
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+      } else if (subcommand === "retention") {
+        const retention = await growthTracker.getRetentionRate();
+
+        let grade, color, message;
+        if (retention.retention >= 90) {
+          grade = "A+";
+          color = 0x00ff00;
+          message = "Excellent retention! Servers love Nexus! 🎉";
+        } else if (retention.retention >= 75) {
+          grade = "A";
+          color = 0x00d1b2;
+          message = "Great retention! Most servers are staying.";
+        } else if (retention.retention >= 60) {
+          grade = "B";
+          color = 0xffa500;
+          message = "Good retention, but room for improvement.";
+        } else {
+          grade = "C";
+          color = 0xff4444;
+          message = "Low retention. Need to investigate why servers leave.";
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle(`📊 Server Retention Rate: ${grade}`)
+          .setDescription(message)
+          .addFields(
+            {
+              name: "📈 Last 30 Days",
+              value:
+                `Servers Added: **${retention.adds}**\n` +
+                `Servers Removed: **${retention.removes}**\n` +
+                `Net Growth: **${retention.adds - retention.removes}**`,
+              inline: true,
+            },
+            {
+              name: "💚 Retention",
+              value: `**${retention.retention}%**\n\nThis means ${retention.retention}% of servers that join stay with Nexus!`,
+              inline: true,
+            }
+          )
+          .setColor(color)
+          .setFooter({
+            text: "Goal: 85%+ retention rate",
+          })
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+      } else if (subcommand === "sources") {
+        const sources = await growthTracker.getInviteSources(30);
+
+        if (Object.keys(sources).length === 0) {
+          return interaction.editReply({
+            content: "📊 No invite source data yet",
+          });
+        }
+
+        const total = Object.values(sources).reduce((a, b) => a + b, 0);
+        const sourceList = Object.entries(sources)
+          .sort(([, a], [, b]) => b - a)
+          .map(([source, count]) => {
+            const percentage = ((count / total) * 100).toFixed(1);
+            return `**${source}:** ${count} (${percentage}%)`;
+          })
+          .join("\n");
+
+        const embed = new EmbedBuilder()
+          .setTitle("📊 Invite Sources (Last 30 Days)")
+          .setDescription(sourceList)
+          .addFields({
+            name: "📈 Total Invites",
+            value: `**${total}** servers added`,
+            inline: false,
+          })
+          .setColor(0x9b59b6)
+          .setFooter({
+            text: "Track sources with ?source= parameter in invite links",
+          })
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+      }
+    } catch (error) {
+      logger.error("Analytics command error:", error);
+      await interaction.editReply({
+        content: "❌ Failed to load analytics data",
       });
-
-      const totalByAction = {};
-      actions.forEach((a) => {
-        totalByAction[a.action] = (totalByAction[a.action] || 0) + a.count;
-      });
-
-      const embed = new EmbedBuilder()
-        .setTitle(`📊 Moderation Analytics (Last ${days} days)`)
-        .setDescription("Detailed moderation trends and patterns")
-        .addFields(
-          {
-            name: "📈 Action Breakdown",
-            value:
-              Object.entries(totalByAction)
-                .map(
-                  ([action, count]) => `**${action.toUpperCase()}:** ${count}`
-                )
-                .join("\n") || "No data",
-            inline: true,
-          },
-          {
-            name: "📅 Daily Average",
-            value: `${Math.round(
-              Object.values(totalByAction).reduce((a, b) => a + b, 0) / days
-            )} actions/day`,
-            inline: true,
-          }
-        )
-        .setColor(0x0099ff)
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] });
-    } else if (type === "security") {
-      const threats = await new Promise((resolve, reject) => {
-        db.db.all(
-          "SELECT threat_score, event_type, DATE(timestamp/1000, 'unixepoch') as date FROM security_logs WHERE guild_id = ? AND timestamp > ? ORDER BY timestamp DESC",
-          [interaction.guild.id, startTime],
-          (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows || []);
-          }
-        );
-      });
-
-      const avgScore =
-        threats.reduce((sum, t) => sum + t.threat_score, 0) /
-        (threats.length || 1);
-      const highRisk = threats.filter((t) => t.threat_score >= 80).length;
-
-      const embed = new EmbedBuilder()
-        .setTitle(`🛡️ Security Analytics (Last ${days} days)`)
-        .addFields({
-          name: "📊 Statistics",
-          value: [
-            `Total Threats: **${threats.length}**`,
-            `Avg Score: **${Math.round(avgScore)}%**`,
-            `High Risk: **${highRisk}**`,
-            `Risk Level: ${
-              avgScore >= 70
-                ? "🔴 High"
-                : avgScore >= 40
-                ? "🟡 Medium"
-                : "🟢 Low"
-            }`,
-          ].join("\n"),
-          inline: false,
-        })
-        .setColor(
-          avgScore >= 70 ? 0xff0000 : avgScore >= 40 ? 0xffff00 : 0x00ff00
-        )
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] });
-    } else if (type === "activity") {
-      const activity = await new Promise((resolve, reject) => {
-        db.db.all(
-          "SELECT user_id, messages_sent, commands_used FROM user_stats WHERE guild_id = ? ORDER BY messages_sent DESC LIMIT 10",
-          [interaction.guild.id],
-          (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows || []);
-          }
-        );
-      });
-
-      const embed = new EmbedBuilder()
-        .setTitle(`📈 User Activity Analytics`)
-        .setDescription("Top active users")
-        .addFields({
-          name: "🏆 Top Users",
-          value:
-            activity.length > 0
-              ? activity
-                  .map(
-                    (a, i) =>
-                      `${i + 1}. <@${a.user_id}> - ${a.messages_sent} msgs, ${
-                        a.commands_used
-                      } cmds`
-                  )
-                  .join("\n")
-              : "No activity data",
-          inline: false,
-        })
-        .setColor(0x0099ff)
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] });
-    } else if (type === "insights") {
-      await this.showAIInsights(interaction, days);
     }
   },
 
-  async showAIInsights(interaction, days) {
-    const SmartRecommendations = require("../utils/smartRecommendations");
+  formatUptime(ms) {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
 
-    // Get AI-generated insights
-    const insights = await SmartRecommendations.generateInsights(
-      interaction.guild.id,
-      interaction.guild,
-      days
-    );
-
-    const embed = new EmbedBuilder()
-      .setTitle("🤖 AI-Generated Insights")
-      .setDescription(
-        "Intelligent analysis of your server's activity and security"
-      )
-      .setColor(0x5865f2)
-      .setTimestamp();
-
-    if (insights.length > 0) {
-      insights.slice(0, 5).forEach((insight, index) => {
-        embed.addFields({
-          name: `${index + 1}. ${insight.title}`,
-          value:
-            insight.description +
-            (insight.recommendation
-              ? `\n\n💡 **Recommendation:** ${insight.recommendation}`
-              : ""),
-          inline: false,
-        });
-      });
-    } else {
-      embed.setDescription(
-        "No insights available yet. The AI needs more data to generate insights."
-      );
-    }
-
-    embed.setFooter({ text: `Analysis period: Last ${days} days` });
-
-    await interaction.editReply({ embeds: [embed] });
+    if (days > 0) return `${days}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+    return `${minutes}m ${seconds % 60}s`;
   },
 };

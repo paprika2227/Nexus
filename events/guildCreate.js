@@ -1,6 +1,7 @@
 const { registerCommands } = require("../utils/registerCommands");
 const db = require("../utils/database");
 const logger = require("../utils/logger");
+const growthTracker = require("../utils/growthTracker");
 
 module.exports = {
   name: "guildCreate",
@@ -9,6 +10,13 @@ module.exports = {
 
     // Track invite source if present
     let inviteSource = "direct"; // default
+
+    // Track with growth tracker
+    await growthTracker
+      .trackServerAdd(guild.id, inviteSource, guild.memberCount || 0)
+      .catch((err) => {
+        logger.error("Growth tracker error:", err);
+      });
     try {
       // Check if we have a tracked source for this user (guild owner)
       const owner = await guild.fetchOwner().catch(() => null);

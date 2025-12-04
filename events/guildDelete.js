@@ -1,5 +1,6 @@
 const db = require("../utils/database");
 const logger = require("../utils/logger");
+const growthTracker = require("../utils/growthTracker");
 
 module.exports = {
   name: "guildDelete",
@@ -10,6 +11,13 @@ module.exports = {
     let inviteSource = "unknown";
     let joinedAt = null;
     let daysActive = 0;
+
+    // Track with growth tracker (calculate days active first)
+    await growthTracker
+      .trackServerRemove(guild.id, "left", daysActive)
+      .catch((err) => {
+        logger.error("Growth tracker error:", err);
+      });
 
     try {
       const trackingInfo = await new Promise((resolve, reject) => {
