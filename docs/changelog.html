@@ -84,8 +84,37 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.8.1 - December 4, 2025</h2>
+          <h2>Version 3.8.2 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔧 Anti-Nuke Sensitivity Adjustment</h3>
+          <ul>
+            <li>
+              <strong>Fixed overly-sensitive anti-nuke thresholds:</strong>
+              <ul>
+                <li>❌ <strong>Before:</strong> 1 channel deletion triggered anti-nuke</li>
+                <li>✅ <strong>After:</strong> 3+ channels in 5 seconds triggers anti-nuke</li>
+                <li>📊 <strong>Adjusted thresholds:</strong>
+                  <ul>
+                    <li>Channels Deleted: 1 → 3</li>
+                    <li>Channels Created: 2 → 4</li>
+                    <li>Roles Deleted: 1 → 2</li>
+                    <li>Roles Created: 2 → 3</li>
+                    <li>Members Banned: 2 → 3</li>
+                    <li>Members Kicked: 2 → 4</li>
+                    <li>Webhooks Created: 2 → 3</li>
+                    <li>Emojis Deleted: 2 → 3</li>
+                    <li>Emojis Created: 5 → 6</li>
+                  </ul>
+                </li>
+                <li>✅ No more false positives on legitimate moderation actions</li>
+                <li>✅ Still catches actual nuke/raid attempts effectively</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.8.1 - December 4, 2025</h2>
           <h3>🔧 Bug Fix - Quicksetup Channel Creation</h3>
           <ul>
             <li>

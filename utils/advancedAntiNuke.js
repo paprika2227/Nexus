@@ -8,15 +8,15 @@ class AdvancedAntiNuke {
     this.monitoring = new Map(); // Track suspicious activity
     this.actionHistory = new Map(); // Track recent actions per user
     this.baseThresholds = {
-      channelsDeleted: 1, // Even 1 channel deletion in 5 seconds = THREAT (nuke bots delete ALL)
-      channelsCreated: 2, // 2+ channels created in 5 seconds = spam creation
-      rolesDeleted: 1, // Even 1 role deletion = potential threat
-      rolesCreated: 2, // 2+ roles created in 5 seconds
-      membersBanned: 2, // 2+ bans in 5 seconds
-      membersKicked: 2, // 2+ kicks in 5 seconds
-      webhooksCreated: 2, // 2+ webhooks in 5 seconds
-      emojisDeleted: 2, // 2+ emojis deleted in 5 seconds
-      emojisCreated: 5, // 5+ emojis created in 5 seconds (spam)
+      channelsDeleted: 3, // 3+ channels deleted in 5 seconds = potential nuke
+      channelsCreated: 4, // 4+ channels created in 5 seconds = spam creation
+      rolesDeleted: 2, // 2+ roles deleted in 5 seconds = potential threat
+      rolesCreated: 3, // 3+ roles created in 5 seconds
+      membersBanned: 3, // 3+ bans in 5 seconds
+      membersKicked: 4, // 4+ kicks in 5 seconds
+      webhooksCreated: 3, // 3+ webhooks in 5 seconds
+      emojisDeleted: 3, // 3+ emojis deleted in 5 seconds
+      emojisCreated: 6, // 6+ emojis created in 5 seconds (spam)
       voiceRaid: 10, // 10+ voice joins in 10 seconds
     };
     this.thresholds = { ...this.baseThresholds }; // Will be adapted per server
