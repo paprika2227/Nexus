@@ -416,7 +416,7 @@
         });
         const data = await response.json();
         
-        document.getElementById('nexus-servers').textContent = data.serverCount || 17;
+        document.getElementById('nexus-servers').textContent = data.serverCount || 18;
         document.getElementById('nexus-response').textContent = `~${data.avgResponseTime || 50}ms`;
       } catch (error) {
         console.error('Failed to fetch live stats');

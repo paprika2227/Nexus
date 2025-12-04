@@ -114,7 +114,7 @@ https://azzraya.github.io/Nexus/invite.html?source=githubreadme
 
 ## 📈 Stats
 
-- **17+ Servers Protected**
+- **18+ Servers Protected**
 - **1000+ Members Secured**
 - **100% Uptime**
 - **100% Free Forever**

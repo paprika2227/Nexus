@@ -1346,8 +1346,8 @@
           const ctaServerCount = document.getElementById("serverCount");
           const status = document.getElementById("botStatus");
 
-          if (liveServerCount) liveServerCount.textContent = data.serverCount || "17";
-          if (ctaServerCount) ctaServerCount.textContent = (data.serverCount || 17) + "+";
+          if (liveServerCount) liveServerCount.textContent = data.serverCount || "18";
+          if (ctaServerCount) ctaServerCount.textContent = (data.serverCount || 18) + "+";
           if (userCount)
             userCount.textContent =
               data.userCount?.toLocaleString() || "1,000+";
@@ -1361,7 +1361,7 @@
           console.log("Could not fetch live stats, using defaults");
           const serverCount = document.getElementById("liveServerCount");
           const userCount = document.getElementById("liveUserCount");
-          if (serverCount) serverCount.textContent = "17+";
+          if (serverCount) serverCount.textContent = "18+";
           if (userCount) userCount.textContent = "1,000+";
         }
       }
