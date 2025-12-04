@@ -84,8 +84,33 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.5.8 - December 4, 2025</h2>
+          <h2>Version 3.5.9 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>✨ Enhancement - Dynamic Version Display</h3>
+          <ul>
+            <li>
+              <strong>Single source of truth:</strong> All version displays now read from package.json dynamically
+            </li>
+            <li>
+              <strong>No more hardcoded versions:</strong> Version automatically updates everywhere when package.json changes
+            </li>
+            <li>
+              <strong>Files updated:</strong>
+              <ul>
+                <li>events/guildCreate.js - now uses require("../package.json").version</li>
+                <li>events/guildDelete.js - now uses require("../package.json").version</li>
+                <li>utils/smartStatus.js - now uses require("../package.json").version</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Better maintainability:</strong> Update version once, changes everywhere
+            </li>
+          </ul>
+          <p><strong>Developer note:</strong> This is proper software engineering - single source of truth!</p>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.5.8 - December 4, 2025</h2>
           <h3>🔧 Fix - Version Display</h3>
           <ul>
             <li>

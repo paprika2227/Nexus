@@ -1,6 +1,7 @@
 const db = require("../utils/database");
 const logger = require("../utils/logger");
 const growthTracker = require("../utils/growthTracker");
+const { version } = require("../package.json");
 
 module.exports = {
   name: "guildDelete",
@@ -143,7 +144,7 @@ module.exports = {
                 },
               ],
               footer: {
-                text: `Retention tracking | v3.5.8`,
+                text: `Retention tracking | v${version}`,
               },
               timestamp: new Date().toISOString(),
             },

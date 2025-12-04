@@ -1,5 +1,6 @@
 // Smart status messages that auto-update with live stats
 const logger = require("./logger");
+const { version } = require("../package.json");
 
 class SmartStatus {
   constructor(client) {
@@ -27,7 +28,7 @@ class SmartStatus {
       },
       {
         type: "PLAYING",
-        name: `azzraya.github.io/Nexus | v3.5.8`,
+        name: `azzraya.github.io/Nexus | v${version}`,
       },
       {
         type: "WATCHING",

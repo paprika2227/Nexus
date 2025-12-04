@@ -2,6 +2,7 @@ const { registerCommands } = require("../utils/registerCommands");
 const db = require("../utils/database");
 const logger = require("../utils/logger");
 const growthTracker = require("../utils/growthTracker");
+const { version } = require("../package.json");
 
 module.exports = {
   name: "guildCreate",
@@ -188,7 +189,7 @@ module.exports = {
                   },
                 ],
                 footer: {
-                  text: `Total Servers: ${client.guilds.cache.size} | v3.5.8`,
+                  text: `Total Servers: ${client.guilds.cache.size} | v${version}`,
                 },
                 timestamp: new Date().toISOString(),
               },
