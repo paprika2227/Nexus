@@ -1,4 +1,4 @@
-const {
+﻿const {
   SlashCommandBuilder,
   PermissionFlagsBits,
   EmbedBuilder,
@@ -98,7 +98,8 @@ module.exports = {
       if (type === "channel") {
         const channel = interaction.options.getChannel("channel");
         if (!channel) {
-          return interaction.reply(ErrorMessages.missingArgument a channel!",
+          return interaction.reply({
+            content: "Γ¥î Please specify a channel!",
             flags: MessageFlags.Ephemeral,
           });
         }
@@ -123,7 +124,7 @@ module.exports = {
         await interaction.reply({
           embeds: [
             {
-              title: "✅ Channel Locked",
+              title: "Γ£à Channel Locked",
               description: `${channel} has been locked.`,
               color: 0xff0000,
             },
@@ -176,7 +177,7 @@ module.exports = {
         await interaction.editReply({
           embeds: [
             {
-              title: "✅ All Public Channels Locked",
+              title: "Γ£à All Public Channels Locked",
               description: `Locked ${locked} channel(s).${
                 failed > 0
                   ? ` Failed to lock ${failed} channel(s) (missing permissions).`
@@ -196,7 +197,7 @@ module.exports = {
         await interaction.reply({
           embeds: [
             {
-              title: "✅ Join Lock Enabled",
+              title: "Γ£à Join Lock Enabled",
               description: "New members joining will be kicked/banned.",
               color: 0xff0000,
             },
@@ -206,7 +207,7 @@ module.exports = {
         const role = interaction.options.getRole("role");
         if (!role) {
           return interaction.reply({
-            content: "❌ Please specify a role!",
+            content: "Γ¥î Please specify a role!",
             flags: MessageFlags.Ephemeral,
           });
         }
@@ -226,7 +227,7 @@ module.exports = {
         await interaction.reply({
           embeds: [
             {
-              title: "✅ Role Locked",
+              title: "Γ£à Role Locked",
               description: `${role} has been locked.`,
               color: 0xff0000,
             },
@@ -239,7 +240,8 @@ module.exports = {
       if (type === "channel") {
         const channel = interaction.options.getChannel("channel");
         if (!channel) {
-          return interaction.reply(ErrorMessages.missingArgument a channel!",
+          return interaction.reply({
+            content: "Γ¥î Please specify a channel!",
             flags: MessageFlags.Ephemeral,
           });
         }
@@ -264,7 +266,7 @@ module.exports = {
         await interaction.reply({
           embeds: [
             {
-              title: "✅ Channel Unlocked",
+              title: "Γ£à Channel Unlocked",
               description: `${channel} has been unlocked.`,
               color: 0x00ff00,
             },
@@ -296,7 +298,6 @@ module.exports = {
               unlocked++;
             } catch (error) {
               const ErrorHandler = require("../utils/errorHandler");
-const ErrorMessages = require("../utils/errorMessages");
               ErrorHandler.logError(
                 error,
                 `lock [${interaction.guild.id}]`,
@@ -320,7 +321,7 @@ const ErrorMessages = require("../utils/errorMessages");
         await interaction.reply({
           embeds: [
             {
-              title: "✅ All Channels Unlocked",
+              title: "Γ£à All Channels Unlocked",
               description: `Unlocked ${unlocked} channel(s).`,
               color: 0x00ff00,
             },
@@ -335,7 +336,7 @@ const ErrorMessages = require("../utils/errorMessages");
         await interaction.reply({
           embeds: [
             {
-              title: "✅ Join Lock Disabled",
+              title: "Γ£à Join Lock Disabled",
               description: "New members can now join normally.",
               color: 0x00ff00,
             },
@@ -345,7 +346,7 @@ const ErrorMessages = require("../utils/errorMessages");
         const role = interaction.options.getRole("role");
         if (!role) {
           return interaction.reply({
-            content: "❌ Please specify a role!",
+            content: "Γ¥î Please specify a role!",
             flags: MessageFlags.Ephemeral,
           });
         }
@@ -364,7 +365,7 @@ const ErrorMessages = require("../utils/errorMessages");
         await interaction.reply({
           embeds: [
             {
-              title: "✅ Role Unlocked",
+              title: "Γ£à Role Unlocked",
               description: `${role} has been unlocked.`,
               color: 0x00ff00,
             },
@@ -390,7 +391,7 @@ const ErrorMessages = require("../utils/errorMessages");
       await announcementsChannel.send({
         embeds: [
           {
-            title: "🔒 Lockdown Announcement",
+            title: "≡ƒöÆ Lockdown Announcement",
             description: message,
             color: 0xff0000,
             timestamp: new Date().toISOString(),
@@ -399,7 +400,7 @@ const ErrorMessages = require("../utils/errorMessages");
       });
 
       await interaction.reply({
-        content: `✅ Announcement sent to ${announcementsChannel}`,
+        content: `Γ£à Announcement sent to ${announcementsChannel}`,
         flags: MessageFlags.Ephemeral,
       });
     } else if (subcommand === "view") {
@@ -432,11 +433,11 @@ const ErrorMessages = require("../utils/errorMessages");
       );
 
       const embed = new EmbedBuilder()
-        .setTitle("🔒 Current Lockdown Status")
+        .setTitle("≡ƒöÆ Current Lockdown Status")
         .addFields(
           {
             name: "Join Lock",
-            value: joinLock || lockdown ? "🔒 Active" : "🔓 Inactive",
+            value: joinLock || lockdown ? "≡ƒöÆ Active" : "≡ƒöô Inactive",
             inline: true,
           },
           {

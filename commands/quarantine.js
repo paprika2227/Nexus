@@ -74,10 +74,7 @@ module.exports = {
         .catch(() => null);
 
       if (!member) {
-        return interaction.reply({
-          ErrorMessages.userNotFound(),
-          flags: MessageFlags.Ephemeral,
-        });
+        return interaction.reply(ErrorMessages.userNotFound());
       }
 
       // Check if moderator is server owner (owners can quarantine anyone)
