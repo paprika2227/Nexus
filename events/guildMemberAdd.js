@@ -100,30 +100,27 @@ module.exports = {
       // Execute action based on join gate
       if (joinGateCheck.action === "ban") {
         await ErrorHandler.safeExecute(
-          member.ban({
+          () => member.ban({
             reason: `Join Gate: ${joinGateCheck.reason}`,
             deleteMessageDays: 1,
           }),
-          `guildMemberAdd [${member.guild.id}]`,
-          `Join Gate ban for ${member.user.id}`
+          `guildMemberAdd [${member.guild.id}]`
         );
         return;
       } else if (joinGateCheck.action === "kick") {
         await ErrorHandler.safeExecute(
-          member.kick(`Join Gate: ${joinGateCheck.reason}`),
-          `guildMemberAdd [${member.guild.id}]`,
-          `Join Gate kick for ${member.user.id}`
+          () => member.kick(`Join Gate: ${joinGateCheck.reason}`),
+          `guildMemberAdd [${member.guild.id}]`
         );
         return;
       } else if (joinGateCheck.action === "timeout") {
         const constants = require("../utils/constants");
         await ErrorHandler.safeExecute(
-          member.timeout(
+          () => member.timeout(
             constants.JOIN_GATE.DEFAULT_TIMEOUT_DURATION,
             `Join Gate: ${joinGateCheck.reason}`
           ),
-          `guildMemberAdd [${member.guild.id}]`,
-          `Join Gate timeout for ${member.user.id}`
+          `guildMemberAdd [${member.guild.id}]`
         );
       }
     }
@@ -212,9 +209,8 @@ module.exports = {
     if (client.antiRaid.lockdown.get(member.guild.id)) {
       // Auto-kick during lockdown
       await ErrorHandler.safeExecute(
-        member.kick("Server is in lockdown mode"),
-        `guildMemberAdd [${member.guild.id}]`,
-        `Lockdown kick for ${member.user.id}`
+        () => member.kick("Server is in lockdown mode"),
+        `guildMemberAdd [${member.guild.id}]`
       );
       return;
     }
@@ -321,12 +317,11 @@ module.exports = {
         });
 
         await ErrorHandler.safeExecute(
-          member.ban({
+          () => member.ban({
             reason: `Security threat detected (Score: ${threat.score})`,
             deleteMessageDays: 1,
           }),
-          `guildMemberAdd [${member.guild.id}]`,
-          `Auto-ban for threat score ${threat.score}`
+          `guildMemberAdd [${member.guild.id}]`
         );
 
         const banPerfResult = performanceMonitor.end(banPerfId);
@@ -349,9 +344,8 @@ module.exports = {
         });
 
         await ErrorHandler.safeExecute(
-          member.kick(`Security threat detected (Score: ${threat.score})`),
-          `guildMemberAdd [${member.guild.id}]`,
-          `Auto-kick for threat score ${threat.score}`
+          () => member.kick(`Security threat detected (Score: ${threat.score})`),
+          `guildMemberAdd [${member.guild.id}]`
         );
 
         const kickPerfResult = performanceMonitor.end(kickPerfId);

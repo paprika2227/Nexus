@@ -128,13 +128,13 @@ module.exports = {
         // Try to reply, but don't crash if that fails too
         if (interaction.replied || interaction.deferred) {
           await ErrorHandler.safeExecute(
-            interaction.editReply({ embeds: [embed] }),
+            () => interaction.editReply({ embeds: [embed] }),
             "interactionCreate",
-            `Edit error reply for ${interaction.commandName}`
+            null
           );
         } else {
           await ErrorHandler.safeExecute(
-            interaction.reply({
+            () => interaction.reply({
               embeds: [embed],
               flags: MessageFlags.Ephemeral,
             }),

@@ -84,8 +84,25 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.11.2 - December 4, 2025</h2>
+          <h2>Version 3.11.3 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🐛 Fixed ErrorHandler.safeExecute Usage</h3>
+          <ul>
+            <li>
+              <strong>Fixed all incorrect safeExecute calls:</strong>
+              <ul>
+                <li>✅ Fixed in interactionCreate.js (2 instances)</li>
+                <li>✅ Fixed in messageCreate.js (2 instances)</li>
+                <li>✅ Fixed in guildMemberAdd.js (3 instances)</li>
+                <li>✅ All now properly wrap functions instead of passing promises directly</li>
+                <li>✅ No more "fn is not a function" errors</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.11.2 - December 4, 2025</h2>
           <h3>🔧 Command Limit Compliance (Again!)</h3>
           <ul>
             <li>

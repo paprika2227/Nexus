@@ -225,9 +225,8 @@ module.exports = {
 
               // Apply timeout with multiplier
               await ErrorHandler.safeExecute(
-                member.timeout(punishment.duration, punishment.reason),
-                `messageCreate [${message.guild.id}]`,
-                `Timeout for heat score ${heatScore} (duration: ${punishment.duration}ms)`
+                () => member.timeout(punishment.duration, punishment.reason),
+                `messageCreate [${message.guild.id}]`
               );
 
               // Delete message if needed (check permission first)
@@ -237,9 +236,8 @@ module.exports = {
                   ?.has("ManageMessages");
                 if (canDelete) {
                   await ErrorHandler.safeExecute(
-                    message.delete(),
-                    `messageCreate [${message.guild.id}]`,
-                    `Delete message after timeout (cap reached)`
+                    () => message.delete(),
+                    `messageCreate [${message.guild.id}]`
                   );
                 } else {
                   const logger = require("../utils/logger");
