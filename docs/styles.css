@@ -417,13 +417,8 @@ footer p {
   gap: 15px;
   padding: 20px;
   transform: translateY(-10px);
-  transition: all 0.2s ease; /* Faster transition */
+  transition: all 0.2s ease;
   z-index: 1000;
-  overflow: hidden;
-  display: none;
-  margin-top: 8px; /* Small gap for visual spacing */
-  padding-top: 8px; /* Creates invisible hover bridge */
-  margin-top: 0; /* Override - no actual gap */
 }
 
 /* Add invisible hover bridge before menu appears */
