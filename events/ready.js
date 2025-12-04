@@ -289,21 +289,6 @@ module.exports = {
         }
       }
 
-      // Initialize Growth Reminders System
-      if (!client.growthReminders) {
-        try {
-          const GrowthReminders = require("../utils/growthReminders");
-          const growthReminders = new GrowthReminders(client);
-          growthReminders.start();
-          client.growthReminders = growthReminders;
-          logger.info("[Growth] Growth reminders system initialized");
-        } catch (error) {
-          logger.error(
-            "[Growth] Failed to initialize growth reminders:",
-            error
-          );
-        }
-      }
     }
   },
 };

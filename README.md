@@ -1,152 +1,197 @@
-# Nexus Bot - Beyond Wick
+<div align="center">
 
-**The Modern Security Bot That Outperforms Wick**
+# 🛡️ Nexus Bot
 
-**Current Version: 1.6.0**
+### The Free Discord Security Bot That Exceeds Wick
 
-Nexus is a Discord security bot that combines all of Wick's features with cutting-edge AI, better performance, and a superior user experience.
+[![Discord](https://img.shields.io/badge/Discord-Join%20Support-7289DA?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/UHNcUKheZP)
+[![Top.gg](https://img.shields.io/badge/Top.gg-Vote-FF3366?style=for-the-badge&logo=))](https://top.gg/bot/1444739230679957646)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-3.1.0-blue?style=for-the-badge)](https://github.com/Azzraya/Nexus)
 
-## 🚀 Why Choose Nexus Over Wick?
+**Everything Wick does, Nexus does better. 100% FREE.**
 
-### ✅ **Everything Wick Has, Plus More**
+[🚀 Invite to Discord](https://azzraya.github.io/Nexus/invite.html?source=github) • [⚔️ Compare vs Wick](https://azzraya.github.io/Nexus/comparison.html) • [📚 Documentation](https://azzraya.github.io/Nexus/docs.html)
 
-- All core security features (anti-raid, anti-nuke, heat system)
-- Advanced moderation tools (cases, notes, quarantine)
-- Join Gate & Join Raid protection
-- Rescue Key system
+</div>
 
-### 🤖 **AI-Powered Intelligence**
+---
 
-- **Smart Recommendations** - AI analyzes your server and suggests improvements
-- **Behavioral Analysis** - Tracks user patterns to detect threats before they happen
-- **Threat Intelligence Network** - Cross-server threat sharing
-- **Smart Moderation Queue** - AI prioritizes and suggests actions
+## 🎯 Why Nexus?
 
-### ⚡ **Better Performance**
+Tired of paying for Wick? Want **better security** AND **save money**? Nexus is your answer.
 
-- Faster response times with intelligent caching
-- Optimized database queries
-- Automatic rate limit handling
-- Graceful error recovery
+Nexus is an **open-source Discord security bot** that matches everything Wick offers, adds AI-powered features Wick doesn't have, and costs **$0/month**.
 
-### 🎯 **Superior User Experience**
+## ⚔️ Nexus vs Wick
 
-- Interactive dashboard with real-time analytics
-- Advanced reporting with insights
-- Custom workflows for automation
-- Real-time notifications
+| Feature                    | Wick                | Nexus                               |
+| -------------------------- | ------------------- | ----------------------------------- |
+| **💰 Price**               | $3-10/month premium | **100% FREE** ✅                    |
+| **🤖 AI Features**         | ❌ None             | ✅ Predictions, behavioral analysis |
+| **🔄 Auto-Recovery**       | ❌ Manual           | ✅ Instant auto-recovery            |
+| **📊 Threat Intelligence** | ❌ None             | ✅ Cross-server network             |
+| **🛡️ Anti-Raid**           | 1 algorithm         | ✅ 4 algorithms                     |
+| **⚡ Performance**         | Standard            | ✅ Optimized + cached               |
+| **🔓 Open Source**         | ❌ Closed           | ✅ Fully open                       |
+| **📈 Analytics**           | Basic               | ✅ Advanced with AI insights        |
+| **🔧 Workflows**           | ❌ None             | ✅ Custom automation                |
+| **💾 Backups**             | Manual              | ✅ Hourly auto-snapshots            |
 
-### 🔓 **Open Source & Free**
+**→ [See Full Comparison](https://azzraya.github.io/Nexus/comparison.html)**
 
-- 100% free (no premium tiers)
-- Open source - transparency you can trust
-- Community-driven development
-- Full customization available
+---
 
-## 📊 Key Features
+## ✨ Features That Exceed Wick
 
-### Security
+### 🤖 **AI-Powered Security** (Wick Doesn't Have)
 
-- **Multi-Algorithm Anti-Raid** - Detects raids using 4 different algorithms
-- **Advanced Anti-Nuke** - Prevents server destruction
-- **Threat Intelligence Network** - Shared threat database
-- **Auto-Recovery** - Automatic server restoration after attacks
-- **Predictive Security** - AI predicts threats before they happen
-
-### Moderation
-
-- **Smart Moderation Queue** - AI-powered action prioritization
-- **Behavioral Analysis** - Tracks user behavior patterns
-- **Advanced Cases System** - Comprehensive case management
-- **Bulk Actions** - Moderate multiple users at once
-- **Scheduled Actions** - Schedule moderation tasks
-
-### Automation
-
-- **Custom Workflows** - Create automated processes
+- **Threat Prediction** - Predict raids before they happen
+- **Behavioral Analysis** - Track user patterns automatically
 - **Smart Recommendations** - AI suggests security improvements
-- **Real-Time Notifications** - Get alerts for critical events
-- **Advanced Reporting** - Weekly/monthly security reports
+- **Risk Scoring** - Identify high-risk members instantly
+- **Auto-Tune** - Automatically optimize security settings
+
+### 🛡️ **Advanced Protection**
+
+- **4 Anti-Raid Algorithms** - Catches raids Wick misses
+- **Predictive Anti-Nuke** - Stops attacks before damage occurs
+- **Permission Testing Detection** - Catches "slow nuke" attempts
+- **Auto-Recovery** - Instant restoration from hourly snapshots
+- **Threat Intelligence Network** - Cross-server threat database
+
+### 🔧 **Automation & Workflows**
+
+- **Custom Workflows** - Automate complex moderation tasks
+- **Smart Queue** - AI prioritizes mod actions
+- **Scheduled Actions** - Set up timed moderation
+- **Auto-Responders** - Automated responses to triggers
+
+### 📊 **Analytics & Insights**
+
+- **Health Scoring** - Real-time server security score (0-100)
+- **Threat Dashboard** - Live threat monitoring
+- **Performance Analytics** - Track bot and server performance
+- **AI Insights** - Intelligent analysis of server activity
+
+## 🚀 Quick Start
+
+```bash
+# 1. Invite Nexus to your Discord server
+https://azzraya.github.io/Nexus/invite.html?source=githubreadme
+# 2. Run setup command in Discord
+/setup preset
+
+# 3. Get AI recommendations
+/recommend analyze
+
+# 4. Done! Your server is protected.
+```
+
+**Setup takes 2 minutes.** Seriously.
+
+---
+
+## 📊 85+ Commands
+
+### 🛡️ Security (17 commands)
+
+`/antiraid` `/joinraid` `/joingate` `/heat` `/lockdown` `/lock` `/security` `/verify` `/scan` `/alert` `/predict` `/autotune` `/rescue` `/smartban` `/recommend` `/notify` `/threatnet` `/recover`
+
+### 🔨 Moderation (16 commands)
+
+`/ban` `/kick` `/mute` `/warn` `/warnings` `/clearwarnings` `/timeout` `/purge` `/modlogs` `/unban` `/cases` `/notes` `/quarantine` `/sanitize` `/bulk` `/schedule`
+
+### ⚙️ Utility (30+ commands)
+
+`/config` `/welcome` `/info` `/serverinfo` `/userinfo` `/stats` `/activity` `/ticket` `/backup` `/performance` `/shardinfo` `/slowmode` `/voice` `/role` `/ping` `/dashboard` `/analytics` `/search` `/workflow` `/logs` `/report` `/poll` `/suggest` `/roletemplate` `/achievement` `/autoresponder` `/unlock` `/queue` `/behavior` `/invite` `/support` `/troubleshoot`
+
+### 🎉 Community (10+ commands)
+
+`/level` `/leaderboard` `/giveaway` `/reactionrole` `/customcommand` `/autorole` `/vote` `/voterewards` `/refer` `/share`
+
+**→ [Full Command List](https://azzraya.github.io/Nexus/commands.html)**
+
+## 📈 Stats
+
+- **17+ Servers Protected**
+- **1000+ Members Secured**
+- **100% Uptime**
+- **100% Free Forever**
+
+---
 
 ## 🎯 Perfect For
 
-- **New Servers** - Easy setup, better onboarding
-- **Tech-Savvy Admins** - Open source, fully customizable
-- **Growing Communities** - Scales with your server
-- **Security-Conscious Servers** - Advanced threat detection
+✅ **Servers Switching from Wick** (save money, get more features)  
+✅ **Gaming Communities** (comprehensive protection)  
+✅ **Large Servers** (1000+ members, scales infinitely)  
+✅ **Security-Focused Servers** (enterprise-grade protection)  
+✅ **Open-Source Advocates** (verify the code yourself)
 
-## 📈 Competitive Advantages
+---
 
-| Feature               | Nexus     | Wick     |
-| --------------------- | --------- | -------- |
-| AI Learning           | ✅        | ❌       |
-| Threat Network        | ✅        | ❌       |
-| Smart Recommendations | ✅        | ❌       |
-| Behavioral Analysis   | ✅        | ❌       |
-| Auto-Recovery         | ✅        | ❌       |
-| Custom Workflows      | ✅        | ❌       |
-| Advanced Reporting    | ✅        | ❌       |
-| Polls & Voting        | ✅        | ❌       |
-| Suggestions System    | ✅        | ❌       |
-| Role Templates        | ✅        | ❌       |
-| Achievement System    | ✅        | ❌       |
-| Message Scheduling    | ✅        | ❌       |
-| Auto-Responders       | ✅        | ❌       |
-| Advanced Custom Cmds  | ✅        | ❌       |
-| Advanced Anti-Nuke    | ✅        | ❌       |
-| Performance Monitoring | ✅        | ❌       |
-| Database Indexing     | ✅        | ❌       |
-| Open Source           | ✅        | ❌       |
-| Free                  | ✅        | ❓       |
-| Performance           | ⚡ Faster | Standard |
+## 🤝 Contributing
 
-## 🚀 Getting Started
+Nexus is **open source** and **community-driven**.
 
-1. **Invite the Bot** - Add Nexus to your server
-2. **Run `/setup preset`** - Quick setup with server type presets
-3. **Run `/recommend analyze`** - Get AI-powered security suggestions
-4. **Configure Protection** - Enable anti-raid, anti-nuke, and join gate
-5. **Set Up Notifications** - Configure real-time alerts
-6. **Explore Features** - Use `/help` to see all commands
+- 🐛 Found a bug? [Open an issue](https://github.com/Azzraya/Nexus/issues)
+- 💡 Have a feature idea? [Request it](https://github.com/Azzraya/Nexus/issues)
+- 🔧 Want to contribute? PRs welcome!
+- 💬 Need help? [Join support server](https://discord.gg/UHNcUKheZP)
 
-## 💡 Why We're Better
+**Star ⭐ this repo if you find it useful!**
 
-**Wick is great, but Nexus is the evolution:**
+## 🔗 Links
 
-- **Wick** = Security bot
-- **Nexus** = Security bot + AI + Better UX + Open Source
+- 🌐 **Website:** https://azzraya.github.io/Nexus/
+- 📚 **Full Documentation:** https://azzraya.github.io/Nexus/docs.html
+- ⚔️ **Nexus vs Wick Comparison:** https://azzraya.github.io/Nexus/comparison.html
+- 📊 **API Documentation:** https://azzraya.github.io/Nexus/api.html
+- 💬 **Support Server:** https://discord.gg/UHNcUKheZP
+- 🗳️ **Vote on Top.gg:** https://top.gg/bot/1444739230679957646
 
-We don't just match Wick's features - we exceed them with:
+---
 
-- AI-powered intelligence
-- Better performance
-- Superior user experience
-- Complete transparency
+## 📝 Legal & Privacy
 
-## 🤝 Community
-
-- **Open Source** - View and contribute to our code
-- **Transparent** - See exactly how we protect your server
-- **Community-Driven** - Your feedback shapes development
-
-## 📝 Legal
-
-- [Privacy Policy](PRIVACY_POLICY.md) - How we handle your data
+- [Privacy Policy](PRIVACY_POLICY.md) - How we handle your data (TL;DR: minimal collection, no selling)
 - [Terms of Service](TERMS_OF_SERVICE.md) - Usage terms and conditions
 - [Data Handling](DATA_HANDLING.md) - Detailed data practices
-- [License](LICENSE) - MIT License (open source)
-
-## 📝 License
-
-Open source - MIT License. See [LICENSE](LICENSE) file for details.
 
 ---
 
-**Ready to experience the future of Discord security?**
+## 📄 License
 
-[Invite Nexus](https://discord.com/oauth2/authorize?client_id=1444739230679957646&permissions=268443574&scope=bot%20applications.commands) | [GitHub](https://github.com/Azzraya/Nexus) | [Support Server](https://discord.gg/UHNcUKheZP)
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+**You can:**
+
+- ✅ Use commercially
+- ✅ Modify and distribute
+- ✅ Self-host your own instance
+- ✅ Contribute improvements
 
 ---
 
-_Nexus - Beyond Wick. Beyond Everything._
-"# Nexus" 
+<div align="center">
+
+## 🚀 Ready to Exceed Wick?
+
+### [**Invite Nexus Free**](https://azzraya.github.io/Nexus/invite.html?source=github)
+
+**No credit card. No premium tiers. No catch.**
+
+Just better security, free forever.
+
+---
+
+### ⭐ Star this repo if Nexus protects your server!
+
+[![GitHub stars](https://img.shields.io/github/stars/Azzraya/Nexus?style=social)](https://github.com/Azzraya/Nexus)
+
+---
+
+_Nexus - Beyond Wick. Beyond Everything._ 🛡️
+
+</div>
