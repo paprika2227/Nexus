@@ -66,10 +66,7 @@ module.exports = {
 
       // Prevent moderating the server owner
       if (user.id === interaction.guild.ownerId) {
-        return interaction.reply({
-          content: "❌ You cannot moderate the server owner!",
-          flags: MessageFlags.Ephemeral,
-        });
+        return interaction.reply(ErrorMessages.cannotTargetOwner());
       }
 
       const member = await interaction.guild.members

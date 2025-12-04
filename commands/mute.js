@@ -63,10 +63,7 @@ const ErrorMessages = require("../utils/errorMessages");
       .fetch(user.id)
       .catch(() => null);
     if (!member) {
-      return interaction.reply({
-        content: "❌ User not found in this server!",
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(ErrorMessages.userNotFound());
     }
 
     // Check if moderator is server owner (owners can mute anyone)
@@ -86,10 +83,7 @@ const ErrorMessages = require("../utils/errorMessages");
       !isOwner &&
       member.roles.highest.position >= interaction.member.roles.highest.position
     ) {
-      return interaction.reply({
-        content: "❌ You cannot mute someone with equal or higher roles!",
-        flags: MessageFlags.Ephemeral,
-      });
+        return interaction.reply(ErrorMessages.targetHigherRole("mute"));
     }
 
     const result = await Moderation.mute(
