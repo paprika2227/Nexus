@@ -1,6 +1,6 @@
 {
   "name": "nexus-bot",
-  "version": "3.5.1",
+  "version": "3.5.2",
   "description": "Advanced Discord bot that exceeds Wick and all competitors",
   "main": "index.js",
   "scripts": {
@@ -24,7 +24,6 @@
     "@top-gg/sdk": "^3.1.6",
     "axios": "^1.6.2",
     "chalk": "^4.1.2",
-    "chartjs-node-canvas": "^4.1.6",
     "discord-hybrid-sharding": "^3.0.1",
     "discord.js": "^14.14.1",
     "discordbotlist": "^1.1.1",

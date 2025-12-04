@@ -1,21 +1,35 @@
-const { ChartJSNodeCanvas } = require("chartjs-node-canvas");
 const db = require("./database");
 
 class ChartGenerator {
   constructor() {
     this.width = 800;
     this.height = 400;
-    this.chartJSNodeCanvas = new ChartJSNodeCanvas({
-      width: this.width,
-      height: this.height,
-      backgroundColour: "#36393f",
-    });
+    
+    // Chart generation is optional - requires chartjs-node-canvas which has Windows compilation issues
+    // For now, we'll provide text-based analytics instead
+    this.chartsEnabled = false;
+    
+    try {
+      const { ChartJSNodeCanvas } = require("chartjs-node-canvas");
+      this.chartJSNodeCanvas = new ChartJSNodeCanvas({
+        width: this.width,
+        height: this.height,
+        backgroundColour: "#36393f",
+      });
+      this.chartsEnabled = true;
+    } catch (error) {
+      console.log("[ChartGenerator] Charts disabled - chartjs-node-canvas not installed (optional)");
+    }
   }
 
   /**
    * Generate member growth chart
    */
   async generateGrowthChart(guildId, days = 30) {
+    if (!this.chartsEnabled) {
+      throw new Error("Chart generation not available. Install chartjs-node-canvas if needed (optional).");
+    }
+
     const data = await this.getMemberGrowthData(guildId, days);
 
     const configuration = {
@@ -67,6 +81,10 @@ class ChartGenerator {
    * Generate activity heatmap
    */
   async generateActivityHeatmap(guildId, days = 7) {
+    if (!this.chartsEnabled) {
+      throw new Error("Chart generation not available. Install chartjs-node-canvas if needed (optional).");
+    }
+
     const data = await this.getActivityHeatmapData(guildId, days);
 
     const configuration = {
@@ -120,6 +138,10 @@ class ChartGenerator {
    * Generate threat score distribution
    */
   async generateThreatDistribution(guildId, days = 30) {
+    if (!this.chartsEnabled) {
+      throw new Error("Chart generation not available. Install chartjs-node-canvas if needed (optional).");
+    }
+
     const data = await this.getThreatDistributionData(guildId, days);
 
     const configuration = {

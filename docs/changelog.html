@@ -84,8 +84,28 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.5.1 - December 4, 2025</h2>
+          <h2>Version 3.5.2 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔧 Fix - Windows Compatibility</h3>
+          <ul>
+            <li>
+              <strong>Removed chartjs-node-canvas dependency:</strong> This package requires native C++ compilation which causes issues on Windows systems
+            </li>
+            <li>
+              <strong>Made chart generation optional:</strong> Chart features will work if the package is manually installed, but bot works perfectly without it
+            </li>
+            <li>
+              <strong>No functionality lost:</strong> All analytics features still work, just provide text-based output instead of image charts
+            </li>
+            <li>
+              <strong>Easier installation:</strong> `npm install` now works on all platforms without build tools
+            </li>
+          </ul>
+          <p><em>Note: Chart generation is an optional enhancement. If you want image charts, you can manually install chartjs-node-canvas with GTK dependencies.</em></p>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.5.1 - December 4, 2025</h2>
           <h3>🎨 UI/UX Fix - Navigation Consistency</h3>
           <ul>
             <li>
