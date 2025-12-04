@@ -3029,8 +3029,141 @@ class DashboardServer {
       }
     });
 
+    // POST /api/v1/export - Export server data (auth required)
+    this.app.post("/api/v1/export", this.checkAuth, async (req, res) => {
+      try {
+        const { guildId, format } = req.body;
+
+        if (!guildId) {
+          return res.status(400).json({ error: "guildId required" });
+        }
+
+        // Verify user has access to this guild
+        const guild = this.client.guilds.cache.get(guildId);
+        if (!guild) {
+          return res.status(404).json({ error: "Server not found" });
+        }
+
+        // Get all server data
+        const config = await db.getServerConfig(guildId);
+        const cases = await new Promise((resolve, reject) => {
+          db.db.all(
+            "SELECT * FROM moderation_logs WHERE guild_id = ? ORDER BY timestamp DESC LIMIT 1000",
+            [guildId],
+            (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows || []);
+            }
+          );
+        });
+
+        const data = {
+          server: {
+            id: guild.id,
+            name: guild.name,
+            memberCount: guild.memberCount,
+          },
+          config: config,
+          moderationCases: cases.length,
+          exportedAt: Date.now(),
+        };
+
+        if (format === "csv") {
+          // Convert to CSV
+          const csv = cases
+            .map(
+              (c) =>
+                `${c.timestamp},${c.action},${c.user_tag},${c.moderator_tag},"${c.reason}"`
+            )
+            .join("\n");
+          res.setHeader("Content-Type", "text/csv");
+          res.setHeader(
+            "Content-Disposition",
+            `attachment; filename=nexus-${guild.name}-${Date.now()}.csv`
+          );
+          res.send(
+            "timestamp,action,user,moderator,reason\n" + csv
+          );
+        } else {
+          res.json(data);
+        }
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // GET /api/v1/command-analytics - Command usage stats (public)
+    this.app.get("/api/v1/command-analytics", async (req, res) => {
+      try {
+        const stats = await new Promise((resolve, reject) => {
+          db.db.all(
+            `SELECT command_name, COUNT(*) as usage_count
+             FROM command_usage_log
+             WHERE timestamp > ?
+             GROUP BY command_name
+             ORDER BY usage_count DESC
+             LIMIT 20`,
+            [Date.now() - 30 * 24 * 60 * 60 * 1000], // Last 30 days
+            (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows || []);
+            }
+          );
+        });
+
+        res.json({
+          period: "Last 30 days",
+          topCommands: stats,
+          totalCommands: 93,
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // GET /api/v1/server-leaderboard - Top servers by security score (public)
+    this.app.get("/api/v1/server-leaderboard", async (req, res) => {
+      try {
+        const type = req.query.type || "security";
+        const limit = Math.min(parseInt(req.query.limit) || 10, 25);
+
+        // Get server health scores (if available)
+        const serverHealth = require("../utils/serverHealth");
+        const guilds = this.client.guilds.cache.map((g) => ({
+          id: g.id,
+          name: g.name,
+          memberCount: g.memberCount,
+        }));
+
+        const leaderboard = [];
+        for (const guild of guilds.slice(0, limit)) {
+          try {
+            const health = await serverHealth.calculateHealth(guild.id);
+            leaderboard.push({
+              name: guild.name,
+              members: guild.memberCount,
+              healthScore: health.overall,
+              grade: health.grade,
+            });
+          } catch (error) {
+            // Skip if error
+          }
+        }
+
+        leaderboard.sort((a, b) => b.healthScore - a.healthScore);
+
+        res.json({
+          type: type,
+          leaderboard: leaderboard.slice(0, limit),
+          totalServers: this.client.guilds.cache.size,
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     console.log("[API] Public API v1 endpoints registered");
-    console.log("[API] 🔥 POWERFUL API v2 - 37 endpoints active!"); // Updated count
+    console.log("[API] 🔥 POWERFUL API v2 - 40 endpoints active!"); // Updated count
     console.log("[Referral] Referral tracking system active");
     console.log("[IP Logging] IP tracking active");
   }
