@@ -60,10 +60,7 @@ module.exports = {
     if (subcommand === "servers") {
       // Owner-only for security
       if (!Owner.isOwner(interaction.user.id)) {
-        return interaction.reply({
-          ErrorMessages.ownerOnly(),
-          flags: MessageFlags.Ephemeral,
-        });
+        return interaction.reply(ErrorMessages.ownerOnly());
       }
 
       const limit = interaction.options.getInteger("limit") || 20;
@@ -119,10 +116,7 @@ module.exports = {
     } else if (subcommand === "commands") {
       // Owner-only for security
       if (!Owner.isOwner(interaction.user.id)) {
-        return interaction.reply({
-          ErrorMessages.ownerOnly(),
-          flags: MessageFlags.Ephemeral,
-        });
+        return interaction.reply(ErrorMessages.ownerOnly());
       }
 
       const serverId = interaction.options.getString("server");
