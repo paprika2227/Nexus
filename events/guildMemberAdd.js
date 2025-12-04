@@ -3,10 +3,17 @@ const AdvancedAntiRaid = require("../utils/advancedAntiRaid");
 const JoinGate = require("../utils/joinGate");
 const ErrorHandler = require("../utils/errorHandler");
 const logger = require("../utils/logger");
+const performanceMonitor = require("../utils/performanceMonitor");
 
 module.exports = {
   name: "guildMemberAdd",
   async execute(member, client) {
+    // Start performance tracking
+    const perfId = `member_join_${member.id}_${Date.now()}`;
+    performanceMonitor.start(perfId, "member_join_full", {
+      guildId: member.guild.id,
+      userId: member.id,
+    });
     // Run initial checks in parallel for better performance (EXCEEDS WICK)
     const ThreatIntelligence = require("../utils/threatIntelligence");
     const initialChecks = await Promise.all([
@@ -89,10 +96,22 @@ module.exports = {
     // Skip anti-raid if whitelisted
     if (!isWhitelisted) {
       // Check advanced anti-raid (multi-algorithm detection)
+      const raidPerfId = `raid_detection_${member.id}_${Date.now()}`;
+      performanceMonitor.start(raidPerfId, "raid_detection", {
+        guildId: member.guild.id,
+        userId: member.id,
+      });
+      
       const raidDetected = await AdvancedAntiRaid.detectRaid(
         member.guild,
         member
       );
+      
+      const raidPerfResult = performanceMonitor.end(raidPerfId);
+      if (raidPerfResult) {
+        logger.info(`⚡ Raid detection took ${raidPerfResult.duration.toFixed(2)}ms`);
+      }
+      
       if (raidDetected) {
         // Send notification
         const Notifications = require("../utils/notifications");
@@ -106,6 +125,15 @@ module.exports = {
           },
           client
         );
+        
+        // Log total response time
+        const totalPerfResult = performanceMonitor.end(perfId);
+        if (totalPerfResult) {
+          logger.success(
+            `🚀 Total raid response: ${totalPerfResult.duration.toFixed(2)}ms (Detection: ${raidPerfResult.duration.toFixed(2)}ms)`
+          );
+        }
+        
         return; // Advanced system handled it
       }
     }
@@ -231,6 +259,13 @@ module.exports = {
 
       // Auto-action based on threat
       if (threat.score >= 80 && threat.action === "ban") {
+        const banPerfId = `ban_action_${member.id}_${Date.now()}`;
+        performanceMonitor.start(banPerfId, "ban_action", {
+          guildId: member.guild.id,
+          userId: member.id,
+          threatScore: threat.score,
+        });
+        
         await ErrorHandler.safeExecute(
           member.ban({
             reason: `Security threat detected (Score: ${threat.score})`,
@@ -239,13 +274,38 @@ module.exports = {
           `guildMemberAdd [${member.guild.id}]`,
           `Auto-ban for threat score ${threat.score}`
         );
+        
+        const banPerfResult = performanceMonitor.end(banPerfId);
+        const totalPerfResult = performanceMonitor.end(perfId);
+        if (banPerfResult && totalPerfResult) {
+          logger.success(
+            `🚀 Ban response: ${banPerfResult.duration.toFixed(2)}ms | Total: ${totalPerfResult.duration.toFixed(2)}ms`
+          );
+        }
+        
         return;
       } else if (threat.score >= 60 && threat.action === "kick") {
+        const kickPerfId = `kick_action_${member.id}_${Date.now()}`;
+        performanceMonitor.start(kickPerfId, "kick_action", {
+          guildId: member.guild.id,
+          userId: member.id,
+          threatScore: threat.score,
+        });
+        
         await ErrorHandler.safeExecute(
           member.kick(`Security threat detected (Score: ${threat.score})`),
           `guildMemberAdd [${member.guild.id}]`,
           `Auto-kick for threat score ${threat.score}`
         );
+        
+        const kickPerfResult = performanceMonitor.end(kickPerfId);
+        const totalPerfResult = performanceMonitor.end(perfId);
+        if (kickPerfResult && totalPerfResult) {
+          logger.success(
+            `🚀 Kick response: ${kickPerfResult.duration.toFixed(2)}ms | Total: ${totalPerfResult.duration.toFixed(2)}ms`
+          );
+        }
+        
         return;
       }
     }
@@ -398,6 +458,15 @@ module.exports = {
             )
           );
       }
+    }
+    
+    // End performance tracking for normal joins
+    const totalPerfResult = performanceMonitor.end(perfId);
+    if (totalPerfResult && totalPerfResult.duration > 100) {
+      // Only log if took more than 100ms
+      logger.warn(
+        `⚠️ Slow member join processing: ${totalPerfResult.duration.toFixed(2)}ms for ${member.user.tag}`
+      );
     }
   },
 };
