@@ -67,17 +67,23 @@ module.exports = {
       const useCase = modalInteraction.fields.getTextInputValue("suggestion_usecase") || "Not provided";
 
       // Save suggestion to database
-      await db.run(
-        `INSERT INTO suggestions (guild_id, user_id, title, description, use_case, status, created_at, votes) VALUES (?, ?, ?, ?, ?, 'pending', ?, 0)`,
-        [
-          interaction.guild.id,
-          interaction.user.id,
-          title,
-          description,
-          useCase,
-          Date.now(),
-        ]
-      );
+      await new Promise((resolve, reject) => {
+        db.db.run(
+          `INSERT INTO suggestions (guild_id, user_id, title, description, use_case, status, created_at, votes) VALUES (?, ?, ?, ?, ?, 'pending', ?, 0)`,
+          [
+            interaction.guild.id,
+            interaction.user.id,
+            title,
+            description,
+            useCase,
+            Date.now(),
+          ],
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
 
       // Get suggestion ID
       const suggestion = await new Promise((resolve, reject) => {

@@ -84,8 +84,24 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.7.9 - December 4, 2025</h2>
+          <h2>Version 3.8.0 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🐛 Critical Bug Fix - Database Errors</h3>
+          <ul>
+            <li>
+              <strong>Fixed "db.run is not a function" error:</strong>
+              <ul>
+                <li>✅ Fixed in <code>/quicksetup</code> command (automod setup)</li>
+                <li>✅ Fixed in <code>/suggest</code> command (suggestion submissions)</li>
+                <li>✅ Both now correctly use <code>db.db.run()</code> with proper Promise handling</li>
+                <li>✅ No more unhandled promise rejections</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.7.9 - December 4, 2025</h2>
           <h3>✨ Improved Error Messages</h3>
           <ul>
             <li>
