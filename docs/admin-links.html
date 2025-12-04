@@ -358,16 +358,24 @@
       const API_URL = "https://regular-puma-clearly.ngrok-free.app";
       const BASE_INVITE_URL = `https://azzraya.github.io/Nexus/invite.html`;
 
-      let adminPassword = localStorage.getItem("nexus_admin_password");
+      let authToken = sessionStorage.getItem("adminToken");
+      let adminPassword = null;
 
-      // Check authentication
-      if (!adminPassword) {
-        const password = prompt("Enter admin password:");
-        if (!password) {
-          window.location.href = "index.html";
+      // Check authentication - use token if available
+      if (!authToken || sessionStorage.getItem("adminAuthenticated") !== "true") {
+        // Fallback to password-based auth for this page (uses different API)
+        adminPassword = localStorage.getItem("nexus_admin_password");
+        if (!adminPassword) {
+          const password = prompt("Enter admin password:");
+          if (!password) {
+            window.location.href = "admin.html";
+          }
+          adminPassword = password;
+          localStorage.setItem("nexus_admin_password", password);
         }
-        adminPassword = password;
-        localStorage.setItem("nexus_admin_password", password);
+      } else {
+        // If we have a session token, use it for consistency
+        adminPassword = localStorage.getItem("nexus_admin_password");
       }
 
       // Load links on page load

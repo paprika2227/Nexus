@@ -46,13 +46,13 @@
         }
       });
       
-      if (!response.ok) {
-        // Token invalid - redirect to login
+      if (!response.ok && response.status === 401) {
+        // Token invalid (only redirect on 401 Unauthorized, not network errors)
         redirectToLogin();
       }
     } catch (error) {
       console.warn('Token verification failed:', error);
-      // Continue anyway - might be offline
+      // Continue anyway - might be offline or network error
     }
   }
   

@@ -440,11 +440,16 @@
     </div>
 
     <script>
-      let authToken = null;
+      let authToken = sessionStorage.getItem("adminToken");
       const API_URL =
         window.location.hostname === "localhost"
           ? "http://localhost:3000"
           : "https://regular-puma-clearly.ngrok-free.app";
+
+      // Check if already authenticated
+      if (authToken && sessionStorage.getItem("adminAuthenticated") === "true") {
+        document.getElementById("authOverlay").style.display = "none";
+      }
 
       // Set current time as default
       const now = new Date();
@@ -477,6 +482,12 @@
 
           if (data.token) {
             authToken = data.token;
+            sessionStorage.setItem("adminToken", authToken);
+            sessionStorage.setItem("adminAuthenticated", "true");
+            sessionStorage.setItem(
+              "adminTokenExpiry",
+              (Date.now() + 30 * 60 * 1000).toString()
+            );
             document.getElementById("authOverlay").style.display = "none";
             loadIncidents();
           } else {
