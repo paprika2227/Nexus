@@ -67,10 +67,19 @@ module.exports = {
       }
     } catch (error) {
       logger.error("Share Command Error:", error);
-      await interaction.reply({
-        content: "❌ An error occurred while generating shareable content.",
-        ephemeral: true,
-      });
+
+      // Check if interaction has already been replied to
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: "❌ An error occurred while generating shareable content.",
+          ephemeral: true,
+        });
+      } else if (interaction.deferred) {
+        await interaction.editReply({
+          content: "❌ An error occurred while generating shareable content.",
+        });
+      }
+      // If already replied, don't try to reply again
     }
   },
 

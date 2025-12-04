@@ -54,10 +54,19 @@ module.exports = {
       }
     } catch (error) {
       logger.error("Refer Command Error:", error);
-      await interaction.reply({
-        content: "❌ An error occurred while processing your request.",
-        ephemeral: true,
-      });
+      
+      // Check if interaction has already been replied to
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: "❌ An error occurred while processing your request.",
+          ephemeral: true,
+        });
+      } else if (interaction.deferred) {
+        await interaction.editReply({
+          content: "❌ An error occurred while processing your request.",
+        });
+      }
+      // If already replied, don't try to reply again
     }
   },
 
