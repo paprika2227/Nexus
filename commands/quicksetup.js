@@ -4,7 +4,7 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  PermissionFlagBits,
+  PermissionFlagsBits,
   ChannelType,
 } = require("discord.js");
 const db = require("../utils/database");
@@ -13,7 +13,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("quicksetup")
     .setDescription("Interactive setup wizard to configure Nexus in minutes")
-    .setDefaultMemberPermissions(PermissionFlagBits.Administrator),
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction, client) {
     const { guild } = interaction;
@@ -139,13 +139,13 @@ module.exports = {
                   permissionOverwrites: [
                     {
                       id: guild.roles.everyone.id,
-                      deny: [PermissionFlagBits.ViewChannel],
+                      deny: [PermissionFlagsBits.ViewChannel],
                     },
                     {
                       id: client.user.id,
                       allow: [
-                        PermissionFlagBits.ViewChannel,
-                        PermissionFlagBits.SendMessages,
+                        PermissionFlagsBits.ViewChannel,
+                        PermissionFlagsBits.SendMessages,
                       ],
                     },
                   ],
