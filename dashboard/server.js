@@ -1050,6 +1050,14 @@ class DashboardServer {
           );
         });
 
+        const commandsRun = await new Promise((resolve) => {
+          db.db.get(
+            "SELECT SUM(commands_run) as total FROM user_stats",
+            [],
+            (err, row) => resolve(row?.total || 0)
+          );
+        });
+
         const stats = {
           serverCount: this.client.guilds.cache.size,
           userCount: this.client.guilds.cache.reduce(
@@ -1065,6 +1073,7 @@ class DashboardServer {
           raidsBlocked: raidsBlocked,
           nukesBlocked: nukesBlocked,
           threatsDetected: threatsDetected,
+          commandsRun: commandsRun,
           features: {
             antiRaid: 4,
             antiNuke: true,

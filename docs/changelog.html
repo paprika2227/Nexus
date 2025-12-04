@@ -84,8 +84,34 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.7.2 - December 4, 2025</h2>
+          <h2>Version 3.7.3 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>✨ Enhancement - Complete Stats Dashboard</h3>
+          <ul>
+            <li>
+              <strong>Added 2 more metrics:</strong> Commands Run (blue) and Uptime (green)
+            </li>
+            <li>
+              <strong>Total of 8 live metrics now:</strong> Status, Servers, Users, Raids, Nukes, Threats, Commands, Uptime
+            </li>
+            <li>
+              <strong>Commands Run stat:</strong> Pulled from user_stats table (total commands executed)
+            </li>
+            <li>
+              <strong>Uptime display:</strong> Shows days uptime (e.g., "5d") or "24h+" as fallback
+            </li>
+            <li>
+              <strong>Balanced layout:</strong> 8 metrics fills the widget nicely - looks professional
+            </li>
+            <li>
+              <strong>Updated API:</strong> /api/v1/stats now includes commandsRun field
+            </li>
+          </ul>
+          <p><strong>Visual Impact:</strong> Homepage now shows comprehensive bot activity at a glance!</p>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.7.2 - December 4, 2025</h2>
           <h3>🎨 Fix - Navigation Dropdown Menu</h3>
           <ul>
             <li>
