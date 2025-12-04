@@ -172,7 +172,10 @@ module.exports = {
 
     await interaction.editReply({
       content:
-        "✅ **Shareable stats generated!** Copy this message and share on Twitter, Reddit, or other servers to show off your security! 🚀",
+        "✅ **Shareable stats generated!**\n\n" +
+        "📸 **Screenshot this** and share on Twitter/Reddit\n" +
+        "🔗 **Or right-click → Copy Message Link** and share the Discord link\n\n" +
+        "Show off your server's security! 🚀",
       embeds: [embed, ctaEmbed],
     });
 
@@ -253,7 +256,8 @@ module.exports = {
 
     await interaction.editReply({
       content:
-        "✅ **Comparison generated!** Share this to help others discover Nexus! 🚀",
+        "✅ **Comparison generated!**\n\n" +
+        "📸 **Screenshot & share** to help others discover Nexus! 🚀",
       embeds: [embed, ctaEmbed],
     });
   },
@@ -329,7 +333,8 @@ module.exports = {
 
     await interaction.editReply({
       content:
-        "✅ **Achievement unlocked!** Share this to celebrate your security success! 🎉",
+        "✅ **Achievement unlocked!**\n\n" +
+        "📸 **Screenshot & share** to celebrate your security success! 🎉",
       embeds: [embed, ctaEmbed],
     });
   },
