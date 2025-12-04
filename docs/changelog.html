@@ -84,8 +84,21 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.7.3 - December 4, 2025</h2>
+          <h2>Version 3.7.4 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔧 Fix - Commands Stat Query</h3>
+          <ul>
+            <li>
+              <strong>Fixed database column name:</strong> Changed SUM(commands_run) to SUM(commands_used) to match actual table schema
+            </li>
+            <li>
+              <strong>Commands Run metric now works:</strong> Pulls correct total from user_stats table
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.7.3 - December 4, 2025</h2>
           <h3>✨ Enhancement - Complete Stats Dashboard</h3>
           <ul>
             <li>

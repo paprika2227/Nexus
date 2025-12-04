@@ -1052,7 +1052,7 @@ class DashboardServer {
 
         const commandsRun = await new Promise((resolve) => {
           db.db.get(
-            "SELECT SUM(commands_run) as total FROM user_stats",
+            "SELECT SUM(commands_used) as total FROM user_stats",
             [],
             (err, row) => resolve(row?.total || 0)
           );
