@@ -84,8 +84,34 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.5.6 - December 4, 2025</h2>
+          <h2>Version 3.5.7 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>✨ Enhancement - Real-Time Alerts Dashboard</h3>
+          <ul>
+            <li>
+              <strong>Connected to real data:</strong> Alerts dashboard now shows actual security events from your servers
+            </li>
+            <li>
+              <strong>New API endpoint:</strong> GET /api/alerts - pulls from security_logs, anti_raid_logs, automod_violations, member_screening_logs
+            </li>
+            <li>
+              <strong>Live security feed:</strong> Shows threats, raids, automod actions, and screening results from last 24 hours
+            </li>
+            <li>
+              <strong>Multi-server aggregation:</strong> Combines alerts from all servers you manage
+            </li>
+            <li>
+              <strong>Severity filtering:</strong> Filter by critical, warning, info, or success
+            </li>
+            <li>
+              <strong>Auto-refresh:</strong> Dashboard updates every 5 seconds with new events
+            </li>
+          </ul>
+          <p><strong>EXCEEDS WICK:</strong> Live security feed across all servers - Wick has nothing like this!</p>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.5.6 - December 4, 2025</h2>
           <h3>✅ Fix - Discord Command Limit</h3>
           <ul>
             <li>

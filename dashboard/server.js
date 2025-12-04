@@ -282,6 +282,138 @@ class DashboardServer {
       }
     );
 
+    // Get real-time alerts (EXCEEDS WICK - live security feed)
+    this.app.get("/api/alerts", this.checkAuth, async (req, res) => {
+      try {
+        const limit = parseInt(req.query.limit) || 50;
+        const severity = req.query.severity || null;
+
+        const alerts = [];
+
+        // Get user's admin guilds
+        const userGuilds = req.user.guilds || [];
+        const adminGuildIds = userGuilds
+          .filter((g) => (g.permissions & 0x8) === 0x8)
+          .map((g) => g.id);
+
+        // Gather alerts from multiple sources in parallel
+        const since = Date.now() - 24 * 60 * 60 * 1000; // Last 24 hours
+
+        for (const guildId of adminGuildIds) {
+          const guild = this.client.guilds.cache.get(guildId);
+          if (!guild) continue;
+
+          // Security logs (high threat scores)
+          const securityLogs = await new Promise((resolve) => {
+            db.db.all(
+              "SELECT * FROM security_logs WHERE guild_id = ? AND timestamp > ? AND threat_score >= 60 ORDER BY timestamp DESC LIMIT 10",
+              [guildId, since],
+              (err, rows) => resolve(rows || [])
+            );
+          });
+
+          securityLogs.forEach((log) => {
+            alerts.push({
+              id: `sec-${log.id}`,
+              severity:
+                log.threat_score >= 80
+                  ? "critical"
+                  : log.threat_score >= 70
+                  ? "warning"
+                  : "info",
+              title: "Threat Detected",
+              server: guild.name,
+              description: `High threat score: ${log.threat_score}% - ${log.event_type}`,
+              timestamp: log.timestamp,
+              icon: log.threat_score >= 80 ? "🚨" : "⚠️",
+            });
+          });
+
+          // Anti-raid logs
+          const raidLogs = await new Promise((resolve) => {
+            db.db.all(
+              "SELECT * FROM anti_raid_logs WHERE guild_id = ? AND timestamp > ? ORDER BY timestamp DESC LIMIT 5",
+              [guildId, since],
+              (err, rows) => resolve(rows || [])
+            );
+          });
+
+          raidLogs.forEach((log) => {
+            alerts.push({
+              id: `raid-${log.id}`,
+              severity: "critical",
+              title: "Raid Detected",
+              server: guild.name,
+              description: `Raid detected. Action: ${log.action_taken}`,
+              timestamp: log.timestamp,
+              icon: "🚨",
+            });
+          });
+
+          // Automod violations
+          const automodViolations = await new Promise((resolve) => {
+            db.db.all(
+              "SELECT * FROM automod_violations WHERE guild_id = ? AND timestamp > ? ORDER BY timestamp DESC LIMIT 10",
+              [guildId, since],
+              (err, rows) => resolve(rows || [])
+            );
+          });
+
+          automodViolations.forEach((log) => {
+            alerts.push({
+              id: `automod-${log.id}`,
+              severity: "info",
+              title: "Automod Violation",
+              server: guild.name,
+              description: `${log.violation_type} - Action: ${log.action_taken}`,
+              timestamp: log.timestamp,
+              icon: "🤖",
+            });
+          });
+
+          // Member screening logs
+          const screeningLogs = await new Promise((resolve) => {
+            db.db.all(
+              "SELECT * FROM member_screening_logs WHERE guild_id = ? AND timestamp > ? ORDER BY timestamp DESC LIMIT 10",
+              [guildId, since],
+              (err, rows) => resolve(rows || [])
+            );
+          });
+
+          screeningLogs.forEach((log) => {
+            alerts.push({
+              id: `screening-${log.id}`,
+              severity:
+                log.action === "ban"
+                  ? "critical"
+                  : log.action === "kick"
+                  ? "warning"
+                  : "info",
+              title: "Member Screening Action",
+              server: guild.name,
+              description: `${log.action.toUpperCase()}: ${log.reason} (Risk: ${
+                log.risk_score
+              }%)`,
+              timestamp: log.timestamp,
+              icon: log.action === "ban" ? "🚨" : "⚠️",
+            });
+          });
+        }
+
+        // Sort by timestamp (most recent first)
+        alerts.sort((a, b) => b.timestamp - a.timestamp);
+
+        // Filter by severity if specified
+        const filtered = severity
+          ? alerts.filter((a) => a.severity === severity)
+          : alerts;
+
+        res.json(filtered.slice(0, limit));
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // Get moderation logs
     this.app.get(
       "/api/server/:id/modlogs",
@@ -3573,7 +3705,7 @@ class DashboardServer {
         const fs = require("fs").promises;
         const path = require("path");
         const bannerPath = path.join(__dirname, "../docs/banner.json");
-        
+
         const data = await fs.readFile(bannerPath, "utf8");
         res.json(JSON.parse(data));
       } catch (error) {
@@ -3588,15 +3720,16 @@ class DashboardServer {
         const fs = require("fs").promises;
         const path = require("path");
         const bannerPath = path.join(__dirname, "../docs/banner.json");
-        
+
         const bannerData = {
           enabled: req.body.enabled !== undefined ? req.body.enabled : true,
           emoji: req.body.emoji || "🎉",
           text: req.body.text || "",
           buttonText: req.body.buttonText || "Learn More",
           buttonLink: req.body.buttonLink || "#",
-          dismissible: req.body.dismissible !== undefined ? req.body.dismissible : true,
-          gradient: req.body.gradient || { from: "#667eea", to: "#764ba2" }
+          dismissible:
+            req.body.dismissible !== undefined ? req.body.dismissible : true,
+          gradient: req.body.gradient || { from: "#667eea", to: "#764ba2" },
         };
 
         await fs.writeFile(bannerPath, JSON.stringify(bannerData, null, 2));
@@ -3604,7 +3737,9 @@ class DashboardServer {
         res.json({ success: true, banner: bannerData });
       } catch (error) {
         console.error("❌ [Banner] Error updating banner:", error.message);
-        res.status(500).json({ error: "Failed to update banner configuration" });
+        res
+          .status(500)
+          .json({ error: "Failed to update banner configuration" });
       }
     });
 
@@ -3614,7 +3749,7 @@ class DashboardServer {
         const fs = require("fs").promises;
         const path = require("path");
         const bannerPath = path.join(__dirname, "../docs/banner.json");
-        
+
         const data = await fs.readFile(bannerPath, "utf8");
         res.json(JSON.parse(data));
       } catch (error) {

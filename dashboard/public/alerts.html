@@ -251,61 +251,30 @@
       let currentFilter = "all";
       let alerts = [];
 
-      // Mock real-time alerts (replace with WebSocket or Server-Sent Events)
+      // Load real-time alerts from API
       async function loadAlerts() {
-        // In production, this would fetch from API or receive via WebSocket
-        const mockAlerts = [
-          {
-            id: 1,
-            severity: "critical",
-            title: "Raid Detected",
-            server: "Gaming Community",
-            description: "15 users joined in 10 seconds. Auto-ban activated.",
-            timestamp: Date.now() - 30000,
-            icon: "🚨",
-          },
-          {
-            id: 2,
-            severity: "warning",
-            title: "Suspicious Member Joined",
-            server: "Meme Server",
-            description:
-              "New account (2 days old) with no avatar. Risk score: 65%",
-            timestamp: Date.now() - 120000,
-            icon: "⚠️",
-          },
-          {
-            id: 3,
-            severity: "info",
-            title: "Automod Violation",
-            server: "Gaming Community",
-            description: "User timed out for spam (8 messages in 3 seconds)",
-            timestamp: Date.now() - 180000,
-            icon: "🤖",
-          },
-          {
-            id: 4,
-            severity: "success",
-            title: "Recovery Complete",
-            server: "Tech Hub",
-            description:
-              "Server restored from snapshot. 45 channels recovered.",
-            timestamp: Date.now() - 240000,
-            icon: "✅",
-          },
-          {
-            id: 5,
-            severity: "critical",
-            title: "Nuke Attempt Blocked",
-            server: "Gaming Community",
-            description: "User attempted to delete 12 channels. Auto-banned.",
-            timestamp: Date.now() - 300000,
-            icon: "🛡️",
-          },
-        ];
+        try {
+          const response = await fetch("/api/alerts?limit=50");
 
-        alerts = mockAlerts;
-        displayAlerts();
+          if (!response.ok) {
+            console.error("Failed to fetch alerts:", response.status);
+            alerts = [];
+            displayAlerts();
+            return;
+          }
+
+          alerts = await response.json();
+          displayAlerts();
+        } catch (error) {
+          console.error("Error loading alerts:", error);
+          // Show fallback message
+          document.getElementById("alertsFeed").innerHTML = `
+            <div style="text-align: center; padding: 40px; opacity: 0.6;">
+              <h3>⚠️ Unable to load alerts</h3>
+              <p>Please refresh the page or check your connection</p>
+            </div>
+          `;
+        }
       }
 
       function displayAlerts() {
