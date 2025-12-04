@@ -247,7 +247,8 @@ if (process.env.VOIDBOTS_TOKEN) {
           // DON'T update lastPostTime here - we didn't actually post!
           // Only update it when we successfully post
           // Use a longer retry to be safe (add 10 seconds buffer)
-          const safeRetryAfter = Math.max(retryAfter, MIN_POST_INTERVAL) + 10000;
+          const safeRetryAfter =
+            Math.max(retryAfter, MIN_POST_INTERVAL) + 10000;
           setTimeout(() => {
             postStats();
             if (!voidbotsInterval) {
