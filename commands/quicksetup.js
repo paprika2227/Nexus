@@ -210,7 +210,7 @@ module.exports = {
         // Enable automod
         await new Promise((resolve, reject) => {
           db.db.run(
-            `INSERT OR REPLACE INTO automod_config (guild_id, enabled, spam_enabled, links_enabled, caps_enabled) VALUES (?, 1, 1, 1, 1)`,
+            `INSERT OR REPLACE INTO automod_config (guild_id, enabled, spam_enabled, link_scanning_enabled, caps_enabled) VALUES (?, 1, 1, 1, 1)`,
             [guild.id],
             (err) => {
               if (err) reject(err);

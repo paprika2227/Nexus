@@ -84,8 +84,22 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.8.4 - December 4, 2025</h2>
+          <h2>Version 3.8.5 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔧 Quick Fix - Automod Column Name</h3>
+          <ul>
+            <li>
+              <strong>Fixed "SQLITE_ERROR: no column named links_enabled":</strong>
+              <ul>
+                <li>✅ Changed <code>links_enabled</code> to correct name <code>link_scanning_enabled</code></li>
+                <li>✅ Automod setup in <code>/quicksetup</code> now works without errors</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.8.4 - December 4, 2025</h2>
           <h3>🐛 Critical Fixes - Quicksetup Command</h3>
           <ul>
             <li>
