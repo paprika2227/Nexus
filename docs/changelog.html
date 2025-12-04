@@ -84,21 +84,77 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.4.3 - December 4, 2025</h2>
+          <h2>Version 3.4.4 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔒 Security Fix - Admin Page Authentication</h3>
+          <p>
+            <strong
+              >Critical security fix: All admin pages now require
+              authentication</strong
+            >
+          </p>
+
+          <h3>🔐 Security Improvements</h3>
+          <ul>
+            <li>
+              <strong>Auth Check Script:</strong> Created admin-auth.js to
+              enforce authentication on all admin pages
+            </li>
+            <li>
+              <strong>Session-Based Auth:</strong> Uses sessionStorage to track
+              authentication status
+            </li>
+            <li>
+              <strong>Auto-Redirect:</strong> Unauthenticated users redirected
+              to admin.html login
+            </li>
+            <li>
+              <strong>Token Expiry:</strong> Sessions expire after 30 minutes of
+              inactivity
+            </li>
+            <li>
+              <strong>Activity Tracking:</strong> Sessions extend automatically
+              on user interaction
+            </li>
+          </ul>
+
+          <h3>🛡️ Protected Pages</h3>
+          <ul>
+            <li>admin-banner.html (Banner Manager)</li>
+            <li>admin-incidents.html (Incident Manager)</li>
+            <li>admin-links.html (Link Tracking)</li>
+            <li>admin-ips.html (IP Logs)</li>
+          </ul>
+
+          <h3>✨ Impact</h3>
+          <ul>
+            <li>No more unauthorized access to admin tools</li>
+            <li>Secure session management</li>
+            <li>Auto-logout after 30 minutes</li>
+            <li>Login required for all admin functionality</li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.4.3 - December 4, 2025</h2>
+          <span class="version-badge">Previous</span>
           <h3>📢 Banner Display Implementation</h3>
           <ul>
             <li>
-              <strong>Dynamic Banner Display:</strong> Added JavaScript to load banner from API and display on index.html
+              <strong>Dynamic Banner Display:</strong> Added JavaScript to load
+              banner from API and display on index.html
             </li>
             <li>
-              <strong>LocalStorage Dismiss:</strong> Dismissed banners stay hidden using localStorage
+              <strong>LocalStorage Dismiss:</strong> Dismissed banners stay
+              hidden using localStorage
             </li>
             <li>
-              <strong>Live Loading:</strong> Banner fetches from API on every page load
+              <strong>Live Loading:</strong> Banner fetches from API on every
+              page load
             </li>
             <li>
-              <strong>Auto-Hide:</strong> Banner respects enabled flag from admin settings
+              <strong>Auto-Hide:</strong> Banner respects enabled flag from
+              admin settings
             </li>
           </ul>
         </div>

@@ -548,6 +548,14 @@
             const data = await response.json();
             authToken = data.token;
 
+            // Set session storage for admin authentication
+            sessionStorage.setItem("adminAuthenticated", "true");
+            sessionStorage.setItem("adminToken", authToken);
+            sessionStorage.setItem(
+              "adminTokenExpiry",
+              (Date.now() + 30 * 60 * 1000).toString()
+            ); // 30 min
+
             // Hide login, show admin panel
             document.getElementById("loginScreen").style.display = "none";
             document.getElementById("adminPanel").style.display = "block";
@@ -564,6 +572,12 @@
 
       function logout() {
         authToken = null;
+
+        // Clear session storage
+        sessionStorage.removeItem("adminAuthenticated");
+        sessionStorage.removeItem("adminToken");
+        sessionStorage.removeItem("adminTokenExpiry");
+
         document.getElementById("loginScreen").style.display = "flex";
         document.getElementById("adminPanel").style.display = "none";
         document.getElementById("adminPassword").value = "";

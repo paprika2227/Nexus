@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Banner Manager - Nexus Admin</title>
+    <script src="admin-auth.js"></script>
     <style>
       * {
         margin: 0;
@@ -356,11 +357,7 @@
             <div class="color-input-wrapper">
               <label for="gradientFrom">From</label>
               <div class="color-input">
-                <input
-                  type="color"
-                  id="gradientFrom"
-                  value="#667eea"
-                />
+                <input type="color" id="gradientFrom" value="#667eea" />
                 <input
                   type="text"
                   id="gradientFromText"
@@ -372,11 +369,7 @@
             <div class="color-input-wrapper">
               <label for="gradientTo">To</label>
               <div class="color-input">
-                <input
-                  type="color"
-                  id="gradientTo"
-                  value="#764ba2"
-                />
+                <input type="color" id="gradientTo" value="#764ba2" />
                 <input
                   type="text"
                   id="gradientToText"
@@ -404,14 +397,21 @@
             <div class="preview-content">
               <span class="preview-emoji" id="previewEmoji">🎉</span>
               <span class="preview-text" id="previewText"
-                >NEW: Complete API with Interactive Playground + 34 Endpoints!</span
+                >NEW: Complete API with Interactive Playground + 34
+                Endpoints!</span
               >
             </div>
             <div class="preview-buttons">
-              <button class="preview-button preview-button-primary" id="previewButton">
+              <button
+                class="preview-button preview-button-primary"
+                id="previewButton"
+              >
                 Check it out →
               </button>
-              <button class="preview-button preview-button-dismiss" id="previewDismiss">
+              <button
+                class="preview-button preview-button-dismiss"
+                id="previewDismiss"
+              >
                 Dismiss
               </button>
             </div>
@@ -429,30 +429,46 @@
       // Update preview in real-time
       document.getElementById("emoji").addEventListener("input", updatePreview);
       document.getElementById("text").addEventListener("input", updatePreview);
-      document.getElementById("buttonText").addEventListener("input", updatePreview);
-      document.getElementById("gradientFrom").addEventListener("input", updatePreview);
-      document.getElementById("gradientTo").addEventListener("input", updatePreview);
-      document.getElementById("gradientFromText").addEventListener("input", updatePreview);
-      document.getElementById("gradientToText").addEventListener("input", updatePreview);
-      document.getElementById("dismissible").addEventListener("change", updatePreview);
+      document
+        .getElementById("buttonText")
+        .addEventListener("input", updatePreview);
+      document
+        .getElementById("gradientFrom")
+        .addEventListener("input", updatePreview);
+      document
+        .getElementById("gradientTo")
+        .addEventListener("input", updatePreview);
+      document
+        .getElementById("gradientFromText")
+        .addEventListener("input", updatePreview);
+      document
+        .getElementById("gradientToText")
+        .addEventListener("input", updatePreview);
+      document
+        .getElementById("dismissible")
+        .addEventListener("change", updatePreview);
 
       // Sync color inputs
       document.getElementById("gradientFrom").addEventListener("input", (e) => {
         document.getElementById("gradientFromText").value = e.target.value;
         updatePreview();
       });
-      document.getElementById("gradientFromText").addEventListener("input", (e) => {
-        document.getElementById("gradientFrom").value = e.target.value;
-        updatePreview();
-      });
+      document
+        .getElementById("gradientFromText")
+        .addEventListener("input", (e) => {
+          document.getElementById("gradientFrom").value = e.target.value;
+          updatePreview();
+        });
       document.getElementById("gradientTo").addEventListener("input", (e) => {
         document.getElementById("gradientToText").value = e.target.value;
         updatePreview();
       });
-      document.getElementById("gradientToText").addEventListener("input", (e) => {
-        document.getElementById("gradientTo").value = e.target.value;
-        updatePreview();
-      });
+      document
+        .getElementById("gradientToText")
+        .addEventListener("input", (e) => {
+          document.getElementById("gradientTo").value = e.target.value;
+          updatePreview();
+        });
 
       async function loadBanner() {
         try {
@@ -469,13 +485,20 @@
           document.getElementById("enabled").checked = banner.enabled;
           document.getElementById("emoji").value = banner.emoji || "🎉";
           document.getElementById("text").value = banner.text || "";
-          document.getElementById("buttonText").value = banner.buttonText || "Learn More";
-          document.getElementById("buttonLink").value = banner.buttonLink || "#";
-          document.getElementById("dismissible").checked = banner.dismissible !== false;
-          document.getElementById("gradientFrom").value = banner.gradient?.from || "#667eea";
-          document.getElementById("gradientFromText").value = banner.gradient?.from || "#667eea";
-          document.getElementById("gradientTo").value = banner.gradient?.to || "#764ba2";
-          document.getElementById("gradientToText").value = banner.gradient?.to || "#764ba2";
+          document.getElementById("buttonText").value =
+            banner.buttonText || "Learn More";
+          document.getElementById("buttonLink").value =
+            banner.buttonLink || "#";
+          document.getElementById("dismissible").checked =
+            banner.dismissible !== false;
+          document.getElementById("gradientFrom").value =
+            banner.gradient?.from || "#667eea";
+          document.getElementById("gradientFromText").value =
+            banner.gradient?.from || "#667eea";
+          document.getElementById("gradientTo").value =
+            banner.gradient?.to || "#764ba2";
+          document.getElementById("gradientToText").value =
+            banner.gradient?.to || "#764ba2";
 
           updatePreview();
         } catch (error) {
@@ -517,17 +540,27 @@
 
       function updatePreview() {
         const emoji = document.getElementById("emoji").value || "🎉";
-        const text = document.getElementById("text").value || "Your announcement text here...";
-        const buttonText = document.getElementById("buttonText").value || "Learn More";
-        const gradientFrom = document.getElementById("gradientFrom").value || "#667eea";
-        const gradientTo = document.getElementById("gradientTo").value || "#764ba2";
+        const text =
+          document.getElementById("text").value ||
+          "Your announcement text here...";
+        const buttonText =
+          document.getElementById("buttonText").value || "Learn More";
+        const gradientFrom =
+          document.getElementById("gradientFrom").value || "#667eea";
+        const gradientTo =
+          document.getElementById("gradientTo").value || "#764ba2";
         const dismissible = document.getElementById("dismissible").checked;
 
         document.getElementById("previewEmoji").textContent = emoji;
         document.getElementById("previewText").textContent = text;
-        document.getElementById("previewButton").textContent = buttonText + " →";
-        document.getElementById("previewBanner").style.background = `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`;
-        document.getElementById("previewDismiss").style.display = dismissible ? "block" : "none";
+        document.getElementById("previewButton").textContent =
+          buttonText + " →";
+        document.getElementById(
+          "previewBanner"
+        ).style.background = `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`;
+        document.getElementById("previewDismiss").style.display = dismissible
+          ? "block"
+          : "none";
       }
 
       function showSuccess() {
@@ -546,4 +579,3 @@
     </script>
   </body>
 </html>
-
