@@ -83,13 +83,14 @@ module.exports = {
   },
 
   async handleCreate(interaction, client) {
-    const question = interaction.options.getString("question");
-    const optionsStr = interaction.options.getString("options");
-    const duration = interaction.options.getInteger("duration") || 60;
-    const anonymous = interaction.options.getBoolean("anonymous") || false;
-    const multiple = interaction.options.getBoolean("multiple") || false;
+    try {
+      const question = interaction.options.getString("question");
+      const optionsStr = interaction.options.getString("options");
+      const duration = interaction.options.getInteger("duration") || 60;
+      const anonymous = interaction.options.getBoolean("anonymous") || false;
+      const multiple = interaction.options.getBoolean("multiple") || false;
 
-    const options = optionsStr.split(";").map(o => o.trim()).filter(o => o.length > 0);
+      const options = optionsStr.split(";").map(o => o.trim()).filter(o => o.length > 0);
 
     if (options.length < 2) {
       return interaction.reply({
@@ -152,6 +153,20 @@ module.exports = {
     setTimeout(() => {
       this.endPoll(message.id, interaction.guild.id, client);
     }, duration * 60 * 1000);
+    } catch (error) {
+      console.error('[Poll] Error creating poll:', error);
+      
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: `❌ Failed to create poll: ${error.message}`,
+          ephemeral: true
+        }).catch(() => {});
+      } else {
+        await interaction.editReply({
+          content: `❌ Failed to create poll: ${error.message}`
+        }).catch(() => {});
+      }
+    }
   },
 
   async handleEnd(interaction) {
