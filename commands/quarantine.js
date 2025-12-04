@@ -61,10 +61,7 @@ module.exports = {
       }
 
       if (user.id === interaction.client.user.id) {
-        return interaction.reply({
-          content: "❌ I cannot quarantine myself!",
-          flags: MessageFlags.Ephemeral,
-        });
+        return interaction.reply(ErrorMessages.cannotTargetBot());
       }
 
       // Prevent moderating the server owner
