@@ -40,9 +40,7 @@ module.exports = {
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       logger.error("Error running diagnostics:", error);
-      await interaction.editReply({
-        ErrorMessages.genericError(),
-      });
+      await interaction.editReply(ErrorMessages.genericError());
     }
   },
 

@@ -44,14 +44,9 @@ module.exports = {
       logger.error("Migrate Command Error:", error);
       
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          ErrorMessages.genericError(),
-          ephemeral: true,
-        });
+        await interaction.reply(ErrorMessages.genericError());
       } else if (interaction.deferred) {
-        await interaction.editReply({
-          ErrorMessages.genericError(),
-        });
+        await interaction.editReply(ErrorMessages.genericError());
       }
     }
   },

@@ -89,10 +89,7 @@ module.exports = {
         .catch(() => null);
 
       if (!member) {
-        return interaction.reply({
-          ErrorMessages.userNotFound(),
-          flags: MessageFlags.Ephemeral,
-        });
+        return interaction.reply(ErrorMessages.userNotFound());
       }
 
       const stats = await db.getUserStats(interaction.guild.id, user.id);

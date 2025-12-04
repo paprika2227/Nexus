@@ -366,9 +366,7 @@ module.exports = {
       }
     } catch (error) {
       logger.error("Error applying preset:", error);
-      await interaction.editReply({
-        ErrorMessages.genericError(),
-      });
+      await interaction.editReply(ErrorMessages.genericError());
     }
   },
 
@@ -454,9 +452,7 @@ module.exports = {
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       logger.error("Error showing setup status:", error);
-      await interaction.editReply({
-        ErrorMessages.genericError(),
-      });
+      await interaction.editReply(ErrorMessages.genericError());
     }
   },
 };

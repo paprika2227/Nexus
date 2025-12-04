@@ -47,9 +47,7 @@ module.exports = {
         .catch(() => null);
 
       if (!member) {
-        return await interaction.editReply({
-          ErrorMessages.userNotFound(),
-        });
+        return await interaction.editReply(ErrorMessages.userNotFound());
       }
 
       const risk = await memberIntelligence.calculateRiskScore(member);

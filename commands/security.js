@@ -335,10 +335,7 @@ module.exports = {
         const logger = require("../utils/logger");
 const ErrorMessages = require("../utils/errorMessages");
         logger.error("Error in rolecheck:", error);
-        await interaction.editReply({
-          ErrorMessages.genericError(),
-          flags: MessageFlags.Ephemeral,
-        });
+        await interaction.editReply(ErrorMessages.genericError());
       }
     }
   },

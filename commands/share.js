@@ -70,14 +70,9 @@ module.exports = {
 
       // Check if interaction has already been replied to
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          ErrorMessages.genericError(),
-          ephemeral: true,
-        });
+        await interaction.reply(ErrorMessages.genericError());
       } else if (interaction.deferred) {
-        await interaction.editReply({
-          ErrorMessages.genericError(),
-        });
+        await interaction.editReply(ErrorMessages.genericError());
       }
       // If already replied, don't try to reply again
     }

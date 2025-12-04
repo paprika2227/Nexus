@@ -44,10 +44,7 @@ module.exports = {
       logger.error("Testimonial Command Error:", error);
       
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          ErrorMessages.genericError(),
-          ephemeral: true,
-        });
+        await interaction.reply(ErrorMessages.genericError());
       }
     }
   },

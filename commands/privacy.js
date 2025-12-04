@@ -184,10 +184,7 @@ module.exports = {
           }, 5 * 60 * 1000);
         } catch (error) {
           logger.error("Error exporting server data:", error);
-          await interaction.editReply({
-            ErrorMessages.genericError(),
-            flags: MessageFlags.Ephemeral,
-          });
+          await interaction.editReply(ErrorMessages.genericError());
         }
       } else if (type === "user") {
         // User data export
@@ -251,10 +248,7 @@ module.exports = {
           }, 5 * 60 * 1000);
         } catch (error) {
           logger.error("Error exporting user data:", error);
-          await interaction.editReply({
-            ErrorMessages.genericError(),
-            flags: MessageFlags.Ephemeral,
-          });
+          await interaction.editReply(ErrorMessages.genericError());
         }
       }
     }
@@ -322,10 +316,7 @@ module.exports = {
           await interaction.editReply({ embeds: [embed] });
         } catch (error) {
           logger.error("Error deleting server data:", error);
-          await interaction.editReply({
-            ErrorMessages.genericError(),
-            flags: MessageFlags.Ephemeral,
-          });
+          await interaction.editReply(ErrorMessages.genericError());
         }
       } else if (type === "user") {
         // User data deletion
@@ -372,10 +363,7 @@ module.exports = {
           await interaction.editReply({ embeds: [embed] });
         } catch (error) {
           logger.error("Error deleting user data:", error);
-          await interaction.editReply({
-            ErrorMessages.genericError(),
-            flags: MessageFlags.Ephemeral,
-          });
+          await interaction.editReply(ErrorMessages.genericError());
         }
       }
     }

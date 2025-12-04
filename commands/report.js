@@ -141,9 +141,7 @@ module.exports = {
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       logger.error("Error generating report:", error);
-      await interaction.editReply({
-        ErrorMessages.genericError(),
-      });
+      await interaction.editReply(ErrorMessages.genericError());
     }
   },
 
@@ -321,9 +319,7 @@ module.exports = {
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       logger.error("Error scheduling report:", error);
-      await interaction.editReply({
-        ErrorMessages.genericError(),
-      });
+      await interaction.editReply(ErrorMessages.genericError());
     }
   },
 
@@ -381,9 +377,7 @@ module.exports = {
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       logger.error("Error listing schedules:", error);
-      await interaction.editReply({
-        ErrorMessages.genericError(),
-      });
+      await interaction.editReply(ErrorMessages.genericError());
     }
   },
 
@@ -409,9 +403,7 @@ module.exports = {
       });
     } catch (error) {
       logger.error("Error cancelling schedule:", error);
-      await interaction.editReply({
-        ErrorMessages.genericError(),
-      });
+      await interaction.editReply(ErrorMessages.genericError());
     }
   },
 };

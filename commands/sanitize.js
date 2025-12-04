@@ -27,10 +27,7 @@ module.exports = {
       .catch(() => null);
 
     if (!member) {
-      return interaction.reply({
-        ErrorMessages.userNotFound(),
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(ErrorMessages.userNotFound());
     }
 
     if (!member.manageable) {

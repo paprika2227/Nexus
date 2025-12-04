@@ -28,10 +28,7 @@ module.exports = {
     // Global stats are owner-only
     if (subcommand === "global") {
       if (!Owner.isOwner(interaction.user.id)) {
-        return interaction.reply({
-          ErrorMessages.ownerOnly(),
-          flags: MessageFlags.Ephemeral,
-        });
+        return interaction.reply(ErrorMessages.ownerOnly());
       }
     }
 

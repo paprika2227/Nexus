@@ -101,9 +101,7 @@ module.exports = {
         .fetch(item.user_id)
         .catch(() => null);
       if (!user) {
-        return interaction.editReply({
-          ErrorMessages.userNotFound(),
-        });
+        return interaction.editReply(ErrorMessages.userNotFound());
       }
 
       if (action !== "dismiss") {

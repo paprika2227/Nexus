@@ -15,10 +15,7 @@ module.exports = {
   async execute(interaction) {
     // Only bot owner can view shard info
     if (!Owner.isOwner(interaction.user.id)) {
-      return interaction.reply({
-        ErrorMessages.ownerOnly(),
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(ErrorMessages.ownerOnly());
     }
     const shardInfo = ShardManager.getShardInfo(interaction.client);
     const stats = await ShardManager.getShardStats(interaction.client);

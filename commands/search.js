@@ -127,9 +127,7 @@ module.exports = {
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       logger.error("Error searching:", error);
-      await interaction.editReply({
-        ErrorMessages.genericError(),
-      });
+      await interaction.editReply(ErrorMessages.genericError());
     }
   },
 

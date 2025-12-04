@@ -48,10 +48,7 @@ module.exports = {
   async execute(interaction) {
     // Owner only
     if (!Owner.isOwner(interaction.user.id)) {
-      return interaction.reply({
-        ErrorMessages.ownerOnly(),
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.reply(ErrorMessages.ownerOnly());
     }
 
     const subcommand = interaction.options.getSubcommand();

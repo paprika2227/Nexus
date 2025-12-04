@@ -195,9 +195,7 @@ const ErrorMessages = require("../utils/errorMessages");
       }, 5 * 60 * 1000);
     } catch (error) {
       logger.error("Error exporting config:", error);
-      await interaction.editReply({
-        ErrorMessages.genericError(),
-      });
+      await interaction.editReply(ErrorMessages.genericError());
     }
   },
 
@@ -295,9 +293,7 @@ const ErrorMessages = require("../utils/errorMessages");
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       logger.error("Error importing config:", error);
-      await interaction.editReply({
-        ErrorMessages.genericError(),
-      });
+      await interaction.editReply(ErrorMessages.genericError());
     }
   },
 
@@ -370,9 +366,7 @@ const ErrorMessages = require("../utils/errorMessages");
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       logger.error("Error comparing configs:", error);
-      await interaction.editReply({
-        ErrorMessages.genericError(),
-      });
+      await interaction.editReply(ErrorMessages.genericError());
     }
   },
 };
