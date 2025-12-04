@@ -84,8 +84,71 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.6.0 - December 4, 2025</h2>
+          <h2>Version 3.7.0 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🎉 MAJOR FEATURE UPDATE: 9 New Additions</h3>
+          <p>
+            This update adds significant improvements across the website, API, and bot with features focused
+            on user experience, developer tools, and better onboarding.
+          </p>
+
+          <h3>🌐 Website Features (3 New)</h3>
+          <ul>
+            <li>
+              <strong>Live Stats Widget:</strong> Real-time server count on homepage with auto-refresh every 30 seconds ✅ (was already implemented, verified working)
+            </li>
+            <li>
+              <strong>Feature Comparison Table:</strong> Detailed side-by-side table (Nexus vs Wick) showing 12 features, pricing, and capabilities
+            </li>
+            <li>
+              <strong>Server Showcase Gallery:</strong> New showcase.html page displaying servers using Nexus with stats, badges, and submit CTA
+            </li>
+          </ul>
+
+          <h3>🔌 API Endpoints (3 New)</h3>
+          <ul>
+            <li>
+              <strong>GET /api/v1/stats:</strong> Public bot statistics (servers, users, commands, uptime, version, ping, features)
+            </li>
+            <li>
+              <strong>GET /api/v1/commands:</strong> Complete command list with descriptions, categories, and options count
+            </li>
+            <li>
+              <strong>GET /api/v1/health:</strong> Health check endpoint with uptime, memory usage, websocket status, and system metrics
+            </li>
+          </ul>
+
+          <h3>🤖 Bot Commands (3 New)</h3>
+          <ul>
+            <li>
+              <strong>/botinfo:</strong> Comprehensive bot information embed showing stats, performance, security features, technical details, and links
+            </li>
+            <li>
+              <strong>/quicksetup:</strong> Interactive setup wizard with buttons to enable security, configure logging, and setup automod in minutes
+            </li>
+            <li>
+              <strong>/suggest:</strong> Modal-based feature suggestion system that saves to database, sends to webhook, and allows community voting
+            </li>
+          </ul>
+
+          <h3>💾 Database Changes</h3>
+          <ul>
+            <li>
+              <strong>Migration added:</strong> Suggestions table enhanced with title, description, use_case, votes, and created_at columns
+            </li>
+          </ul>
+
+          <h3>📊 Impact</h3>
+          <ul>
+            <li><strong>Total new code:</strong> 3 new website features, 3 API endpoints, 3 bot commands</li>
+            <li><strong>User engagement:</strong> Better onboarding with /quicksetup, feedback system with /suggest</li>
+            <li><strong>Developer tools:</strong> Public API for stats, commands, and health monitoring</li>
+            <li><strong>Marketing value:</strong> Comparison table and server showcase for conversions</li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.6.0 - December 4, 2025</h2>
           <h3>🌐 New Feature - Public Alerts Demo</h3>
           <ul>
             <li>

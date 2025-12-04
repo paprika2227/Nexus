@@ -1020,6 +1020,107 @@ class DashboardServer {
       });
     });
 
+    // Public API Endpoints (NO API key required - public stats)
+
+    // Bot Statistics Endpoint
+    this.app.get("/api/v1/stats", async (req, res) => {
+      try {
+        const stats = {
+          serverCount: this.client.guilds.cache.size,
+          userCount: this.client.guilds.cache.reduce(
+            (acc, guild) => acc + guild.memberCount,
+            0
+          ),
+          commandCount: this.client.commands ? this.client.commands.size : 99,
+          uptime: process.uptime(),
+          version: require("../package.json").version,
+          ping: this.client.ws.ping,
+          shardCount: this.client.shard ? this.client.shard.count : 1,
+          features: {
+            antiRaid: 4,
+            antiNuke: true,
+            aiPowered: true,
+            automod: 8,
+            voiceMonitoring: true,
+            multiServer: true,
+            webhooks: 18,
+          },
+          timestamp: Date.now(),
+        };
+        res.json(stats);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Commands List Endpoint
+    this.app.get("/api/v1/commands", async (req, res) => {
+      try {
+        const commands = [];
+
+        if (this.client.commands) {
+          this.client.commands.forEach((cmd) => {
+            commands.push({
+              name: cmd.data.name,
+              description: cmd.data.description,
+              category: cmd.category || "General",
+              options: cmd.data.options ? cmd.data.options.length : 0,
+            });
+          });
+        }
+
+        // Sort by category
+        commands.sort((a, b) => a.category.localeCompare(b.category));
+
+        res.json({
+          total: commands.length,
+          commands: commands,
+          categories: [...new Set(commands.map((c) => c.category))],
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Health Check Endpoint
+    this.app.get("/api/v1/health", async (req, res) => {
+      try {
+        const uptime = process.uptime();
+        const memoryUsage = process.memoryUsage();
+
+        const health = {
+          status: this.client.isReady() ? "online" : "offline",
+          uptime: {
+            seconds: Math.floor(uptime),
+            formatted: `${Math.floor(uptime / 86400)}d ${Math.floor(
+              (uptime % 86400) / 3600
+            )}h ${Math.floor((uptime % 3600) / 60)}m`,
+          },
+          websocket: {
+            ping: this.client.ws.ping,
+            status: this.client.ws.status === 0 ? "connected" : "disconnected",
+          },
+          memory: {
+            used: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+            total: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
+            percentage: Math.round(
+              (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100
+            ),
+          },
+          guilds: this.client.guilds.cache.size,
+          users: this.client.guilds.cache.reduce(
+            (acc, guild) => acc + guild.memberCount,
+            0
+          ),
+          timestamp: Date.now(),
+        };
+
+        res.json(health);
+      } catch (error) {
+        res.status(500).json({ error: error.message, status: "error" });
+      }
+    });
+
     // Public API Endpoints (require API key)
     this.app.get("/api/v1/server/:id", checkAPIKey, async (req, res) => {
       try {

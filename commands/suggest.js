@@ -1,481 +1,186 @@
 const {
   SlashCommandBuilder,
-  PermissionFlagsBits,
   EmbedBuilder,
-  MessageFlags,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
 } = require("discord.js");
 const db = require("../utils/database");
-const logger = require("../utils/logger");
-const ErrorMessages = require("../utils/errorMessages");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("suggest")
-    .setDescription("Submit and manage suggestions")
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName("create")
-        .setDescription("Create a new suggestion")
-        .addStringOption((option) =>
-          option
-            .setName("suggestion")
-            .setDescription("Your suggestion")
-            .setRequired(true)
-        )
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName("approve")
-        .setDescription("Approve a suggestion")
-        .addStringOption((option) =>
-          option
-            .setName("message_id")
-            .setDescription("The suggestion message ID")
-            .setRequired(true)
-        )
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName("deny")
-        .setDescription("Deny a suggestion")
-        .addStringOption((option) =>
-          option
-            .setName("message_id")
-            .setDescription("The suggestion message ID")
-            .setRequired(true)
-        )
-        .addStringOption((option) =>
-          option
-            .setName("reason")
-            .setDescription("Reason for denial")
-            .setRequired(false)
-        )
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName("implement")
-        .setDescription("Mark a suggestion as implemented")
-        .addStringOption((option) =>
-          option
-            .setName("message_id")
-            .setDescription("The suggestion message ID")
-            .setRequired(true)
-        )
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName("list")
-        .setDescription("List all suggestions")
-        .addStringOption((option) =>
-          option
-            .setName("status")
-            .setDescription("Filter by status")
-            .setRequired(false)
-            .addChoices(
-              { name: "Pending", value: "pending" },
-              { name: "Approved", value: "approved" },
-              { name: "Denied", value: "denied" },
-              { name: "Implemented", value: "implemented" }
-            )
-        )
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName("channel")
-        .setDescription("Set the suggestions channel")
-        .addChannelOption((option) =>
-          option
-            .setName("channel")
-            .setDescription("Channel for suggestions")
-            .setRequired(true)
-        )
-    ),
+    .setDescription("Suggest a new feature or improvement for Nexus"),
 
-  async execute(interaction) {
-    const subcommand = interaction.options.getSubcommand();
+  async execute(interaction, client) {
+    // Create modal for suggestion
+    const modal = new ModalBuilder()
+      .setCustomId("suggestion_modal")
+      .setTitle("💡 Suggest a Feature");
 
-    if (subcommand === "create") {
-      const suggestion = interaction.options.getString("suggestion");
+    const titleInput = new TextInputBuilder()
+      .setCustomId("suggestion_title")
+      .setLabel("Feature Title")
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder("Brief title for your suggestion")
+      .setRequired(true)
+      .setMaxLength(100);
 
-      // Get suggestions channel from config
-      const config = await db.getServerConfig(interaction.guild.id);
-      const suggestionsChannelId = config?.suggestions_channel_id;
+    const descriptionInput = new TextInputBuilder()
+      .setCustomId("suggestion_description")
+      .setLabel("Description")
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder("Describe your feature idea in detail...")
+      .setRequired(true)
+      .setMaxLength(1000);
 
-      if (!suggestionsChannelId) {
-        return interaction.reply({
-          content:
-            "❌ Suggestions channel not set! Use `/suggest channel` to set it up.",
-          flags: MessageFlags.Ephemeral,
-        });
-      }
+    const useCaseInput = new TextInputBuilder()
+      .setCustomId("suggestion_usecase")
+      .setLabel("Use Case (Optional)")
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder("How would this feature be used? What problem does it solve?")
+      .setRequired(false)
+      .setMaxLength(500);
 
-      const channel =
-        interaction.guild.channels.cache.get(suggestionsChannelId);
-      if (!channel) {
-        return interaction.reply({
-          content: "❌ Suggestions channel not found!",
-          flags: MessageFlags.Ephemeral,
-        });
-      }
+    const firstRow = new ActionRowBuilder().addComponents(titleInput);
+    const secondRow = new ActionRowBuilder().addComponents(descriptionInput);
+    const thirdRow = new ActionRowBuilder().addComponents(useCaseInput);
 
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    modal.addComponents(firstRow, secondRow, thirdRow);
 
-      const embed = new EmbedBuilder()
-        .setTitle("💡 New Suggestion")
-        .setDescription(suggestion)
-        .addFields({
-          name: "📊 Votes",
-          value: "⬆️ 0 • ⬇️ 0",
-          inline: true,
-        })
-        .addFields({
-          name: "📝 Status",
-          value: "⏳ Pending",
-          inline: true,
-        })
-        .setAuthor({
-          name: interaction.user.tag,
-          iconURL: interaction.user.displayAvatarURL(),
-        })
-        .setColor(0xffa500)
-        .setFooter({ text: `Suggestion ID: ${Date.now()}` })
-        .setTimestamp();
+    await interaction.showModal(modal);
 
-      const buttons = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("suggest_upvote")
-          .setLabel("Upvote")
-          .setStyle(ButtonStyle.Success)
-          .setEmoji("⬆️"),
-        new ButtonBuilder()
-          .setCustomId("suggest_downvote")
-          .setLabel("Downvote")
-          .setStyle(ButtonStyle.Danger)
-          .setEmoji("⬇️")
-      );
-
-      const message = await channel.send({
-        embeds: [embed],
-        components: [buttons],
+    // Handle modal submission
+    const filter = (i) => i.customId === "suggestion_modal" && i.user.id === interaction.user.id;
+    
+    try {
+      const modalInteraction = await interaction.awaitModalSubmit({
+        filter,
+        time: 300000, // 5 minutes
       });
 
-      await new Promise((resolve, reject) => {
-        db.db.run(
-          "INSERT INTO suggestions (guild_id, channel_id, message_id, user_id, suggestion, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-          [
-            interaction.guild.id,
-            channel.id,
-            message.id,
-            interaction.user.id,
-            suggestion,
-            Date.now(),
-          ],
-          (err) => {
+      const title = modalInteraction.fields.getTextInputValue("suggestion_title");
+      const description = modalInteraction.fields.getTextInputValue("suggestion_description");
+      const useCase = modalInteraction.fields.getTextInputValue("suggestion_usecase") || "Not provided";
+
+      // Save suggestion to database
+      await db.run(
+        `INSERT INTO suggestions (guild_id, user_id, title, description, use_case, status, created_at, votes) VALUES (?, ?, ?, ?, ?, 'pending', ?, 0)`,
+        [
+          interaction.guild.id,
+          interaction.user.id,
+          title,
+          description,
+          useCase,
+          Date.now(),
+        ]
+      );
+
+      // Get suggestion ID
+      const suggestion = await new Promise((resolve, reject) => {
+        db.db.get(
+          "SELECT * FROM suggestions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1",
+          [interaction.user.id],
+          (err, row) => {
             if (err) reject(err);
-            else resolve();
+            else resolve(row);
           }
         );
       });
 
-      await interaction.editReply({
-        content: `✅ Suggestion posted in ${channel}!`,
-      });
-    } else if (subcommand === "channel") {
-      if (
-        !interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)
-      ) {
-        return interaction.reply({
-          content: "❌ You need Manage Server permission!",
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-
-      const channel = interaction.options.getChannel("channel");
-      await db.setServerConfig(interaction.guild.id, {
-        suggestions_channel_id: channel.id,
-      });
-
-      await interaction.reply({
-        content: `✅ Suggestions channel set to ${channel}!`,
-        flags: MessageFlags.Ephemeral,
-      });
-    } else if (subcommand === "approve") {
-      if (
-        !interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)
-      ) {
-        return interaction.reply({
-          content: "❌ You need Manage Server permission!",
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-
-      const messageId = interaction.options.getString("message_id");
-      await updateSuggestionStatus(
-        interaction,
-        messageId,
-        "approved",
-        interaction.user.id
-      );
-    } else if (subcommand === "deny") {
-      if (
-        !interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)
-      ) {
-        return interaction.reply({
-          content: "❌ You need Manage Server permission!",
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-
-      const messageId = interaction.options.getString("message_id");
-      const reason =
-        interaction.options.getString("reason") || "No reason provided";
-      await updateSuggestionStatus(
-        interaction,
-        messageId,
-        "denied",
-        interaction.user.id,
-        reason
-      );
-    } else if (subcommand === "implement") {
-      if (
-        !interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)
-      ) {
-        return interaction.reply({
-          content: "❌ You need Manage Server permission!",
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-
-      const messageId = interaction.options.getString("message_id");
-      await updateSuggestionStatus(
-        interaction,
-        messageId,
-        "implemented",
-        interaction.user.id
-      );
-    } else if (subcommand === "list") {
-      const status = interaction.options.getString("status");
-      let query = "SELECT * FROM suggestions WHERE guild_id = ?";
-      const params = [interaction.guild.id];
-
-      if (status) {
-        query += " AND status = ?";
-        params.push(status);
-      }
-
-      query += " ORDER BY created_at DESC LIMIT 20";
-
-      const suggestions = await new Promise((resolve, reject) => {
-        db.db.all(query, params, (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows || []);
-        });
-      });
-
-      if (suggestions.length === 0) {
-        return interaction.reply({
-          content: "❌ No suggestions found!",
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle("💡 Suggestions")
+      // Send confirmation
+      const confirmEmbed = new EmbedBuilder()
+        .setTitle("✅ Suggestion Submitted!")
         .setDescription(
-          suggestions
-            .map(
-              (s) =>
-                `**${getStatusEmoji(s.status)} ${s.status.toUpperCase()}**\n` +
-                `${s.suggestion.slice(0, 100)}${
-                  s.suggestion.length > 100 ? "..." : ""
-                }\n` +
-                `[Jump to Suggestion](https://discord.com/channels/${s.guild_id}/${s.channel_id}/${s.message_id})`
-            )
-            .join("\n\n")
+          `Thank you for helping improve Nexus! Your suggestion has been recorded.\n\n` +
+            `**${title}**\n${description}`
         )
-        .setColor(0xffa500)
+        .addFields({
+          name: "What Happens Next?",
+          value:
+            "• Developers will review your suggestion\n" +
+            "• Community can vote on it\n" +
+            "• Popular suggestions get prioritized\n" +
+            "• You'll be notified of updates",
+        })
+        .setColor(0x00ff88)
+        .setFooter({ text: `Suggestion ID: ${suggestion.id}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
-    }
-  },
-};
-
-async function updateSuggestionStatus(
-  interaction,
-  messageId,
-  status,
-  reviewedBy,
-  reason
-) {
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-  const suggestion = await new Promise((resolve, reject) => {
-    db.db.get(
-      "SELECT * FROM suggestions WHERE guild_id = ? AND message_id = ?",
-      [interaction.guild.id, messageId],
-      (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      }
-    );
-  });
-
-  if (!suggestion) {
-    return interaction.editReply({
-      content: "❌ Suggestion not found!",
-    });
-  }
-
-  await new Promise((resolve, reject) => {
-    db.db.run(
-      "UPDATE suggestions SET status = ?, reviewed_by = ?, reviewed_at = ? WHERE guild_id = ? AND message_id = ?",
-      [status, reviewedBy, Date.now(), interaction.guild.id, messageId],
-      (err) => {
-        if (err) reject(err);
-        else resolve();
-      }
-    );
-  });
-
-  try {
-    const channel = await interaction.client.channels.fetch(
-      suggestion.channel_id
-    );
-    const message = await channel.messages.fetch(messageId);
-    const oldEmbed = message.embeds[0];
-
-    const newEmbed = EmbedBuilder.from(oldEmbed)
-      .setFields(
-        {
-          name: "📊 Votes",
-          value: `⬆️ ${suggestion.upvotes} • ⬇️ ${suggestion.downvotes}`,
-          inline: true,
-        },
-        {
-          name: "📝 Status",
-          value: `${getStatusEmoji(status)} ${
-            status.charAt(0).toUpperCase() + status.slice(1)
-          }${reason ? `\n**Reason:** ${reason}` : ""}`,
-          inline: true,
-        }
-      )
-      .setColor(
-        status === "approved"
-          ? 0x00ff00
-          : status === "denied"
-          ? 0xff0000
-          : status === "implemented"
-          ? 0x0099ff
-          : 0xffa500
+      const voteButtons = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`vote_${suggestion.id}`)
+          .setLabel("Vote")
+          .setStyle(ButtonStyle.Success)
+          .setEmoji("👍"),
+        new ButtonBuilder()
+          .setLabel("View All Suggestions")
+          .setStyle(ButtonStyle.Link)
+          .setURL("https://azzraya.github.io/Nexus/vote-features.html")
       );
 
-    await message.edit({ embeds: [newEmbed] });
-  } catch (error) {
-    logger.error("Error updating suggestion message:", error);
-  }
+      await modalInteraction.reply({
+        embeds: [confirmEmbed],
+        components: [voteButtons],
+        ephemeral: true,
+      });
 
-  await interaction.editReply({
-    content: `✅ Suggestion ${status}!`,
-  });
-}
+      // Send to admin webhook if configured
+      if (process.env.SUGGESTIONS_WEBHOOK_URL) {
+        const https = require("https");
+        const url = new URL(process.env.SUGGESTIONS_WEBHOOK_URL);
 
-function getStatusEmoji(status) {
-  const emojis = {
-    pending: "⏳",
-    approved: "✅",
-    denied: "❌",
-    implemented: "✨",
-  };
-  return emojis[status] || "⏳";
-}
+        const webhook = {
+          embeds: [
+            {
+              title: "💡 New Feature Suggestion",
+              description: `**${title}**\n\n${description}`,
+              fields: [
+                {
+                  name: "Use Case",
+                  value: useCase,
+                },
+                {
+                  name: "Suggested By",
+                  value: `${interaction.user.tag} (${interaction.user.id})`,
+                  inline: true,
+                },
+                {
+                  name: "Server",
+                  value: interaction.guild.name,
+                  inline: true,
+                },
+              ],
+              color: 6737151, // Purple
+              timestamp: new Date().toISOString(),
+              footer: {
+                text: `Suggestion ID: ${suggestion.id}`,
+              },
+            },
+          ],
+        };
 
-// Handle suggestion vote buttons
-module.exports.handleSuggestionVote = async (interaction) => {
-  const isUpvote = interaction.customId === "suggest_upvote";
-  const suggestion = await new Promise((resolve, reject) => {
-    db.db.get(
-      "SELECT * FROM suggestions WHERE guild_id = ? AND message_id = ?",
-      [interaction.guild.id, interaction.message.id],
-      (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
+        const postData = JSON.stringify(webhook);
+
+        const options = {
+          hostname: url.hostname,
+          path: url.pathname,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": postData.length,
+          },
+        };
+
+        const req = https.request(options);
+        req.write(postData);
+        req.end();
       }
-    );
-  });
-
-  if (!suggestion) {
-    return interaction.reply({
-      content: "❌ Suggestion not found!",
-      flags: MessageFlags.Ephemeral,
-    });
-  }
-
-  const voters = JSON.parse(suggestion.voters || "{}");
-  const userId = interaction.user.id;
-
-  // Toggle vote
-  if (voters[userId] === (isUpvote ? "up" : "down")) {
-    // Remove vote
-    delete voters[userId];
-    if (isUpvote) {
-      suggestion.upvotes = Math.max(0, suggestion.upvotes - 1);
-    } else {
-      suggestion.downvotes = Math.max(0, suggestion.downvotes - 1);
+    } catch (error) {
+      console.error("Error handling suggestion:", error);
     }
-  } else {
-    // Add/change vote
-    const oldVote = voters[userId];
-    if (oldVote === "up") {
-      suggestion.upvotes = Math.max(0, suggestion.upvotes - 1);
-    } else if (oldVote === "down") {
-      suggestion.downvotes = Math.max(0, suggestion.downvotes - 1);
-    }
-
-    voters[userId] = isUpvote ? "up" : "down";
-    if (isUpvote) {
-      suggestion.upvotes++;
-    } else {
-      suggestion.downvotes++;
-    }
-  }
-
-  await new Promise((resolve, reject) => {
-    db.db.run(
-      "UPDATE suggestions SET upvotes = ?, downvotes = ?, voters = ? WHERE guild_id = ? AND message_id = ?",
-      [
-        suggestion.upvotes,
-        suggestion.downvotes,
-        JSON.stringify(voters),
-        interaction.guild.id,
-        interaction.message.id,
-      ],
-      (err) => {
-        if (err) reject(err);
-        else resolve();
-      }
-    );
-  });
-
-  // Update embed
-  const oldEmbed = interaction.message.embeds[0];
-  const newEmbed = EmbedBuilder.from(oldEmbed).setFields(
-    {
-      name: "📊 Votes",
-      value: `⬆️ ${suggestion.upvotes} • ⬇️ ${suggestion.downvotes}`,
-      inline: true,
-    },
-    {
-      name: "📝 Status",
-      value: `${getStatusEmoji(suggestion.status)} ${
-        suggestion.status.charAt(0).toUpperCase() + suggestion.status.slice(1)
-      }`,
-      inline: true,
-    }
-  );
-
-  await interaction.update({ embeds: [newEmbed] });
+  },
 };

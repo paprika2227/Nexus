@@ -1406,6 +1406,48 @@ class Database {
   }
 
   runMigrations() {
+    // Migration: Add new columns to suggestions table for /suggest command
+    this.db.run(
+      `ALTER TABLE suggestions ADD COLUMN title TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error("Migration error (suggestions title):", err);
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE suggestions ADD COLUMN description TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error("Migration error (suggestions description):", err);
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE suggestions ADD COLUMN use_case TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error("Migration error (suggestions use_case):", err);
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE suggestions ADD COLUMN votes INTEGER DEFAULT 0`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error("Migration error (suggestions votes):", err);
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE suggestions ADD COLUMN created_at INTEGER`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error("Migration error (suggestions created_at):", err);
+        }
+      }
+    );
+
     // Migration: Fix scheduled_actions table - check if old schema exists
     this.db.all(`PRAGMA table_info(scheduled_actions)`, [], (err, columns) => {
       if (err) return;
