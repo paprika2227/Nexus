@@ -3567,10 +3567,67 @@ class DashboardServer {
       });
     });
 
+    // GET /api/admin/banner - Get current banner configuration
+    this.app.get("/api/admin/banner", async (req, res) => {
+      try {
+        const fs = require("fs").promises;
+        const path = require("path");
+        const bannerPath = path.join(__dirname, "../docs/banner.json");
+        
+        const data = await fs.readFile(bannerPath, "utf8");
+        res.json(JSON.parse(data));
+      } catch (error) {
+        console.error("❌ [Banner] Error reading banner:", error.message);
+        res.status(500).json({ error: "Failed to read banner configuration" });
+      }
+    });
+
+    // PUT /api/admin/banner - Update banner configuration
+    this.app.put("/api/admin/banner", async (req, res) => {
+      try {
+        const fs = require("fs").promises;
+        const path = require("path");
+        const bannerPath = path.join(__dirname, "../docs/banner.json");
+        
+        const bannerData = {
+          enabled: req.body.enabled !== undefined ? req.body.enabled : true,
+          emoji: req.body.emoji || "🎉",
+          text: req.body.text || "",
+          buttonText: req.body.buttonText || "Learn More",
+          buttonLink: req.body.buttonLink || "#",
+          dismissible: req.body.dismissible !== undefined ? req.body.dismissible : true,
+          gradient: req.body.gradient || { from: "#667eea", to: "#764ba2" }
+        };
+
+        await fs.writeFile(bannerPath, JSON.stringify(bannerData, null, 2));
+        console.log("✅ [Banner] Updated successfully");
+        res.json({ success: true, banner: bannerData });
+      } catch (error) {
+        console.error("❌ [Banner] Error updating banner:", error.message);
+        res.status(500).json({ error: "Failed to update banner configuration" });
+      }
+    });
+
+    // GET /api/v1/banner - Public endpoint to get banner (for website display)
+    this.app.get("/api/v1/banner", async (req, res) => {
+      try {
+        const fs = require("fs").promises;
+        const path = require("path");
+        const bannerPath = path.join(__dirname, "../docs/banner.json");
+        
+        const data = await fs.readFile(bannerPath, "utf8");
+        res.json(JSON.parse(data));
+      } catch (error) {
+        console.error("❌ [Banner] Error reading banner:", error.message);
+        res.json({ enabled: false });
+      }
+    });
+
     console.log("[API] Public API v1 endpoints registered");
-    console.log("[API] 🔥 POWERFUL API v2 - 44 endpoints active!"); // Updated count
+    console.log("[API] 🔥 POWERFUL API v2 - 47 endpoints active!"); // Updated count
     console.log("[Referral] Referral tracking system active");
     console.log("[IP Logging] IP tracking active");
+    console.log("[Banner] Banner management system active");
   }
 
   // Analytics system removed - causing errors
