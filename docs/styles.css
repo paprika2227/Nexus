@@ -406,13 +406,15 @@ footer p {
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(10px);
   border-radius: 12px;
-  min-width: 700px; /* Increased for mega-menu */
+  width: 900px; /* Wider for 6 columns */
+  max-height: 70vh; /* Limit height */
+  overflow-y: auto; /* Enable scrolling if needed */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   opacity: 0;
   visibility: hidden;
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 columns */
-  gap: 20px;
+  grid-template-columns: repeat(6, 1fr); /* 6 columns - one per category */
+  gap: 15px;
   padding: 20px;
   transform: translateY(-10px);
   transition: all 0.2s ease; /* Faster transition */
