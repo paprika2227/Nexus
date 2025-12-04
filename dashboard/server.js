@@ -435,9 +435,9 @@ class DashboardServer {
 
         if (password === adminPassword) {
           // Generate secure token using crypto (not predictable)
-          const crypto = require('crypto');
-          const token = crypto.randomBytes(32).toString('hex');
-          const expires = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+          const crypto = require("crypto");
+          const token = crypto.randomBytes(32).toString("hex");
+          const expires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
 
           // Store token in memory (in production, use Redis/database)
           if (!this.adminTokens) {
@@ -470,7 +470,7 @@ class DashboardServer {
         }
 
         const token = authHeader.replace("Bearer ", "");
-        
+
         // Validate admin token
         if (!this.adminTokens || !this.adminTokens.has(token)) {
           return res.status(401).json({ error: "Invalid or expired token" });
@@ -1694,7 +1694,7 @@ class DashboardServer {
         };
 
         const searchType = type || "all";
-        
+
         // Validate searchType is in whitelist
         if (!ALLOWED_TABLES.hasOwnProperty(searchType)) {
           return res.status(400).json({ error: "Invalid log type" });
@@ -1709,14 +1709,18 @@ class DashboardServer {
 
         for (const table of tablesToSearch) {
           // Validate table is in allowed list (extra safety)
-          const allowedTableNames = ["moderation_logs", "security_logs", "anti_raid_logs"];
+          const allowedTableNames = [
+            "moderation_logs",
+            "security_logs",
+            "anti_raid_logs",
+          ];
           if (!allowedTableNames.includes(table)) {
             continue; // Skip invalid tables
           }
 
           const whereClause =
             conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-          
+
           // Use parameterized table name through whitelist - safe from SQL injection
           query = `SELECT *, ? as log_type FROM ${table} ${whereClause} ORDER BY timestamp DESC LIMIT ? OFFSET ?`;
 
@@ -1738,7 +1742,11 @@ class DashboardServer {
         let totalCount = 0;
         for (const table of tablesToSearch) {
           // Validate table again
-          const allowedTableNames = ["moderation_logs", "security_logs", "anti_raid_logs"];
+          const allowedTableNames = [
+            "moderation_logs",
+            "security_logs",
+            "anti_raid_logs",
+          ];
           if (!allowedTableNames.includes(table)) {
             continue;
           }

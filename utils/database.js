@@ -1322,14 +1322,33 @@ class Database {
 
     // WHITELIST allowed config keys (prevent SQL injection)
     const ALLOWED_CONFIG_KEYS = [
-      'anti_raid_enabled', 'anti_nuke_enabled', 'heat_system_enabled',
-      'auto_mod_enabled', 'join_gate_enabled', 'verification_enabled',
-      'mod_log_channel', 'alert_channel', 'welcome_channel', 'log_channel',
-      'mod_role', 'admin_role', 'mute_role', 'verification_role',
-      'ticket_category', 'max_joins', 'join_time_window', 'raid_action',
-      'account_age_requirement', 'verification_timeout', 'heat_threshold',
-      'auto_mod_spam', 'auto_mod_links', 'auto_mod_invites',
-      'auto_mod_caps', 'auto_mod_mentions', 'snapshot_interval'
+      "anti_raid_enabled",
+      "anti_nuke_enabled",
+      "heat_system_enabled",
+      "auto_mod_enabled",
+      "join_gate_enabled",
+      "verification_enabled",
+      "mod_log_channel",
+      "alert_channel",
+      "welcome_channel",
+      "log_channel",
+      "mod_role",
+      "admin_role",
+      "mute_role",
+      "verification_role",
+      "ticket_category",
+      "max_joins",
+      "join_time_window",
+      "raid_action",
+      "account_age_requirement",
+      "verification_timeout",
+      "heat_threshold",
+      "auto_mod_spam",
+      "auto_mod_links",
+      "auto_mod_invites",
+      "auto_mod_caps",
+      "auto_mod_mentions",
+      "snapshot_interval",
     ];
 
     // Filter data to only allowed keys
@@ -1649,8 +1668,15 @@ class Database {
   async updateWorkflow(workflowId, updates) {
     // WHITELIST allowed workflow fields (prevent SQL injection)
     const ALLOWED_WORKFLOW_FIELDS = [
-      'name', 'description', 'enabled', 'trigger_type', 'trigger_config',
-      'actions', 'cooldown', 'priority', 'updated_at'
+      "name",
+      "description",
+      "enabled",
+      "trigger_type",
+      "trigger_config",
+      "actions",
+      "cooldown",
+      "priority",
+      "updated_at",
     ];
 
     // Filter updates to only allowed fields
@@ -1904,8 +1930,13 @@ class Database {
   async updateAPIKey(keyId, updates) {
     // WHITELIST allowed API key fields (prevent SQL injection)
     const ALLOWED_API_KEY_FIELDS = [
-      'name', 'rate_limit', 'enabled', 'last_used', 
-      'requests_today', 'total_requests', 'discord_user_id'
+      "name",
+      "rate_limit",
+      "enabled",
+      "last_used",
+      "requests_today",
+      "total_requests",
+      "discord_user_id",
     ];
 
     // Filter updates to only allowed fields
@@ -3295,7 +3326,7 @@ class Database {
   ) {
     return new Promise((resolve, reject) => {
       const now = Date.now();
-      
+
       // Store anonymously first, will be associated with user later
       this.db.run(
         "INSERT INTO pending_invite_sources (user_id, source, timestamp, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)",
@@ -3312,7 +3343,10 @@ class Database {
             [now, source],
             (err2) => {
               // Don't fail if source doesn't exist yet
-              if (err2) console.log(`[Invite Tracking] Note: Source '${source}' not found in invite_sources table`);
+              if (err2)
+                console.log(
+                  `[Invite Tracking] Note: Source '${source}' not found in invite_sources table`
+                );
               resolve();
             }
           );
