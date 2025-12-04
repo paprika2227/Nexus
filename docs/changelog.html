@@ -84,8 +84,24 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.8.0 - December 4, 2025</h2>
+          <h2>Version 3.8.1 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔧 Bug Fix - Quicksetup Channel Creation</h3>
+          <ul>
+            <li>
+              <strong>Fixed "No valid configuration keys provided" error:</strong>
+              <ul>
+                <li>✅ Changed <code>log_channel_id</code> to correct column name <code>mod_log_channel</code></li>
+                <li>✅ Channel now saves to database successfully after creation</li>
+                <li>✅ Fixed in 3 locations (channel creation, existing channel selection, status display)</li>
+                <li>✅ No more false "failed" messages when channel is created successfully</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.8.0 - December 4, 2025</h2>
           <h3>🐛 Critical Bug Fix - Database Errors</h3>
           <ul>
             <li>

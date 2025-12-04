@@ -152,7 +152,7 @@ module.exports = {
                 });
 
                 await db.setServerConfig(guild.id, {
-                  log_channel_id: logChannel.id,
+                  mod_log_channel: logChannel.id,
                 });
 
                 await btnInt.update({
@@ -192,7 +192,7 @@ module.exports = {
           });
         } else {
           await db.setServerConfig(guild.id, {
-            log_channel_id: logChannel.id,
+            mod_log_channel: logChannel.id,
           });
 
           await i.reply({
@@ -258,8 +258,8 @@ module.exports = {
                 },
                 {
                   name: "Logging",
-                  value: config?.log_channel_id
-                    ? `✅ <#${config.log_channel_id}>`
+                  value: config?.mod_log_channel
+                    ? `✅ <#${config.mod_log_channel}>`
                     : "❌ Not set",
                   inline: true,
                 }
