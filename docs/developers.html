@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>For Developers - Nexus Bot API</title>
+  <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/avatars/1444739230679957646/32f2d77d44c2f3989fecd858be53f396.webp?size=256">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="pages.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="nav-brand">NEXUS</a>
+      <div class="nav-right">
+        <a href="api.html" class="btn-nav">API Docs</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-header">
+    <div class="container">
+      <h1>💻 For Developers</h1>
+      <p>Build integrations, dashboards, and tools with Nexus API</p>
+    </div>
+  </div>
+
+  <div class="content-section">
+    <div class="container">
+      <div class="feature-category">
+        <h2>📚 Quick Start Libraries</h2>
+        <p>Official and community wrappers for Nexus API</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin: 30px 0;">
+          <div class="feature-detailed">
+            <h3>🟨 JavaScript / Node.js</h3>
+            <pre style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; font-size: 0.9rem;"><code>npm install nexus-api-wrapper
+
+const Nexus = require('nexus-api-wrapper');
+const api = new Nexus({ apiKey: 'YOUR_KEY' });
+
+// Get bot stats
+const stats = await api.getStats();
+console.log(stats.servers);
+
+// Get server health
+const health = await api.getServerHealth('GUILD_ID');</code></pre>
+            <p style="opacity: 0.8; font-size: 0.9rem;">⚠️ Coming soon - use fetch() for now</p>
+          </div>
+
+          <div class="feature-detailed">
+            <h3>🐍 Python</h3>
+            <pre style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; font-size: 0.9rem;"><code>pip install nexus-api
+
+import nexus
+
+api = nexus.Client(api_key='YOUR_KEY')
+
+# Get bot stats
+stats = api.get_stats()
+print(f"Servers: {stats['servers']}")
+
+# Get growth data
+growth = api.get_growth()</code></pre>
+            <p style="opacity: 0.8; font-size: 0.9rem;">⚠️ Coming soon - use requests library for now</p>
+          </div>
+
+          <div class="feature-detailed">
+            <h3>🦀 Rust</h3>
+            <pre style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; font-size: 0.9rem;"><code>cargo add nexus-api
+
+use nexus_api::Client;
+
+let api = Client::new("YOUR_KEY");
+
+// Get stats
+let stats = api.get_stats().await?;
+println!("Servers: {}", stats.servers);</code></pre>
+            <p style="opacity: 0.8; font-size: 0.9rem;">⚠️ Coming soon - use reqwest for now</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-category">
+        <h2>🔧 Code Examples</h2>
+
+        <div class="feature-detailed">
+          <h3>Monitor Bot Health</h3>
+          <pre style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; overflow-x: auto;"><code>// Check if Nexus is online
+async function isNexusOnline() {
+  const response = await fetch('https://regular-puma-clearly.ngrok-free.app/api/v1/health');
+  const health = await response.json();
+  return health.status === 'operational';
+}
+
+// Monitor uptime
+setInterval(async () => {
+  const online = await isNexusOnline();
+  if (!online) {
+    console.log('⚠️ Nexus is down!');
+    // Send alert
+  }
+}, 60000); // Check every minute</code></pre>
+        </div>
+
+        <div class="feature-detailed">
+          <h3>Track Server Growth</h3>
+          <pre style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; overflow-x: auto;"><code>// Get growth trends
+const growth = await fetch('https://regular-puma-clearly.ngrok-free.app/api/v1/growth')
+  .then(r => r.json());
+
+console.log(`Net Growth: ${growth.netGrowth} servers`);
+console.log(`Current: ${growth.currentServers} servers`);
+
+// Create chart
+const dates = growth.joins.map(j => j.date);
+const values = growth.joins.map(j => j.joins);
+// Use with Chart.js or similar</code></pre>
+        </div>
+
+        <div class="feature-detailed">
+          <h3>Display Live Stats Widget</h3>
+          <pre style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; overflow-x: auto;"><code>// Update website with live stats
+async function updateStats() {
+  const stats = await fetch('https://regular-puma-clearly.ngrok-free.app/api/v1/stats')
+    .then(r => r.json());
+  
+  document.getElementById('servers').textContent = stats.serverCount;
+  document.getElementById('users').textContent = stats.userCount.toLocaleString();
+  document.getElementById('uptime').textContent = stats.uptime + ' min';
+}
+
+// Update every 30 seconds
+setInterval(updateStats, 30000);
+updateStats();</code></pre>
+        </div>
+
+        <div class="feature-detailed">
+          <h3>Performance Monitoring Dashboard</h3>
+          <pre style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; overflow-x: auto;"><code>// Build a performance dashboard
+const perf = await fetch('https://regular-puma-clearly.ngrok-free.app/api/v1/performance')
+  .then(r => r.json());
+
+console.log(`Response Time: ${perf.responseTime.current}ms`);
+console.log(`Memory Usage: ${perf.memory.percentage}%`);
+console.log(`Uptime: ${perf.uptime.percentage}%`);
+
+// Alert if performance degrades
+if (perf.responseTime.current > 200) {
+  alert('⚠️ High latency detected!');
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="feature-category">
+        <h2>🛠️ Tools & Resources</h2>
+        <ul style="list-style: none; padding: 0;">
+          <li style="padding: 15px; background: rgba(255,255,255,0.05); margin: 10px 0; border-radius: 10px;">
+            <strong>📘 API Documentation:</strong> <a href="api.html">Full API Reference</a>
+          </li>
+          <li style="padding: 15px; background: rgba(255,255,255,0.05); margin: 10px 0; border-radius: 10px;">
+            <strong>⚡ Quick Start:</strong> <a href="api-quickstart.html">5-Minute Tutorial</a>
+          </li>
+          <li style="padding: 15px; background: rgba(255,255,255,0.05); margin: 10px 0; border-radius: 10px;">
+            <strong>📮 Postman Collection:</strong> <a href="Nexus-API-Collection.postman_collection.json">Download</a>
+          </li>
+          <li style="padding: 15px; background: rgba(255,255,255,0.05); margin: 10px 0; border-radius: 10px;">
+            <strong>💬 Support:</strong> <a href="https://discord.gg/UHNcUKheZP" target="_blank">Join Discord</a>
+          </li>
+          <li style="padding: 15px; background: rgba(255,255,255,0.05); margin: 10px 0; border-radius: 10px;">
+            <strong>💻 GitHub:</strong> <a href="https://github.com/Azzraya/Nexus" target="_blank">View Source</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-category">
+        <h2>🎯 Use Cases</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 30px 0;">
+          <div class="feature-detailed">
+            <h3>📊 Analytics Dashboard</h3>
+            <p>Build custom analytics using growth, performance, and command data</p>
+          </div>
+          <div class="feature-detailed">
+            <h3>🔔 Uptime Monitoring</h3>
+            <p>Monitor bot health and get alerts when issues occur</p>
+          </div>
+          <div class="feature-detailed">
+            <h3>📈 Growth Tracker</h3>
+            <p>Track server growth over time with historical data</p>
+          </div>
+          <div class="feature-detailed">
+            <h3>🎨 Custom Widgets</h3>
+            <p>Embed live stats on your website or Discord</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cta-box">
+        <h2>🚀 Start Building</h2>
+        <p>Got questions? Join our Discord for API support!</p>
+        <a href="https://discord.gg/UHNcUKheZP" class="btn btn-primary" target="_blank">Join Support Server</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
