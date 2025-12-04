@@ -54,7 +54,7 @@ module.exports = {
       }
     } catch (error) {
       logger.error("Refer Command Error:", error);
-      
+
       // Check if interaction has already been replied to
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
@@ -261,7 +261,8 @@ module.exports = {
   async getReferralStats(userId) {
     // Initialize referral table if not exists
     await new Promise((resolve, reject) => {
-      db.db.run(`
+      db.db.run(
+        `
         CREATE TABLE IF NOT EXISTS referrals (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id TEXT NOT NULL,
@@ -269,18 +270,26 @@ module.exports = {
           created_at INTEGER DEFAULT (strftime('%s', 'now')),
           status TEXT DEFAULT 'active'
         )
-      `, (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
+      `,
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
     });
 
     await new Promise((resolve) => {
-      db.db.run(`CREATE INDEX IF NOT EXISTS idx_referrals_user ON referrals(user_id)`, () => resolve());
+      db.db.run(
+        `CREATE INDEX IF NOT EXISTS idx_referrals_user ON referrals(user_id)`,
+        () => resolve()
+      );
     });
 
     await new Promise((resolve) => {
-      db.db.run(`CREATE INDEX IF NOT EXISTS idx_referrals_guild ON referrals(guild_id)`, () => resolve());
+      db.db.run(
+        `CREATE INDEX IF NOT EXISTS idx_referrals_guild ON referrals(guild_id)`,
+        () => resolve()
+      );
     });
 
     // Get stats
@@ -311,16 +320,19 @@ module.exports = {
 
     // Get rank
     const rankResult = await new Promise((resolve, reject) => {
-      db.db.all(`
+      db.db.all(
+        `
         SELECT user_id, COUNT(*) as count
         FROM referrals
         WHERE status = 'active'
         GROUP BY user_id
         ORDER BY count DESC
-      `, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
+      `,
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
     });
 
     let rank = 0;
@@ -378,7 +390,8 @@ module.exports = {
 
     try {
       await new Promise((resolve, reject) => {
-        db.db.run(`
+        db.db.run(
+          `
           CREATE TABLE IF NOT EXISTS referrals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,
@@ -386,10 +399,12 @@ module.exports = {
             created_at INTEGER DEFAULT (strftime('%s', 'now')),
             status TEXT DEFAULT 'active'
           )
-        `, (err) => {
-          if (err) reject(err);
-          else resolve();
-        });
+        `,
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
       });
 
       // Check if already tracked
