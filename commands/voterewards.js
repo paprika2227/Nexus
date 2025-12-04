@@ -1,15 +1,15 @@
 const {
   SlashCommandBuilder,
   EmbedBuilder,
-  PermissionFlagsBits,
+  MessageFlags,
 } = require("discord.js");
 const db = require("../utils/database");
+const Owner = require("../utils/owner");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("voterewards")
-    .setDescription("Configure automatic vote rewards")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDescription("Configure automatic vote rewards (Owner only)")
     .addSubcommand((subcommand) =>
       subcommand
         .setName("setup")
@@ -45,6 +45,14 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    // Owner only
+    if (!Owner.isOwner(interaction.user.id)) {
+      return interaction.reply({
+        content: "❌ Only the bot owner can configure vote rewards.",
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
     const subcommand = interaction.options.getSubcommand();
 
     if (subcommand === "setup") {
