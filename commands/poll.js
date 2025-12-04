@@ -177,7 +177,7 @@ module.exports = {
     
     try {
       const message = await interaction.channel.messages.fetch(messageId);
-      await this.endPoll(messageId, interaction.guild.id, interaction.client);
+      await this.endPoll(message, interaction.guild.id);
       
       await interaction.reply({
         content: "✅ Poll ended!",
@@ -185,7 +185,7 @@ module.exports = {
       });
     } catch (error) {
       await interaction.reply({
-        content: "❌ Could not find poll message!",
+        content: `❌ Error: ${error.message}`,
         ephemeral: true
       });
     }
@@ -245,14 +245,11 @@ module.exports = {
     }
   },
 
-  async endPoll(messageId, guildId, client) {
-    const pollData = await this.getPoll(messageId, guildId);
+  async endPoll(message, guildId) {
+    const pollData = await this.getPoll(message.id, guildId);
     if (!pollData || !pollData.active) return;
 
     try {
-      const guild = await client.guilds.fetch(guildId);
-      const channel = await guild.channels.fetch(pollData.channelId);
-      const message = await channel.messages.fetch(messageId);
 
       const emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
       const reactions = message.reactions.cache;
@@ -288,7 +285,7 @@ module.exports = {
       await message.edit({ embeds: [embed] });
 
       // Mark as ended in database
-      await this.updatePollStatus(messageId, guildId, false);
+      await this.updatePollStatus(message.id, guildId, false);
     } catch (error) {
       console.error("[Poll] Failed to end poll:", error);
     }
