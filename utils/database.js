@@ -1320,8 +1320,32 @@ class Database {
     const cache = require("./cache");
     cache.delete(`config_${guildId}`);
 
-    const keys = Object.keys(data);
-    const values = Object.values(data);
+    // WHITELIST allowed config keys (prevent SQL injection)
+    const ALLOWED_CONFIG_KEYS = [
+      'anti_raid_enabled', 'anti_nuke_enabled', 'heat_system_enabled',
+      'auto_mod_enabled', 'join_gate_enabled', 'verification_enabled',
+      'mod_log_channel', 'alert_channel', 'welcome_channel', 'log_channel',
+      'mod_role', 'admin_role', 'mute_role', 'verification_role',
+      'ticket_category', 'max_joins', 'join_time_window', 'raid_action',
+      'account_age_requirement', 'verification_timeout', 'heat_threshold',
+      'auto_mod_spam', 'auto_mod_links', 'auto_mod_invites',
+      'auto_mod_caps', 'auto_mod_mentions', 'snapshot_interval'
+    ];
+
+    // Filter data to only allowed keys
+    const filteredData = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (ALLOWED_CONFIG_KEYS.includes(key)) {
+        filteredData[key] = value;
+      }
+    }
+
+    if (Object.keys(filteredData).length === 0) {
+      return Promise.reject(new Error("No valid configuration keys provided"));
+    }
+
+    const keys = Object.keys(filteredData);
+    const values = Object.values(filteredData);
     const placeholders = keys.map(() => "?").join(", ");
     const updateClause = keys.map((k) => `${k} = ?`).join(", ");
 
@@ -1623,8 +1647,26 @@ class Database {
   }
 
   async updateWorkflow(workflowId, updates) {
-    const keys = Object.keys(updates);
-    const values = Object.values(updates);
+    // WHITELIST allowed workflow fields (prevent SQL injection)
+    const ALLOWED_WORKFLOW_FIELDS = [
+      'name', 'description', 'enabled', 'trigger_type', 'trigger_config',
+      'actions', 'cooldown', 'priority', 'updated_at'
+    ];
+
+    // Filter updates to only allowed fields
+    const filteredUpdates = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (ALLOWED_WORKFLOW_FIELDS.includes(key)) {
+        filteredUpdates[key] = value;
+      }
+    }
+
+    if (Object.keys(filteredUpdates).length === 0) {
+      return Promise.reject(new Error("No valid workflow fields to update"));
+    }
+
+    const keys = Object.keys(filteredUpdates);
+    const values = Object.values(filteredUpdates);
     const setClause = keys.map((k) => `${k} = ?`).join(", ");
 
     const processedValues = values.map((v) => {
@@ -1860,8 +1902,26 @@ class Database {
   }
 
   async updateAPIKey(keyId, updates) {
-    const keys = Object.keys(updates);
-    const values = Object.values(updates);
+    // WHITELIST allowed API key fields (prevent SQL injection)
+    const ALLOWED_API_KEY_FIELDS = [
+      'name', 'rate_limit', 'enabled', 'last_used', 
+      'requests_today', 'total_requests', 'discord_user_id'
+    ];
+
+    // Filter updates to only allowed fields
+    const filteredUpdates = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (ALLOWED_API_KEY_FIELDS.includes(key)) {
+        filteredUpdates[key] = value;
+      }
+    }
+
+    if (Object.keys(filteredUpdates).length === 0) {
+      return Promise.reject(new Error("No valid API key fields to update"));
+    }
+
+    const keys = Object.keys(filteredUpdates);
+    const values = Object.values(filteredUpdates);
     const setClause = keys.map((k) => `${k} = ?`).join(", ");
 
     return new Promise((resolve, reject) => {

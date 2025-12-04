@@ -10,6 +10,7 @@ class DashboardServer {
     this.client = client;
     this.app = express();
     this.rateLimitStore = new Map(); // IP -> { count, resetTime }
+    this.adminTokens = new Map(); // token -> { created, expires }
 
     // Middleware
     this.app.use(express.json());
@@ -433,9 +434,25 @@ class DashboardServer {
         }
 
         if (password === adminPassword) {
-          // Generate simple token (in production, use JWT)
-          const token = Buffer.from(`admin:${Date.now()}`).toString("base64");
-          res.json({ success: true, token });
+          // Generate secure token using crypto (not predictable)
+          const crypto = require('crypto');
+          const token = crypto.randomBytes(32).toString('hex');
+          const expires = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+
+          // Store token in memory (in production, use Redis/database)
+          if (!this.adminTokens) {
+            this.adminTokens = new Map();
+          }
+          this.adminTokens.set(token, { created: Date.now(), expires });
+
+          // Clean expired tokens
+          for (const [t, data] of this.adminTokens.entries()) {
+            if (Date.now() > data.expires) {
+              this.adminTokens.delete(t);
+            }
+          }
+
+          res.json({ success: true, token, expires });
         } else {
           res.status(401).json({ error: "Invalid password" });
         }
@@ -450,6 +467,19 @@ class DashboardServer {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
           return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const token = authHeader.replace("Bearer ", "");
+        
+        // Validate admin token
+        if (!this.adminTokens || !this.adminTokens.has(token)) {
+          return res.status(401).json({ error: "Invalid or expired token" });
+        }
+
+        const tokenData = this.adminTokens.get(token);
+        if (Date.now() > tokenData.expires) {
+          this.adminTokens.delete(token);
+          return res.status(401).json({ error: "Token expired" });
         }
 
         const incident = {
@@ -1655,8 +1685,8 @@ class DashboardServer {
           params.push(`%${user}%`, `%${user}%`);
         }
 
-        // Log type filter
-        const tables = {
+        // Log type filter - WHITELIST ONLY (prevent SQL injection)
+        const ALLOWED_TABLES = {
           moderation: "moderation_logs",
           security: "security_logs",
           raid: "anti_raid_logs",
@@ -1664,20 +1694,34 @@ class DashboardServer {
         };
 
         const searchType = type || "all";
+        
+        // Validate searchType is in whitelist
+        if (!ALLOWED_TABLES.hasOwnProperty(searchType)) {
+          return res.status(400).json({ error: "Invalid log type" });
+        }
+
         const tablesToSearch =
           searchType === "all"
             ? ["moderation_logs", "security_logs", "anti_raid_logs"]
-            : [tables[searchType]];
+            : [ALLOWED_TABLES[searchType]];
 
         let allLogs = [];
 
         for (const table of tablesToSearch) {
+          // Validate table is in allowed list (extra safety)
+          const allowedTableNames = ["moderation_logs", "security_logs", "anti_raid_logs"];
+          if (!allowedTableNames.includes(table)) {
+            continue; // Skip invalid tables
+          }
+
           const whereClause =
             conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-          query = `SELECT *, '${table}' as log_type FROM ${table} ${whereClause} ORDER BY timestamp DESC LIMIT ${limit} OFFSET ${offset}`;
+          
+          // Use parameterized table name through whitelist - safe from SQL injection
+          query = `SELECT *, ? as log_type FROM ${table} ${whereClause} ORDER BY timestamp DESC LIMIT ? OFFSET ?`;
 
           const logs = await new Promise((resolve, reject) => {
-            db.db.all(query, params, (err, rows) => {
+            db.db.all(query, [table, ...params, limit, offset], (err, rows) => {
               if (err) reject(err);
               else resolve(rows || []);
             });
@@ -1693,6 +1737,12 @@ class DashboardServer {
         // Get total count
         let totalCount = 0;
         for (const table of tablesToSearch) {
+          // Validate table again
+          const allowedTableNames = ["moderation_logs", "security_logs", "anti_raid_logs"];
+          if (!allowedTableNames.includes(table)) {
+            continue;
+          }
+
           const whereClause =
             conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
           const countQuery = `SELECT COUNT(*) as count FROM ${table} ${whereClause}`;
