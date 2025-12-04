@@ -8,8 +8,15 @@ const InputValidator = require("../utils/inputValidator");
 module.exports = {
   name: "interactionCreate",
   async execute(interaction, client) {
-    // Handle modal submissions (captcha verification)
+    // Handle modal submissions
     if (interaction.type === InteractionType.ModalSubmit) {
+      // Testimonial submission
+      if (interaction.customId === "testimonial_submit") {
+        const testimonialCmd = require("../commands/testimonial");
+        return testimonialCmd.handleTestimonialSubmit(interaction);
+      }
+
+      // Captcha verification
       if (interaction.customId.startsWith("captcha_modal_")) {
         const verificationId = interaction.customId.split("_")[2];
         const answer = interaction.fields.getTextInputValue("captcha_answer");
