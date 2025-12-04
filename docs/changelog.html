@@ -60,8 +60,28 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.3.5 - December 4, 2025</h2>
+          <h2>Version 3.3.6 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔧 Improved Top.gg Error Handling</h3>
+          <ul>
+            <li>
+              <strong>Suppressed 504 Gateway Timeout Errors:</strong> These are now logged as warnings instead of errors (Top.gg API being slow)
+            </li>
+            <li>
+              <strong>Suppressed 503 Service Unavailable:</strong> Temporary Top.gg outages logged as warnings
+            </li>
+            <li>
+              <strong>Better Error Messages:</strong> Clearer logging for non-critical API issues
+            </li>
+            <li>
+              <strong>Auto-Retry:</strong> All suppressed errors will automatically retry in 1 hour
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.3.5 - December 4, 2025</h2>
+          <span class="version-badge">Previous</span>
           <h3>🔧 Mega-Menu Height Fix</h3>
           <ul>
             <li>

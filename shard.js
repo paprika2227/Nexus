@@ -35,10 +35,17 @@ if (process.env.TOPGG_TOKEN) {
     });
 
     ap.on("error", (error) => {
-      // 429 errors are expected after bot restarts (rate limit)
-      if (error.message && error.message.includes("429")) {
+      const errorMsg = error.message || error.toString();
+      
+      // Suppress common non-critical errors
+      if (errorMsg.includes("429")) {
         console.log("⚠️ [Top.gg] Rate limited (429) - will retry in 1 hour");
+      } else if (errorMsg.includes("504") || errorMsg.includes("Gateway Timeout")) {
+        console.log("⚠️ [Top.gg] Gateway timeout (504) - Top.gg API slow, will retry in 1 hour");
+      } else if (errorMsg.includes("503") || errorMsg.includes("Service Unavailable")) {
+        console.log("⚠️ [Top.gg] Service unavailable (503) - will retry in 1 hour");
       } else {
+        // Only log actual errors (connection issues, auth problems, etc.)
         console.error("❌ [Top.gg] Error posting stats:", error.message);
       }
     });
