@@ -861,14 +861,51 @@ class AdvancedAntiNuke {
           );
           if (botMemberCheck && member.roles.highest) {
             logger.error(
-              `[Anti-Nuke] Bot role position: ${botMemberCheck.roles.highest.position}, Attacker role position: ${member.roles.highest.position}`
+              `[Anti-Nuke] Role hierarchy issue: Bot position ${botMemberCheck.roles.highest.position}, Attacker position ${member.roles.highest.position}`
             );
-            logger.error(
-              `[Anti-Nuke] ⚠️ ROLE HIERARCHY ISSUE: The attacker's role is at or above the bot's role position. ` +
-                `Even with Administrator permission, Discord requires role hierarchy for moderation actions. ` +
-                `SOLUTION: Position the bot's role ABOVE all other roles in Server Settings → Roles. ` +
-                `Use /security rolecheck for detailed instructions.`
-            );
+            
+            // Send detailed explanation to Discord alert channel
+            const config = await db.getServerConfig(guild.id);
+            const alertChannelId = config?.alert_channel || config?.mod_log_channel;
+            if (alertChannelId) {
+              try {
+                const channel = guild.channels.cache.get(alertChannelId);
+                if (channel) {
+                  const { EmbedBuilder } = require("discord.js");
+                  await channel.send({
+                    embeds: [
+                      new EmbedBuilder()
+                        .setTitle("⚠️ Role Hierarchy Issue")
+                        .setDescription(
+                          `**Anti-Nuke could not take action against <@${userId}>**\n\n` +
+                          `The attacker's role is at or above the bot's role position.\n` +
+                          `Even with Administrator permission, Discord requires role hierarchy for moderation actions.`
+                        )
+                        .addFields(
+                          {
+                            name: "Bot Role Position",
+                            value: `${botMemberCheck.roles.highest.position}`,
+                            inline: true,
+                          },
+                          {
+                            name: "Attacker Role Position",
+                            value: `${member.roles.highest.position}`,
+                            inline: true,
+                          },
+                          {
+                            name: "Solution",
+                            value: "Position the bot's role **ABOVE** all other roles in `Server Settings → Roles`.\n\nUse `/security rolecheck` for detailed instructions.",
+                          }
+                        )
+                        .setColor(0xFF0000)
+                        .setTimestamp()
+                    ]
+                  });
+                }
+              } catch (alertError) {
+                logger.debug(`[Anti-Nuke] Could not send role hierarchy alert:`, alertError.message);
+              }
+            }
           }
 
           // Try to remove all roles one more time (aggressive)
