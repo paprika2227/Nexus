@@ -2776,8 +2776,107 @@ class DashboardServer {
       }
     });
 
+    // ==================== REFERRAL TRACKING API ====================
+
+    // POST /api/v1/referral/track - Track a referral from OAuth redirect
+    this.app.post("/api/v1/referral/track", async (req, res) => {
+      try {
+        const { referrerId, source, timestamp } = req.body;
+
+        if (!referrerId) {
+          return res.status(400).json({ error: "referrerId required" });
+        }
+
+        // Store in pending_referrals table for later association with guild
+        const db = require("../utils/database");
+
+        // Create table if not exists
+        await new Promise((resolve, reject) => {
+          db.db.run(
+            `
+            CREATE TABLE IF NOT EXISTS pending_referrals (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              referrer_id TEXT NOT NULL,
+              user_id TEXT,
+              source TEXT DEFAULT 'direct',
+              timestamp INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+              tracked INTEGER DEFAULT 0
+            )
+          `,
+            (err) => {
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+
+        // Store the pending referral
+        // Note: We don't know user_id yet (that comes after OAuth)
+        // This will be matched later when guild joins
+        await new Promise((resolve, reject) => {
+          db.db.run(
+            "INSERT INTO pending_referrals (referrer_id, source, timestamp) VALUES (?, ?, ?)",
+            [referrerId, source || "direct", timestamp || Date.now()],
+            (err) => {
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+
+        res.json({ success: true, message: "Referral tracked" });
+      } catch (error) {
+        console.error("Referral tracking error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // POST /api/v1/track-click - Track invite click from any source
+    this.app.post("/api/v1/track-click", async (req, res) => {
+      try {
+        const { source, referrer, timestamp } = req.body;
+
+        // Log click for analytics
+        const db = require("../utils/database");
+
+        await new Promise((resolve, reject) => {
+          db.db.run(
+            `
+            CREATE TABLE IF NOT EXISTS invite_clicks (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              source TEXT NOT NULL,
+              referrer TEXT,
+              timestamp INTEGER DEFAULT (strftime('%s', 'now') * 1000)
+            )
+          `,
+            (err) => {
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+
+        await new Promise((resolve, reject) => {
+          db.db.run(
+            "INSERT INTO invite_clicks (source, referrer, timestamp) VALUES (?, ?, ?)",
+            [source || "direct", referrer || "", timestamp || Date.now()],
+            (err) => {
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Click tracking error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     console.log("[API] Public API v1 endpoints registered");
     console.log("[API] 🔥 POWERFUL API v2 - 35 endpoints active!");
+    console.log("[Referral] Referral tracking system active");
     console.log("[IP Logging] IP tracking active");
   }
 

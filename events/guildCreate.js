@@ -16,7 +16,7 @@ module.exports = {
         // Query database for any pending invite tracking for this user
         const trackedSource = await new Promise((resolve) => {
           db.db.get(
-            'SELECT source FROM pending_invite_sources WHERE user_id = ? ORDER BY timestamp DESC LIMIT 1',
+            "SELECT source FROM pending_invite_sources WHERE user_id = ? ORDER BY timestamp DESC LIMIT 1",
             [owner.id],
             (err, row) => {
               if (err || !row) resolve(null);
@@ -28,7 +28,9 @@ module.exports = {
         if (trackedSource) {
           inviteSource = trackedSource;
           // Clean up the pending tracking
-          db.db.run('DELETE FROM pending_invite_sources WHERE user_id = ?', [owner.id]);
+          db.db.run("DELETE FROM pending_invite_sources WHERE user_id = ?", [
+            owner.id,
+          ]);
         }
       }
 
@@ -39,18 +41,96 @@ module.exports = {
         guild.name,
         guild.memberCount || 0
       );
-      
+
       console.log(`   📊 Tracked join from source: ${inviteSource}`);
 
+      // Track referral if present (ref parameter in invite URL)
+      try {
+        // Check if this is a referral (ref=userId in OAuth URL)
+        // The ref parameter would have been passed during OAuth flow
+        // We'll check the guild's vanity URL or look for stored referrer data
+        const referCommand = require("../commands/refer");
+
+        // Try to extract referrer from stored data (if OAuth included ref parameter)
+        // For now, we'll check if there's a stored referrer for this guild owner
+        const owner = await guild.fetchOwner().catch(() => null);
+        if (owner) {
+          const referrerData = await new Promise((resolve) => {
+            db.db.get(
+              "SELECT referrer_id FROM pending_referrals WHERE user_id = ? ORDER BY timestamp DESC LIMIT 1",
+              [owner.id],
+              (err, row) => {
+                if (err || !row) resolve(null);
+                else resolve(row.referrer_id);
+              }
+            );
+          });
+
+          if (referrerData) {
+            await referCommand.trackReferral(guild.id, referrerData);
+            console.log(
+              `   🎯 Referral tracked: ${referrerData} referred this guild`
+            );
+
+            // Clean up pending referral
+            db.db.run("DELETE FROM pending_referrals WHERE user_id = ?", [
+              owner.id,
+            ]);
+
+            // Notify referrer
+            try {
+              const referrer = await client.users
+                .fetch(referrerData)
+                .catch(() => null);
+              if (referrer) {
+                const stats = await referCommand.getReferralStats(referrerData);
+                await referrer
+                  .send({
+                    embeds: [
+                      {
+                        title: "🎉 New Referral!",
+                        description: `Someone just added Nexus to **${guild.name}** using your referral link!`,
+                        color: 0x00ff00,
+                        fields: [
+                          {
+                            name: "📊 Your Stats",
+                            value: `Total Referrals: **${stats.totalReferrals}**\nActive Referrals: **${stats.activeReferrals}**\nRank: **#${stats.rank}**`,
+                            inline: false,
+                          },
+                        ],
+                        footer: {
+                          text: "Use /refer stats to see full details",
+                        },
+                        timestamp: new Date().toISOString(),
+                      },
+                    ],
+                  })
+                  .catch(() => {});
+              }
+            } catch (notifyError) {
+              console.error("Failed to notify referrer:", notifyError.message);
+            }
+          }
+        }
+      } catch (referralError) {
+        console.error("Failed to track referral:", referralError.message);
+      }
+
       // Send webhook notification to admin
-      if (process.env.ADMIN_WEBHOOK_URL && process.env.ADMIN_WEBHOOK_URL !== 'https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN') {
+      if (
+        process.env.ADMIN_WEBHOOK_URL &&
+        process.env.ADMIN_WEBHOOK_URL !==
+          "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+      ) {
         try {
           const owner = await guild.fetchOwner().catch(() => null);
-          
+
           // Get conversion stats for this source
           const sourceStats = await db.getInviteSourceStats().catch(() => []);
-          const thisSourceStats = sourceStats.find(s => s.source === inviteSource);
-          
+          const thisSourceStats = sourceStats.find(
+            (s) => s.source === inviteSource
+          );
+
           // Check for milestones
           const totalServers = client.guilds.cache.size;
           const milestones = [20, 50, 100, 250, 500, 1000];
@@ -58,51 +138,68 @@ module.exports = {
 
           const webhook = {
             username: "Nexus Growth Tracker",
-            avatar_url: "https://cdn.discordapp.com/avatars/1444739230679957646/32f2d77d44c2f3989fecd858be53f396.webp",
-            embeds: [{
-              title: hitMilestone ? `🎊 MILESTONE: ${totalServers} SERVERS! 🎊` : "🎉 New Server Joined!",
-              color: hitMilestone ? 0xffd700 : 0x10b981,
-              description: hitMilestone ? `**Congratulations! You just hit ${totalServers} servers!** 🚀` : null,
-              thumbnail: {
-                url: guild.iconURL() || "https://cdn.discordapp.com/avatars/1444739230679957646/32f2d77d44c2f3989fecd858be53f396.webp"
-              },
-              fields: [
-                {
-                  name: "📋 Server Info",
-                  value: `**${guild.name}**\nID: \`${guild.id}\`\nMembers: **${guild.memberCount || 0}**`,
-                  inline: true
+            avatar_url:
+              "https://cdn.discordapp.com/avatars/1444739230679957646/32f2d77d44c2f3989fecd858be53f396.webp",
+            embeds: [
+              {
+                title: hitMilestone
+                  ? `🎊 MILESTONE: ${totalServers} SERVERS! 🎊`
+                  : "🎉 New Server Joined!",
+                color: hitMilestone ? 0xffd700 : 0x10b981,
+                description: hitMilestone
+                  ? `**Congratulations! You just hit ${totalServers} servers!** 🚀`
+                  : null,
+                thumbnail: {
+                  url:
+                    guild.iconURL() ||
+                    "https://cdn.discordapp.com/avatars/1444739230679957646/32f2d77d44c2f3989fecd858be53f396.webp",
                 },
-                {
-                  name: "👑 Owner",
-                  value: owner ? `${owner.user.tag}\n\`${owner.id}\`` : "Unknown",
-                  inline: true
+                fields: [
+                  {
+                    name: "📋 Server Info",
+                    value: `**${guild.name}**\nID: \`${
+                      guild.id
+                    }\`\nMembers: **${guild.memberCount || 0}**`,
+                    inline: true,
+                  },
+                  {
+                    name: "👑 Owner",
+                    value: owner
+                      ? `${owner.user.tag}\n\`${owner.id}\``
+                      : "Unknown",
+                    inline: true,
+                  },
+                  {
+                    name: "📊 Invite Source",
+                    value: `**${inviteSource}**${
+                      thisSourceStats
+                        ? `\n${thisSourceStats.total_joins} total joins from this source`
+                        : ""
+                    }`,
+                    inline: true,
+                  },
+                ],
+                footer: {
+                  text: `Total Servers: ${client.guilds.cache.size} | v3.1.0`,
                 },
-                {
-                  name: "📊 Invite Source",
-                  value: `**${inviteSource}**${thisSourceStats ? `\n${thisSourceStats.total_joins} total joins from this source` : ''}`,
-                  inline: true
-                }
-              ],
-              footer: {
-                text: `Total Servers: ${client.guilds.cache.size} | v3.1.0`
+                timestamp: new Date().toISOString(),
               },
-              timestamp: new Date().toISOString()
-            }]
+            ],
           };
 
           // Send to webhook
-          const https = require('https');
+          const https = require("https");
           const url = new URL(process.env.ADMIN_WEBHOOK_URL);
           const postData = JSON.stringify(webhook);
 
           const options = {
             hostname: url.hostname,
             path: url.pathname + url.search,
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': Buffer.byteLength(postData)
-            }
+              "Content-Type": "application/json",
+              "Content-Length": Buffer.byteLength(postData),
+            },
           };
 
           const req = https.request(options);
@@ -111,7 +208,10 @@ module.exports = {
 
           console.log(`   📬 Admin notification sent for ${guild.name}`);
         } catch (webhookError) {
-          console.error("Failed to send webhook notification:", webhookError.message);
+          console.error(
+            "Failed to send webhook notification:",
+            webhookError.message
+          );
         }
       }
     } catch (error) {
