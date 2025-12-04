@@ -1397,10 +1397,10 @@ class Database {
       }
     );
     this.db.run(
-      `CREATE INDEX IF NOT EXISTS idx_polls_guild_ended ON polls(guild_id, ended)`,
+      `CREATE INDEX IF NOT EXISTS idx_polls_guild_active ON polls(guild_id, active)`,
       (err) => {
         if (err)
-          logger.error("Error creating index idx_polls_guild_ended:", err);
+          logger.error("Error creating index idx_polls_guild_active:", err);
       }
     );
   }
