@@ -27,34 +27,34 @@
                 <a href="setup.html">Setup</a>
                 <a href="tutorial.html">Tutorial</a>
               </div>
-              
+
               <div class="dropdown-category">
                 <div class="dropdown-category-header">✨ Features</div>
                 <a href="features.html">Features</a>
                 <a href="commands.html">Commands</a>
                 <a href="adaptive-protection.html">Adaptive Protection</a>
               </div>
-              
+
               <div class="dropdown-category">
                 <div class="dropdown-category-header">⚔️ Compare</div>
                 <a href="comparison.html">vs Wick</a>
                 <a href="live-comparison.html">Live Comparison</a>
               </div>
-              
+
               <div class="dropdown-category">
                 <div class="dropdown-category-header">📊 Metrics</div>
                 <a href="stats.html">Stats</a>
                 <a href="growth.html">Growth</a>
                 <a href="status.html">Status</a>
               </div>
-              
+
               <div class="dropdown-category">
                 <div class="dropdown-category-header">📚 Documentation</div>
                 <a href="docs.html">Docs</a>
                 <a href="api.html">API</a>
                 <a href="faq.html">FAQ</a>
               </div>
-              
+
               <div class="dropdown-category">
                 <div class="dropdown-category-header">👥 Community</div>
                 <a href="showcase.html">Showcase</a>
@@ -84,39 +84,68 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.4.2 - December 4, 2025</h2>
+          <h2>Version 3.4.3 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>📢 Banner Display Implementation</h3>
+          <ul>
+            <li>
+              <strong>Dynamic Banner Display:</strong> Added JavaScript to load banner from API and display on index.html
+            </li>
+            <li>
+              <strong>LocalStorage Dismiss:</strong> Dismissed banners stay hidden using localStorage
+            </li>
+            <li>
+              <strong>Live Loading:</strong> Banner fetches from API on every page load
+            </li>
+            <li>
+              <strong>Auto-Hide:</strong> Banner respects enabled flag from admin settings
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.4.2 - December 4, 2025</h2>
+          <span class="version-badge">Previous</span>
           <h3>📢 Banner Management System</h3>
           <p>
-            <strong>New dynamic announcement banner system with admin controls</strong>
+            <strong
+              >New dynamic announcement banner system with admin
+              controls</strong
+            >
           </p>
 
           <h3>✨ New Features</h3>
           <ul>
             <li>
-              <strong>Banner Manager Page:</strong> New admin-banner.html interface for managing site announcements
+              <strong>Banner Manager Page:</strong> New admin-banner.html
+              interface for managing site announcements
             </li>
             <li>
-              <strong>Live Preview:</strong> See banner changes in real-time before saving
+              <strong>Live Preview:</strong> See banner changes in real-time
+              before saving
             </li>
             <li>
-              <strong>Customizable Everything:</strong> Edit emoji, text, button text, button link, gradient colors
+              <strong>Customizable Everything:</strong> Edit emoji, text, button
+              text, button link, gradient colors
             </li>
             <li>
-              <strong>Toggle Controls:</strong> Enable/disable banner and dismiss button
+              <strong>Toggle Controls:</strong> Enable/disable banner and
+              dismiss button
             </li>
           </ul>
 
           <h3>🔌 New API Endpoints</h3>
           <ul>
             <li>
-              <strong>GET /api/admin/banner:</strong> Retrieve current banner configuration
+              <strong>GET /api/admin/banner:</strong> Retrieve current banner
+              configuration
             </li>
             <li>
               <strong>PUT /api/admin/banner:</strong> Update banner settings
             </li>
             <li>
-              <strong>GET /api/v1/banner:</strong> Public endpoint for website banner display
+              <strong>GET /api/v1/banner:</strong> Public endpoint for website
+              banner display
             </li>
           </ul>
 
@@ -137,13 +166,16 @@
           <h3>🚀 API Version Alignment</h3>
           <ul>
             <li>
-              <strong>Bumped Public API to v2.0.0:</strong> Updated from v1.0.0 to reflect major new features
+              <strong>Bumped Public API to v2.0.0:</strong> Updated from v1.0.0
+              to reflect major new features
             </li>
             <li>
-              <strong>Added v2.0.0 to API Changelog:</strong> Documents adaptive-protection endpoint and features
+              <strong>Added v2.0.0 to API Changelog:</strong> Documents
+              adaptive-protection endpoint and features
             </li>
             <li>
-              <strong>Version Endpoints Updated:</strong> /api/v1/version, /api/v1/docs, /api/v1/changelog all show v2.0.0
+              <strong>Version Endpoints Updated:</strong> /api/v1/version,
+              /api/v1/docs, /api/v1/changelog all show v2.0.0
             </li>
           </ul>
         </div>
@@ -154,10 +186,12 @@
           <h3>🌐 Mega-Menu Rollout</h3>
           <ul>
             <li>
-              <strong>Applied to 19 Pages:</strong> Mega-menu navigation now on all major pages
+              <strong>Applied to 19 Pages:</strong> Mega-menu navigation now on
+              all major pages
             </li>
             <li>
-              <strong>Coverage:</strong> 79% of site pages updated with categorized navigation
+              <strong>Coverage:</strong> 79% of site pages updated with
+              categorized navigation
             </li>
           </ul>
         </div>
@@ -168,13 +202,16 @@
           <h3>🔧 Discord.js Deprecation Fix</h3>
           <ul>
             <li>
-              <strong>Fixed Emoji API Deprecation:</strong> Updated emoji.url to emoji.imageURL() in auto-recovery system
+              <strong>Fixed Emoji API Deprecation:</strong> Updated emoji.url to
+              emoji.imageURL() in auto-recovery system
             </li>
             <li>
-              <strong>Eliminated Warning:</strong> No more "(node:xxx) DeprecationWarning" messages in logs
+              <strong>Eliminated Warning:</strong> No more "(node:xxx)
+              DeprecationWarning" messages in logs
             </li>
             <li>
-              <strong>Future-Proof:</strong> Compatible with latest Discord.js API standards
+              <strong>Future-Proof:</strong> Compatible with latest Discord.js
+              API standards
             </li>
           </ul>
         </div>
@@ -190,23 +227,29 @@
           <h3>🔧 Bug Fixes</h3>
           <ul>
             <li>
-              <strong>Removed Conflicting CSS:</strong> Fixed duplicate display properties (display: grid + display: none)
+              <strong>Removed Conflicting CSS:</strong> Fixed duplicate display
+              properties (display: grid + display: none)
             </li>
             <li>
-              <strong>Fixed Overflow:</strong> Removed overflow: hidden that blocked scrolling
+              <strong>Fixed Overflow:</strong> Removed overflow: hidden that
+              blocked scrolling
             </li>
             <li>
-              <strong>Cleaned Duplicates:</strong> Removed duplicate margin-top declarations
+              <strong>Cleaned Duplicates:</strong> Removed duplicate margin-top
+              declarations
             </li>
             <li>
-              <strong>Updated commands.html:</strong> Added mega-menu structure to commands page
+              <strong>Updated commands.html:</strong> Added mega-menu structure
+              to commands page
             </li>
           </ul>
 
           <h3>✨ Impact</h3>
           <ul>
             <li>All 6 dropdown categories now display properly</li>
-            <li>All menu items visible (Documentation section shows all 4 links)</li>
+            <li>
+              All menu items visible (Documentation section shows all 4 links)
+            </li>
             <li>Community section now accessible</li>
             <li>Grid layout works correctly across all browsers</li>
           </ul>
@@ -217,22 +260,31 @@
           <span class="version-badge">Previous</span>
           <h3>🐛 Critical Fix - Missing ErrorHandler Method</h3>
           <p>
-            <strong>Fixed "ErrorHandler.createSafeCatch is not a function" crashes</strong>
+            <strong
+              >Fixed "ErrorHandler.createSafeCatch is not a function"
+              crashes</strong
+            >
           </p>
 
           <h3>🔧 Bug Fixes</h3>
           <ul>
             <li>
-              <strong>Added Missing Method:</strong> Implemented ErrorHandler.createSafeCatch() method that was being called by event handlers
+              <strong>Added Missing Method:</strong> Implemented
+              ErrorHandler.createSafeCatch() method that was being called by
+              event handlers
             </li>
             <li>
-              <strong>Fixed Uncaught Exceptions:</strong> Event handlers (channelUpdate, roleUpdate, guildMemberAdd, etc.) now properly handle errors
+              <strong>Fixed Uncaught Exceptions:</strong> Event handlers
+              (channelUpdate, roleUpdate, guildMemberAdd, etc.) now properly
+              handle errors
             </li>
             <li>
-              <strong>Improved Logging:</strong> Safe error catching now logs context and action for better debugging
+              <strong>Improved Logging:</strong> Safe error catching now logs
+              context and action for better debugging
             </li>
             <li>
-              <strong>Error Tracking:</strong> Safe catch errors are now tracked in error statistics
+              <strong>Error Tracking:</strong> Safe catch errors are now tracked
+              in error statistics
             </li>
           </ul>
 
@@ -250,16 +302,20 @@
           <h3>🔧 Improved Top.gg Error Handling</h3>
           <ul>
             <li>
-              <strong>Suppressed 504 Gateway Timeout Errors:</strong> These are now logged as warnings instead of errors (Top.gg API being slow)
+              <strong>Suppressed 504 Gateway Timeout Errors:</strong> These are
+              now logged as warnings instead of errors (Top.gg API being slow)
             </li>
             <li>
-              <strong>Suppressed 503 Service Unavailable:</strong> Temporary Top.gg outages logged as warnings
+              <strong>Suppressed 503 Service Unavailable:</strong> Temporary
+              Top.gg outages logged as warnings
             </li>
             <li>
-              <strong>Better Error Messages:</strong> Clearer logging for non-critical API issues
+              <strong>Better Error Messages:</strong> Clearer logging for
+              non-critical API issues
             </li>
             <li>
-              <strong>Auto-Retry:</strong> All suppressed errors will automatically retry in 1 hour
+              <strong>Auto-Retry:</strong> All suppressed errors will
+              automatically retry in 1 hour
             </li>
           </ul>
         </div>
@@ -270,16 +326,20 @@
           <h3>🔧 Mega-Menu Height Fix</h3>
           <ul>
             <li>
-              <strong>6-Column Layout:</strong> Changed from 3 columns to 6 columns for shorter menu height
+              <strong>6-Column Layout:</strong> Changed from 3 columns to 6
+              columns for shorter menu height
             </li>
             <li>
-              <strong>Scrolling Support:</strong> Added max-height (70vh) and overflow-y scrolling for viewport compatibility
+              <strong>Scrolling Support:</strong> Added max-height (70vh) and
+              overflow-y scrolling for viewport compatibility
             </li>
             <li>
-              <strong>Wider Menu:</strong> Increased width to 900px to accommodate 6 columns
+              <strong>Wider Menu:</strong> Increased width to 900px to
+              accommodate 6 columns
             </li>
             <li>
-              <strong>Better Visibility:</strong> All menu items now accessible without going off-screen
+              <strong>Better Visibility:</strong> All menu items now accessible
+              without going off-screen
             </li>
           </ul>
         </div>
