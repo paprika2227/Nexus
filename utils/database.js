@@ -898,6 +898,20 @@ class Database {
             )
         `);
 
+    // Referrals table for referral system
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS referrals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                guild_id TEXT NOT NULL,
+                created_at INTEGER DEFAULT (strftime('%s', 'now')),
+                status TEXT DEFAULT 'active'
+            )
+        `);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_referrals_user ON referrals(user_id)`);
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_referrals_guild ON referrals(guild_id)`);
+
     // Add vote rewards config columns to server_config (use run instead of exec for error handling)
     this.db.run(
       `ALTER TABLE server_config ADD COLUMN vote_rewards_enabled INTEGER DEFAULT 0`,
