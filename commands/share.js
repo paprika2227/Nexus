@@ -339,40 +339,64 @@ module.exports = {
   async getServerStats(guildId, startTime) {
     try {
       // Get threats blocked
-      const threatsResult = await db.query(
-        "SELECT COUNT(*) as count FROM security_logs WHERE guild_id = ? AND timestamp > ? AND threat_score >= 50",
-        [guildId, startTime]
-      );
+      const threatsResult = await new Promise((resolve, reject) => {
+        db.db.get(
+          "SELECT COUNT(*) as count FROM security_logs WHERE guild_id = ? AND timestamp > ? AND threat_score >= 50",
+          [guildId, startTime],
+          (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+          }
+        );
+      });
 
       // Get raids blocked
-      const raidsResult = await db.query(
-        "SELECT COUNT(*) as count FROM anti_raid_logs WHERE guild_id = ? AND timestamp > ? AND action_taken = 1",
-        [guildId, startTime]
-      );
+      const raidsResult = await new Promise((resolve, reject) => {
+        db.db.get(
+          "SELECT COUNT(*) as count FROM anti_raid_logs WHERE guild_id = ? AND timestamp > ? AND action_taken = 1",
+          [guildId, startTime],
+          (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+          }
+        );
+      });
 
       // Get moderation actions
-      const modActionsResult = await db.query(
-        "SELECT COUNT(*) as count FROM moderation_logs WHERE guild_id = ? AND timestamp > ?",
-        [guildId, startTime]
-      );
+      const modActionsResult = await new Promise((resolve, reject) => {
+        db.db.get(
+          "SELECT COUNT(*) as count FROM moderation_logs WHERE guild_id = ? AND timestamp > ?",
+          [guildId, startTime],
+          (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+          }
+        );
+      });
 
       // Get health score
       const serverHealth = require("../utils/serverHealth");
       const health = await serverHealth.calculateHealth(guildId);
 
       // Calculate days protected
-      const joinedResult = await db.query(
-        "SELECT MIN(timestamp) as first_seen FROM bot_activity_log WHERE guild_id = ? AND event_type = 'guild_join'",
-        [guildId]
-      );
+      const joinedResult = await new Promise((resolve, reject) => {
+        db.db.get(
+          "SELECT MIN(timestamp) as first_seen FROM bot_activity_log WHERE guild_id = ? AND event_type = 'guild_join'",
+          [guildId],
+          (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+          }
+        );
+      });
 
-      const firstSeen = joinedResult?.[0]?.first_seen || Date.now();
+      const firstSeen = joinedResult?.first_seen || Date.now();
       const daysProtected = Math.floor((Date.now() - firstSeen) / 86400000);
 
       return {
-        threatsBlocked: threatsResult?.[0]?.count || 0,
-        raidsBlocked: raidsResult?.[0]?.count || 0,
-        modActions: modActionsResult?.[0]?.count || 0,
+        threatsBlocked: threatsResult?.count || 0,
+        raidsBlocked: raidsResult?.count || 0,
+        modActions: modActionsResult?.count || 0,
         healthScore: health?.overall || 0,
         daysProtected: Math.max(daysProtected, 1),
       };
