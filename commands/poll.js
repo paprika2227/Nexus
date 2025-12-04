@@ -1,462 +1,342 @@
 const {
   SlashCommandBuilder,
-  PermissionFlagsBits,
   EmbedBuilder,
-  MessageFlags,
+  PermissionFlagsBits,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ComponentType,
 } = require("discord.js");
 const db = require("../utils/database");
-const logger = require("../utils/logger");
-const ErrorMessages = require("../utils/errorMessages");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("poll")
     .setDescription("Create and manage polls")
-    .addSubcommand((subcommand) =>
+    .addSubcommand(subcommand =>
       subcommand
         .setName("create")
         .setDescription("Create a new poll")
-        .addStringOption((option) =>
+        .addStringOption(option =>
           option
             .setName("question")
-            .setDescription("The poll question")
+            .setDescription("Poll question")
             .setRequired(true)
+            .setMaxLength(256)
         )
-        .addStringOption((option) =>
+        .addStringOption(option =>
           option
             .setName("options")
-            .setDescription(
-              "Poll options separated by | (e.g., Option 1|Option 2|Option 3)"
-            )
+            .setDescription("Poll options separated by semicolons (;)")
             .setRequired(true)
         )
-        .addIntegerOption((option) =>
+        .addIntegerOption(option =>
           option
             .setName("duration")
-            .setDescription("Duration in hours (default: 24)")
-            .setRequired(false)
+            .setDescription("Poll duration in minutes (default: 60)")
             .setMinValue(1)
-            .setMaxValue(168)
+            .setMaxValue(10080) // 1 week
         )
-        .addBooleanOption((option) =>
-          option
-            .setName("multiple")
-            .setDescription("Allow multiple votes (default: false)")
-            .setRequired(false)
-        )
-        .addBooleanOption((option) =>
+        .addBooleanOption(option =>
           option
             .setName("anonymous")
-            .setDescription("Hide voter names (default: false)")
-            .setRequired(false)
+            .setDescription("Hide who voted for what")
+        )
+        .addBooleanOption(option =>
+          option
+            .setName("multiple")
+            .setDescription("Allow multiple choices")
         )
     )
-    .addSubcommand((subcommand) =>
+    .addSubcommand(subcommand =>
       subcommand
         .setName("end")
         .setDescription("End a poll early")
-        .addStringOption((option) =>
+        .addStringOption(option =>
           option
             .setName("message_id")
-            .setDescription("The poll message ID")
+            .setDescription("Poll message ID")
             .setRequired(true)
         )
     )
-    .addSubcommand((subcommand) =>
-      subcommand.setName("list").setDescription("List active polls")
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("results")
+        .setDescription("View poll results")
+        .addStringOption(option =>
+          option
+            .setName("message_id")
+            .setDescription("Poll message ID")
+            .setRequired(true)
+        )
+    ),
 
-  async execute(interaction) {
+  async execute(interaction, client) {
     const subcommand = interaction.options.getSubcommand();
 
     if (subcommand === "create") {
-      const question = interaction.options.getString("question");
-      const optionsStr = interaction.options.getString("options");
-      const duration = interaction.options.getInteger("duration") || 24;
-      const allowMultiple = interaction.options.getBoolean("multiple") || false;
-      const anonymous = interaction.options.getBoolean("anonymous") || false;
-
-      const options = optionsStr
-        .split("|")
-        .map((o) => o.trim())
-        .filter((o) => o);
-      if (options.length < 2) {
-        return interaction.reply({
-          content: "❌ You need at least 2 options!",
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-      if (options.length > 10) {
-        return interaction.reply({
-          content: "❌ Maximum 10 options allowed!",
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-
-      const endsAt = Date.now() + duration * 60 * 60 * 1000;
-      const votes = JSON.stringify({});
-
-      await interaction.deferReply();
-
-      const embed = new EmbedBuilder()
-        .setTitle(`📊 ${question}`)
-        .setDescription(
-          options
-            .map(
-              (opt, idx) =>
-                `${getEmoji(idx)} **${opt}**\n${getBar(0, 0)} 0 votes (0%)`
-            )
-            .join("\n\n")
-        )
-        .addFields({
-          name: "📊 Statistics",
-          value: `**Total Votes:** 0\n**Ends:** <t:${Math.floor(
-            endsAt / 1000
-          )}:R>`,
-          inline: false,
-        })
-        .setColor(0x5865f2)
-        .setFooter({
-          text: anonymous
-            ? "Anonymous Poll • Multiple votes allowed"
-            : allowMultiple
-            ? "Multiple votes allowed"
-            : "One vote per user",
-        })
-        .setTimestamp(endsAt);
-
-      const buttons = new ActionRowBuilder().addComponents(
-        ...options.slice(0, 5).map((opt, idx) =>
-          new ButtonBuilder()
-            .setCustomId(`poll_vote_${idx}`)
-            .setLabel(opt.length > 20 ? opt.slice(0, 17) + "..." : opt)
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji(getEmoji(idx))
-        )
-      );
-
-      const message = await interaction.editReply({
-        embeds: [embed],
-        components: options.length <= 5 ? [buttons] : [],
-      });
-
-      // Store poll in database
-      await new Promise((resolve, reject) => {
-        db.db.run(
-          "INSERT INTO polls (guild_id, channel_id, message_id, creator_id, question, options, votes, ends_at, allow_multiple, anonymous, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          [
-            interaction.guild.id,
-            interaction.channel.id,
-            message.id,
-            interaction.user.id,
-            question,
-            JSON.stringify(options),
-            votes,
-            endsAt,
-            allowMultiple ? 1 : 0,
-            anonymous ? 1 : 0,
-            Date.now(),
-          ],
-          (err) => {
-            if (err) reject(err);
-            else resolve();
-          }
-        );
-      });
-
-      // Schedule poll end
-      setTimeout(async () => {
-        await endPoll(interaction.client, interaction.guild.id, message.id);
-      }, duration * 60 * 60 * 1000);
+      await this.handleCreate(interaction, client);
     } else if (subcommand === "end") {
-      const messageId = interaction.options.getString("message_id");
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-      const poll = await new Promise((resolve, reject) => {
-        db.db.get(
-          "SELECT * FROM polls WHERE guild_id = ? AND message_id = ?",
-          [interaction.guild.id, messageId],
-          (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-          }
-        );
-      });
-
-      if (!poll) {
-        return interaction.editReply({
-          content: "❌ Poll not found!",
-        });
-      }
-
-      if (poll.ended) {
-        return interaction.editReply({
-          content: "❌ This poll has already ended!",
-        });
-      }
-
-      await endPoll(interaction.client, interaction.guild.id, messageId);
-      await interaction.editReply({
-        content: "✅ Poll ended successfully!",
-      });
-    } else if (subcommand === "list") {
-      const polls = await new Promise((resolve, reject) => {
-        db.db.all(
-          "SELECT * FROM polls WHERE guild_id = ? AND ended = 0 ORDER BY created_at DESC",
-          [interaction.guild.id],
-          (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows || []);
-          }
-        );
-      });
-
-      if (polls.length === 0) {
-        return interaction.reply({
-          content: "❌ No active polls found!",
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle("📊 Active Polls")
-        .setDescription(
-          polls
-            .map(
-              (poll) =>
-                `**${poll.question}**\n` +
-                `ID: \`${poll.message_id}\` • Ends: <t:${Math.floor(
-                  poll.ends_at / 1000
-                )}:R>\n` +
-                `[Jump to Poll](https://discord.com/channels/${poll.guild_id}/${poll.channel_id}/${poll.message_id})`
-            )
-            .join("\n\n")
-        )
-        .setColor(0x5865f2)
-        .setTimestamp();
-
-      await interaction.reply({ embeds: [embed] });
+      await this.handleEnd(interaction);
+    } else if (subcommand === "results") {
+      await this.handleResults(interaction);
     }
   },
-};
 
-async function endPoll(client, guildId, messageId) {
-  const poll = await new Promise((resolve, reject) => {
-    db.db.get(
-      "SELECT * FROM polls WHERE guild_id = ? AND message_id = ?",
-      [guildId, messageId],
-      (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      }
-    );
-  });
+  async handleCreate(interaction, client) {
+    const question = interaction.options.getString("question");
+    const optionsStr = interaction.options.getString("options");
+    const duration = interaction.options.getInteger("duration") || 60;
+    const anonymous = interaction.options.getBoolean("anonymous") || false;
+    const multiple = interaction.options.getBoolean("multiple") || false;
 
-  if (!poll || poll.ended) return;
+    const options = optionsStr.split(";").map(o => o.trim()).filter(o => o.length > 0);
 
-  const options = JSON.parse(poll.options);
-  const votes = JSON.parse(poll.votes || "{}");
-
-  const voteCounts = {};
-  const totalVotes = Object.keys(votes).length;
-
-  options.forEach((_, idx) => {
-    voteCounts[idx] = 0;
-  });
-
-  Object.values(votes).forEach((vote) => {
-    if (Array.isArray(vote)) {
-      vote.forEach((v) => {
-        if (voteCounts[v] !== undefined) voteCounts[v]++;
+    if (options.length < 2) {
+      return interaction.reply({
+        content: "❌ You need at least 2 options! Separate them with semicolons (;)",
+        ephemeral: true
       });
-    } else if (voteCounts[vote] !== undefined) {
-      voteCounts[vote]++;
     }
-  });
 
-  const embed = new EmbedBuilder()
-    .setTitle(`📊 ${poll.question} - ENDED`)
-    .setDescription(
-      options
-        .map((opt, idx) => {
-          const count = voteCounts[idx] || 0;
-          const percentage =
-            totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-          return `${getEmoji(idx)} **${opt}**\n${getBar(
-            count,
-            totalVotes
-          )} ${count} votes (${percentage}%)`;
-        })
-        .join("\n\n")
-    )
-    .addFields({
-      name: "📊 Final Results",
-      value: `**Total Votes:** ${totalVotes}\n**Ended:** <t:${Math.floor(
-        Date.now() / 1000
-      )}:F>`,
-      inline: false,
-    })
-    .setColor(0x5865f2)
-    .setFooter({ text: "Poll Ended" })
-    .setTimestamp();
-
-  try {
-    const channel = await client.channels.fetch(poll.channel_id);
-    const message = await channel.messages.fetch(messageId);
-    await message.edit({ embeds: [embed], components: [] });
-  } catch (error) {
-    logger.error("Error ending poll:", error);
-  }
-
-  await new Promise((resolve, reject) => {
-    db.db.run(
-      "UPDATE polls SET ended = 1 WHERE guild_id = ? AND message_id = ?",
-      [guildId, messageId],
-      (err) => {
-        if (err) reject(err);
-        else resolve();
-      }
-    );
-  });
-}
-
-function getEmoji(idx) {
-  const emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
-  return emojis[idx] || "•";
-}
-
-function getBar(count, total) {
-  if (total === 0) return "░░░░░░░░░░";
-  const filled = Math.round((count / total) * 10);
-  return "█".repeat(filled) + "░".repeat(10 - filled);
-}
-
-// Handle poll button interactions
-module.exports.handlePollVote = async (interaction) => {
-  const [_, __, optionIdx] = interaction.customId.split("_");
-  const poll = await new Promise((resolve, reject) => {
-    db.db.get(
-      "SELECT * FROM polls WHERE guild_id = ? AND message_id = ?",
-      [interaction.guild.id, interaction.message.id],
-      (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      }
-    );
-  });
-
-  if (!poll) {
-    return interaction.reply({
-      content: "❌ Poll not found!",
-      flags: MessageFlags.Ephemeral,
-    });
-  }
-
-  if (poll.ended) {
-    return interaction.reply({
-      content: "❌ This poll has ended!",
-      flags: MessageFlags.Ephemeral,
-    });
-  }
-
-  if (Date.now() > poll.ends_at) {
-    await endPoll(
-      interaction.client,
-      interaction.guild.id,
-      interaction.message.id
-    );
-    return interaction.reply({
-      content: "❌ This poll has expired!",
-      flags: MessageFlags.Ephemeral,
-    });
-  }
-
-  const votes = JSON.parse(poll.votes || "{}");
-  const userId = interaction.user.id;
-  const option = parseInt(optionIdx);
-
-  if (!poll.allow_multiple) {
-    // Single vote - replace existing
-    votes[userId] = option;
-  } else {
-    // Multiple votes - toggle
-    if (!votes[userId]) votes[userId] = [];
-    const userVotes = votes[userId];
-    const idx = userVotes.indexOf(option);
-    if (idx > -1) {
-      userVotes.splice(idx, 1);
-    } else {
-      userVotes.push(option);
-    }
-    votes[userId] = userVotes;
-  }
-
-  await new Promise((resolve, reject) => {
-    db.db.run(
-      "UPDATE polls SET votes = ? WHERE guild_id = ? AND message_id = ?",
-      [JSON.stringify(votes), interaction.guild.id, interaction.message.id],
-      (err) => {
-        if (err) reject(err);
-        else resolve();
-      }
-    );
-  });
-
-  // Update embed
-  const options = JSON.parse(poll.options);
-  const voteCounts = {};
-  const totalVotes = Object.keys(votes).length;
-
-  options.forEach((_, idx) => {
-    voteCounts[idx] = 0;
-  });
-
-  Object.values(votes).forEach((vote) => {
-    if (Array.isArray(vote)) {
-      vote.forEach((v) => {
-        if (voteCounts[v] !== undefined) voteCounts[v]++;
+    if (options.length > 10) {
+      return interaction.reply({
+        content: "❌ Maximum 10 options allowed!",
+        ephemeral: true
       });
-    } else if (voteCounts[vote] !== undefined) {
-      voteCounts[vote]++;
     }
-  });
 
-  const embed = new EmbedBuilder()
-    .setTitle(`📊 ${poll.question}`)
-    .setDescription(
-      options
-        .map((opt, idx) => {
-          const count = voteCounts[idx] || 0;
-          const percentage =
-            totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-          return `${getEmoji(idx)} **${opt}**\n${getBar(
-            count,
-            totalVotes
-          )} ${count} votes (${percentage}%)`;
-        })
-        .join("\n\n")
-    )
-    .addFields({
-      name: "📊 Statistics",
-      value: `**Total Votes:** ${totalVotes}\n**Ends:** <t:${Math.floor(
-        poll.ends_at / 1000
-      )}:R>`,
-      inline: false,
-    })
-    .setColor(0x5865f2)
-    .setFooter({
-      text: poll.anonymous
-        ? "Anonymous Poll • Multiple votes allowed"
-        : poll.allow_multiple
-        ? "Multiple votes allowed"
-        : "One vote per user",
-    })
-    .setTimestamp(poll.ends_at);
+    const emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
 
-  await interaction.update({ embeds: [embed] });
+    const embed = new EmbedBuilder()
+      .setTitle(`📊 ${question}`)
+      .setDescription(
+        options.map((opt, i) => `${emojis[i]} ${opt}`).join("\n\n")
+      )
+      .setColor(0x667eea)
+      .addFields(
+        { name: "Duration", value: `${duration} minutes`, inline: true },
+        { name: "Multiple Choices", value: multiple ? "✅ Yes" : "❌ No", inline: true },
+        { name: "Anonymous", value: anonymous ? "✅ Yes" : "❌ No", inline: true }
+      )
+      .setFooter({ text: `Poll by ${interaction.user.username}` })
+      .setTimestamp();
+
+    const message = await interaction.reply({
+      embeds: [embed],
+      fetchReply: true
+    });
+
+    // Add reactions
+    for (let i = 0; i < options.length; i++) {
+      await message.react(emojis[i]);
+    }
+
+    // Store poll data
+    const pollData = {
+      messageId: message.id,
+      channelId: interaction.channel.id,
+      guildId: interaction.guild.id,
+      question,
+      options,
+      creatorId: interaction.user.id,
+      duration,
+      anonymous,
+      multiple,
+      endTime: Date.now() + (duration * 60 * 1000),
+      active: true
+    };
+
+    await this.storePoll(pollData);
+
+    // Schedule poll end
+    setTimeout(() => {
+      this.endPoll(message.id, interaction.guild.id, client);
+    }, duration * 60 * 1000);
+  },
+
+  async handleEnd(interaction) {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+      return interaction.reply({
+        content: "❌ You need Manage Messages permission to end polls!",
+        ephemeral: true
+      });
+    }
+
+    const messageId = interaction.options.getString("message_id");
+    
+    try {
+      const message = await interaction.channel.messages.fetch(messageId);
+      await this.endPoll(messageId, interaction.guild.id, interaction.client);
+      
+      await interaction.reply({
+        content: "✅ Poll ended!",
+        ephemeral: true
+      });
+    } catch (error) {
+      await interaction.reply({
+        content: "❌ Could not find poll message!",
+        ephemeral: true
+      });
+    }
+  },
+
+  async handleResults(interaction) {
+    const messageId = interaction.options.getString("message_id");
+    
+    try {
+      const message = await interaction.channel.messages.fetch(messageId);
+      const pollData = await this.getPoll(messageId, interaction.guild.id);
+
+      if (!pollData) {
+        return interaction.reply({
+          content: "❌ Poll data not found!",
+          ephemeral: true
+        });
+      }
+
+      const emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+      const reactions = message.reactions.cache;
+
+      const results = [];
+      let totalVotes = 0;
+
+      for (let i = 0; i < pollData.options.length; i++) {
+        const reaction = reactions.get(emojis[i]);
+        const count = reaction ? reaction.count - 1 : 0; // -1 for bot's reaction
+        totalVotes += count;
+        results.push({ option: pollData.options[i], votes: count });
+      }
+
+      results.sort((a, b) => b.votes - a.votes);
+
+      const embed = new EmbedBuilder()
+        .setTitle(`📊 Poll Results: ${pollData.question}`)
+        .setDescription(
+          results.map((r, i) => {
+            const percentage = totalVotes > 0 ? Math.floor((r.votes / totalVotes) * 100) : 0;
+            const bar = "▓".repeat(Math.floor(percentage / 10)) + "░".repeat(10 - Math.floor(percentage / 10));
+            return `**${i + 1}.** ${r.option}\n${bar} ${r.votes} votes (${percentage}%)`;
+          }).join("\n\n")
+        )
+        .setColor(0x00ff88)
+        .addFields(
+          { name: "Total Votes", value: `${totalVotes}`, inline: true },
+          { name: "Winner", value: results[0].option, inline: true }
+        )
+        .setFooter({ text: `Poll by ${pollData.creatorId}` });
+
+      await interaction.reply({ embeds: [embed] });
+    } catch (error) {
+      await interaction.reply({
+        content: "❌ Could not fetch poll results!",
+        ephemeral: true
+      });
+    }
+  },
+
+  async endPoll(messageId, guildId, client) {
+    const pollData = await this.getPoll(messageId, guildId);
+    if (!pollData || !pollData.active) return;
+
+    try {
+      const guild = await client.guilds.fetch(guildId);
+      const channel = await guild.channels.fetch(pollData.channelId);
+      const message = await channel.messages.fetch(messageId);
+
+      const emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+      const reactions = message.reactions.cache;
+
+      const results = [];
+      let totalVotes = 0;
+
+      for (let i = 0; i < pollData.options.length; i++) {
+        const reaction = reactions.get(emojis[i]);
+        const count = reaction ? reaction.count - 1 : 0;
+        totalVotes += count;
+        results.push({ option: pollData.options[i], votes: count });
+      }
+
+      results.sort((a, b) => b.votes - a.votes);
+
+      const embed = new EmbedBuilder()
+        .setTitle(`📊 ${pollData.question}`)
+        .setDescription("**Poll Ended!**\n\n" +
+          results.map((r, i) => {
+            const percentage = totalVotes > 0 ? Math.floor((r.votes / totalVotes) * 100) : 0;
+            const bar = "▓".repeat(Math.floor(percentage / 10)) + "░".repeat(10 - Math.floor(percentage / 10));
+            return `${emojis[i]} ${r.option}\n${bar} ${r.votes} votes (${percentage}%)`;
+          }).join("\n\n")
+        )
+        .setColor(0xff0000)
+        .addFields(
+          { name: "Total Votes", value: `${totalVotes}`, inline: true },
+          { name: "Winner", value: `🏆 ${results[0].option}`, inline: true }
+        )
+        .setFooter({ text: `Poll by ${pollData.creatorId} • Ended` });
+
+      await message.edit({ embeds: [embed] });
+
+      // Mark as ended in database
+      await this.updatePollStatus(messageId, guildId, false);
+    } catch (error) {
+      console.error("[Poll] Failed to end poll:", error);
+    }
+  },
+
+  async storePoll(pollData) {
+    return new Promise((resolve, reject) => {
+      db.db.run(
+        `INSERT INTO polls (message_id, channel_id, guild_id, question, options, creator_id, duration, anonymous, multiple_choice, end_time, active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          pollData.messageId,
+          pollData.channelId,
+          pollData.guildId,
+          pollData.question,
+          JSON.stringify(pollData.options),
+          pollData.creatorId,
+          pollData.duration,
+          pollData.anonymous ? 1 : 0,
+          pollData.multiple ? 1 : 0,
+          pollData.endTime,
+          1
+        ],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  },
+
+  async getPoll(messageId, guildId) {
+    return new Promise((resolve, reject) => {
+      db.db.get(
+        `SELECT * FROM polls WHERE message_id = ? AND guild_id = ?`,
+        [messageId, guildId],
+        (err, row) => {
+          if (err) reject(err);
+          else {
+            if (row) {
+              row.options = JSON.parse(row.options);
+            }
+            resolve(row);
+          }
+        }
+      );
+    });
+  },
+
+  async updatePollStatus(messageId, guildId, active) {
+    return new Promise((resolve, reject) => {
+      db.db.run(
+        `UPDATE polls SET active = ? WHERE message_id = ? AND guild_id = ?`,
+        [active ? 1 : 0, messageId, guildId],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  }
 };

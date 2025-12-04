@@ -1745,6 +1745,25 @@ class Database {
         UNIQUE(guild_id, platform, channel_id)
       )
     `);
+
+    // Enhanced Polls
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS polls (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        message_id TEXT UNIQUE NOT NULL,
+        channel_id TEXT NOT NULL,
+        guild_id TEXT NOT NULL,
+        question TEXT NOT NULL,
+        options TEXT NOT NULL,
+        creator_id TEXT NOT NULL,
+        duration INTEGER NOT NULL,
+        anonymous INTEGER DEFAULT 0,
+        multiple_choice INTEGER DEFAULT 0,
+        end_time INTEGER NOT NULL,
+        active INTEGER DEFAULT 1,
+        created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
+      )
+    `);
   }
 
   // Server config methods
