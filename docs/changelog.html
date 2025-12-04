@@ -60,8 +60,25 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.3.0 - December 4, 2025</h2>
+          <h2>Version 3.3.1 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🐛 Code Quality Fix</h3>
+          <ul>
+            <li>
+              <strong>Fixed Top.gg Rate Limiting:</strong> Increased AutoPoster interval from 30 minutes to 60 minutes to prevent 429 errors
+            </li>
+            <li>
+              <strong>Improved Error Handling:</strong> 429 rate limit errors now show as warnings instead of errors (expected after bot restarts)
+            </li>
+            <li>
+              <strong>Code Style:</strong> Added trailing commas to AutoPoster configuration for consistency
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.3.0 - December 4, 2025</h2>
+          <span class="version-badge">Previous</span>
           <h3>🎯 Server-Size-Aware Protection Update</h3>
           <p>
             <strong>Major enhancement to prevent false positives in large servers (500+ members)</strong>

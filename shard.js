@@ -25,7 +25,7 @@ if (process.env.TOPGG_TOKEN) {
     // Post every 60 minutes (3600000ms) to avoid rate limits
     // Top.gg allows updates every 30min, but 60min is safer
     const ap = AutoPoster(process.env.TOPGG_TOKEN, manager, {
-      interval: 3600000 // 1 hour in milliseconds
+      interval: 3600000, // 1 hour in milliseconds
     });
 
     ap.on("posted", (stats) => {
