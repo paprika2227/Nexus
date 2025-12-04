@@ -456,7 +456,7 @@ footer p {
 
 /* Keep menu open when hovering button OR menu itself */
 .dropdown:hover .dropdown-menu {
-  display: block;
+  display: grid; /* Keep grid layout, don't override with block */
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
