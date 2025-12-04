@@ -308,6 +308,25 @@ class ErrorHandler {
       this.trackError(`safeCatch:${context}`, error);
     };
   }
+
+  /**
+   * Safely execute an async function with error handling
+   * @param {Function} fn - Async function to execute
+   * @param {string} context - Context for error logging
+   * @param {any} fallbackValue - Value to return on error
+   */
+  async safeExecute(fn, context = "Unknown", fallbackValue = null) {
+    try {
+      return await fn();
+    } catch (error) {
+      logger.error(context, "SafeExecute error", {
+        error: error.message,
+        stack: error.stack,
+      });
+      this.trackError(`safeExecute:${context}`, error);
+      return fallbackValue;
+    }
+  }
 }
 
 // Export singleton

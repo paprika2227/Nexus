@@ -53,77 +53,7 @@ module.exports = {
 
       console.log(`   📊 Tracked join from source: ${inviteSource}`);
 
-      // Track referral if present (ref parameter in invite URL)
-      try {
-        // Check if this is a referral (ref=userId in OAuth URL)
-        // The ref parameter would have been passed during OAuth flow
-        // We'll check the guild's vanity URL or look for stored referrer data
-        const referCommand = require("../commands/refer");
-
-        // Try to extract referrer from stored data (if OAuth included ref parameter)
-        // For now, we'll check if there's a stored referrer for this guild owner
-        const owner = await guild.fetchOwner().catch(() => null);
-        if (owner) {
-          const referrerData = await new Promise((resolve) => {
-            db.db.get(
-              "SELECT referrer_id FROM pending_referrals WHERE user_id = ? ORDER BY timestamp DESC LIMIT 1",
-              [owner.id],
-              (err, row) => {
-                if (err || !row) resolve(null);
-                else resolve(row.referrer_id);
-              }
-            );
-          });
-
-          if (referrerData) {
-            await referCommand.trackReferral(guild.id, referrerData);
-            console.log(
-              `   🎯 Referral tracked: ${referrerData} referred this guild`
-            );
-
-            // Clean up pending referral
-            db.db.run("DELETE FROM pending_referrals WHERE user_id = ?", [
-              owner.id,
-            ]);
-
-            // Notify referrer
-            try {
-              const referrer = await client.users
-                .fetch(referrerData)
-                .catch(() => null);
-              if (referrer) {
-                const stats = await referCommand.getReferralStats(referrerData);
-                await referrer
-                  .send({
-                    embeds: [
-                      {
-                        title: "🎉 New Referral!",
-                        description: `Someone just added Nexus to **${guild.name}** using your referral link!`,
-                        color: 0x00ff00,
-                        fields: [
-                          {
-                            name: "📊 Your Stats",
-                            value: `Total Referrals: **${stats.totalReferrals}**\nActive Referrals: **${stats.activeReferrals}**\nRank: **#${stats.rank}**`,
-                            inline: false,
-                          },
-                        ],
-                        footer: {
-                          text: "Use /refer stats to see full details",
-                        },
-                        timestamp: new Date().toISOString(),
-                      },
-                    ],
-                  })
-                  .catch(() => {});
-              }
-            } catch (notifyError) {
-              console.error("Failed to notify referrer:", notifyError.message);
-            }
-          }
-        }
-      } catch (referralError) {
-        console.error("Failed to track referral:", referralError.message);
-      }
+      // Referral tracking removed (command deprecated to stay under 100 command limit)
 
       // Send webhook notification to admin
       if (
