@@ -343,9 +343,7 @@ module.exports = {
           try {
             await member.roles.remove(quarantineRole);
           } catch (error) {
-            return interaction.editReply({
-              ErrorMessages.commandFailed(error.message),
-            });
+            return interaction.editReply(ErrorMessages.commandFailed(error.message));
           }
         }
 
