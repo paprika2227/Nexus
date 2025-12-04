@@ -293,6 +293,21 @@ class ErrorHandler {
       }
     };
   }
+
+  /**
+   * Create a safe error catcher for promise chains
+   * Returns a function that logs errors without throwing
+   * Usage: promise.catch(ErrorHandler.createSafeCatch(context, action))
+   */
+  createSafeCatch(context, action) {
+    return (error) => {
+      logger.error(context, `Failed to ${action}`, {
+        error: error.message,
+        stack: error.stack,
+      });
+      this.trackError(`safeCatch:${context}`, error);
+    };
+  }
 }
 
 // Export singleton

@@ -60,8 +60,40 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.3.6 - December 4, 2025</h2>
+          <h2>Version 3.3.7 - December 4, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🐛 Critical Fix - Missing ErrorHandler Method</h3>
+          <p>
+            <strong>Fixed "ErrorHandler.createSafeCatch is not a function" crashes</strong>
+          </p>
+
+          <h3>🔧 Bug Fixes</h3>
+          <ul>
+            <li>
+              <strong>Added Missing Method:</strong> Implemented ErrorHandler.createSafeCatch() method that was being called by event handlers
+            </li>
+            <li>
+              <strong>Fixed Uncaught Exceptions:</strong> Event handlers (channelUpdate, roleUpdate, guildMemberAdd, etc.) now properly handle errors
+            </li>
+            <li>
+              <strong>Improved Logging:</strong> Safe error catching now logs context and action for better debugging
+            </li>
+            <li>
+              <strong>Error Tracking:</strong> Safe catch errors are now tracked in error statistics
+            </li>
+          </ul>
+
+          <h3>✨ Impact</h3>
+          <ul>
+            <li>No more repeated "Uncaught exception" errors in logs</li>
+            <li>Event handlers won't crash when Discord API calls fail</li>
+            <li>Better error visibility for debugging</li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.3.6 - December 4, 2025</h2>
+          <span class="version-badge">Previous</span>
           <h3>🔧 Improved Top.gg Error Handling</h3>
           <ul>
             <li>
