@@ -35,7 +35,11 @@ class BotsOnDiscord {
       logger.info(`[Bots on Discord] Posted stats: ${guildCount} guilds`);
       return true;
     } catch (error) {
-      logger.error("[Bots on Discord] Error posting stats:", error.message);
+      logger.error("[Bots on Discord] Error posting stats:", {
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
+      });
       return false;
     }
   }
@@ -116,7 +120,11 @@ class BotsOnDiscord {
 
       return response.data;
     } catch (error) {
-      logger.error("[Bots on Discord] Error fetching bot info:", error.message);
+      logger.error("[Bots on Discord] Error fetching bot info:", {
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
+      });
       throw error;
     }
   }

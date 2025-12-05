@@ -30,7 +30,11 @@ async function registerCommands(client) {
         commands.push(command.data.toJSON());
       }
     } catch (error) {
-      logger.error(`⚠️ Failed to load command ${file}:`, error.message);
+      logger.error(`⚠️ Failed to load command ${file}:`, {
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
+      });
     }
   }
 
@@ -44,7 +48,11 @@ async function registerCommands(client) {
       await rest.put(Routes.applicationCommands(client.user.id), { body: [] });
       logger.success("Commands", "Cleared global commands");
     } catch (error) {
-      logger.error("⚠️ Failed to clear global commands:", error.message);
+      logger.error("⚠️ Failed to clear global commands:", {
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
+      });
     }
 
     // THEN: Register commands per-guild only (instant, no duplicates)

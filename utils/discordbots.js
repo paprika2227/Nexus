@@ -41,7 +41,11 @@ class DiscordBots {
       );
       return true;
     } catch (error) {
-      logger.error("[Discord Bots] Error posting stats:", error.message);
+      logger.error("[Discord Bots] Error posting stats:", {
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
+      });
       return false;
     }
   }
@@ -103,7 +107,11 @@ class DiscordBots {
 
       return false;
     } catch (error) {
-      logger.error("[Discord Bots] Error checking vote status:", error.message);
+      logger.error("[Discord Bots] Error checking vote status:", {
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
+      });
       return false;
     }
   }
@@ -128,7 +136,11 @@ class DiscordBots {
 
       return response.data;
     } catch (error) {
-      logger.error("[Discord Bots] Error fetching bot info:", error.message);
+      logger.error("[Discord Bots] Error fetching bot info:", {
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
+      });
       throw error;
     }
   }

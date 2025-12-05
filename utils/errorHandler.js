@@ -25,8 +25,9 @@ class ErrorHandler {
    */
   async handleCommandError(interaction, error, commandName) {
     logger.error("Command", `Error in /${commandName}`, {
-      error: error.message,
+      message: error.message,
       stack: error.stack,
+      name: error.name,
       user: interaction.user?.tag,
       guild: interaction.guild?.name,
     });
@@ -62,7 +63,11 @@ class ErrorHandler {
         });
       }
     } catch (replyError) {
-      logger.error("ErrorHandler", "Failed to send error message", replyError);
+      logger.error("ErrorHandler", "Failed to send error message", {
+        message: replyError?.message || String(replyError),
+        stack: replyError?.stack,
+        name: replyError?.name,
+      });
     }
 
     // Notify via webhook if critical
@@ -80,8 +85,9 @@ class ErrorHandler {
    */
   handleAPIError(res, error, endpoint) {
     logger.error("API", `Error at ${endpoint}`, {
-      error: error.message,
+      message: error.message,
       stack: error.stack,
+      name: error.name,
     });
 
     this.trackError(`api:${endpoint}`, error);
@@ -117,8 +123,9 @@ class ErrorHandler {
    */
   handleDatabaseError(error, operation, table = "unknown") {
     logger.error("Database", `Error during ${operation} on ${table}`, {
-      error: error.message,
+      message: error.message,
       stack: error.stack,
+      name: error.name,
     });
 
     this.trackError(`db:${operation}:${table}`, error);
@@ -236,7 +243,11 @@ class ErrorHandler {
 
       await this.errorWebhook.send({ embeds: [embed] });
     } catch (error) {
-      logger.error("ErrorHandler", "Failed to send error notification", error);
+      logger.error("ErrorHandler", "Failed to send error notification", {
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
+      });
     }
   }
 
@@ -288,7 +299,11 @@ class ErrorHandler {
       try {
         return await fn(...args);
       } catch (error) {
-        logger.error("AsyncWrapper", "Caught error in wrapped function", error);
+        logger.error("AsyncWrapper", "Caught error in wrapped function", {
+          message: error?.message || String(error),
+          stack: error?.stack,
+          name: error?.name,
+        });
         throw error;
       }
     };
@@ -302,8 +317,9 @@ class ErrorHandler {
   createSafeCatch(context, action) {
     return (error) => {
       logger.error(context, `Failed to ${action}`, {
-        error: error.message,
-        stack: error.stack,
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
       });
       this.trackError(`safeCatch:${context}`, error);
     };
@@ -320,8 +336,9 @@ class ErrorHandler {
       return await fn();
     } catch (error) {
       logger.error(context, "SafeExecute error", {
-        error: error.message,
-        stack: error.stack,
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
       });
       this.trackError(`safeExecute:${context}`, error);
       return fallbackValue;

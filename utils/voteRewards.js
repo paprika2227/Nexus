@@ -594,7 +594,11 @@ class VoteRewards {
 
       logger.info(`[Vote Rewards] Sent webhook notification for ${user.tag}`);
     } catch (error) {
-      logger.error("[Vote Rewards] Error sending webhook:", error.message);
+      logger.error("[Vote Rewards] Error sending webhook:", {
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
+      });
     }
   }
 

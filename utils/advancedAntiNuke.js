@@ -853,7 +853,11 @@ class AdvancedAntiNuke {
             }
           } catch (error) {
             logger.error(`[Anti-Nuke] Could not elevate bot role:`, error);
-            logger.error(`[Anti-Nuke] Error details:`, error.message);
+            logger.error(`[Anti-Nuke] Error details:`, {
+              message: error?.message || String(error),
+              stack: error?.stack,
+              name: error?.name,
+            });
             // Continue anyway - try other methods, but it will likely fail
           }
         } else {

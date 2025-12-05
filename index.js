@@ -394,7 +394,11 @@ if (!process.env.USING_SHARDING) {
     process.exit(1);
   }
   client.login(process.env.DISCORD_TOKEN).catch((error) => {
-    logger.error("❌ Failed to login:", error.message);
+    logger.error("❌ Failed to login:", {
+      message: error?.message || String(error),
+      stack: error?.stack,
+      name: error?.name,
+    });
     if (error.message.includes("Invalid token")) {
       logger.error("⚠️ Check your DISCORD_TOKEN in .env file");
     }

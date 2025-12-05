@@ -20,7 +20,11 @@ class WebhookLogger {
 
       await webhook.send({ embeds: [embed] });
     } catch (error) {
-      logger.error("Webhook logging failed:", error.message);
+      logger.error("Webhook logging failed:", {
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
+      });
     }
   }
 
