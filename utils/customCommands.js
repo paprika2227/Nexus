@@ -163,14 +163,22 @@ class CustomCommands {
           try {
             embed.fields = JSON.parse(command.embed_fields);
           } catch (e) {
-            console.error("Failed to parse embed fields:", e);
+            logger.error("Custom Commands", "Failed to parse embed fields", {
+              message: e?.message || String(e),
+              stack: e?.stack,
+              name: e?.name,
+            });
           }
         }
 
         await interaction.reply({ embeds: [embed] });
       }
     } catch (error) {
-      console.error("[Custom Commands] Execute error:", error);
+      logger.error("Custom Commands", "Execute error", {
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
+      });
       await interaction.reply({
         content: "❌ Failed to execute custom command.",
         ephemeral: true,

@@ -6,7 +6,7 @@ const { version } = require("../package.json");
 module.exports = {
   name: "guildDelete",
   async execute(guild, client) {
-    console.log(`❌ Left server: ${guild.name} (${guild.id})`);
+    logger.info("Guild Delete", `Left server: ${guild.name} (${guild.id})`);
 
     // Get invite source info if we tracked this guild
     let inviteSource = "unknown";

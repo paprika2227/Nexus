@@ -84,8 +84,21 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.20.16 - December 5, 2025</h2>
+          <h2>Version 3.20.17 - December 5, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔧 Code Quality Improvements</h3>
+          <ul>
+            <li>
+              ✅ <strong>Replaced console.log/error with logger:</strong> Updated events/guildCreate.js, events/guildDelete.js, and utils/customCommands.js to use centralized logger instead of console calls for consistent logging
+            </li>
+            <li>
+              ✅ <strong>Improved Error Logging:</strong> All console.error calls now include full stack traces (message, stack, name) for better debugging
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.20.16 - December 5, 2025</h2>
           <h3>📝 Documentation Updates & Bug Fixes</h3>
           <ul>
             <li>
