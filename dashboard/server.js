@@ -593,6 +593,32 @@ class DashboardServer {
       }
     });
 
+    // Verify admin token
+    this.app.post("/api/admin/verify-token", async (req, res) => {
+      try {
+        const { token } = req.body;
+
+        if (!this.adminTokens) {
+          return res.status(401).json({ valid: false });
+        }
+
+        const tokenData = this.adminTokens.get(token);
+
+        if (!tokenData) {
+          return res.status(401).json({ valid: false });
+        }
+
+        if (Date.now() > tokenData.expires) {
+          this.adminTokens.delete(token);
+          return res.status(401).json({ valid: false, expired: true });
+        }
+
+        res.json({ valid: true });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // Create incident (admin only)
     // Get all incidents
     this.app.get("/api/admin/incidents", async (req, res) => {
