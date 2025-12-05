@@ -130,14 +130,49 @@ class UsageAnalyzer {
       dailyData[0] || { day: "Unknown", commands: 0 }
     );
 
+    // Convert hours to GMT/BST
+    const convertedHourlyData = hourlyData.map((h) => ({
+      ...h,
+      hour: ((parseInt(h.hour) + timezone.offset) % 24)
+        .toString()
+        .padStart(2, "0"),
+    }));
+
+    const convertedPeakHours = peakHours.map((h) => ({
+      ...h,
+      hour: ((parseInt(h.hour) + timezone.offset) % 24)
+        .toString()
+        .padStart(2, "0"),
+    }));
+
+    const convertedQuietHours = quietHours.map((h) => ({
+      ...h,
+      hour: ((parseInt(h.hour) + timezone.offset) % 24)
+        .toString()
+        .padStart(2, "0"),
+    }));
+
+    const convertedQuietestHour = (
+      (parseInt(quietestHour) + timezone.offset) %
+      24
+    )
+      .toString()
+      .padStart(2, "0");
+    const convertedMaintenanceWindow = {
+      start: `${convertedQuietestHour}:00`,
+      end: `${((parseInt(convertedQuietestHour) + 2) % 24).toString().padStart(2, "0")}:00`,
+      reason: maintenanceWindow.reason,
+    };
+
     return {
       period: `Last ${days} days`,
+      timezone: timezone,
       totalStats,
-      hourlyData,
+      hourlyData: convertedHourlyData,
       dailyData,
-      peakHours,
-      quietHours,
-      maintenanceWindow,
+      peakHours: convertedPeakHours,
+      quietHours: convertedQuietHours,
+      maintenanceWindow: convertedMaintenanceWindow,
       busiestDay,
       avgCommandsPerDay: Math.floor(totalStats.total_commands / days),
     };
