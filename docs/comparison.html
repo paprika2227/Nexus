@@ -222,7 +222,7 @@
                 <tr>
                   <td><strong>Recovery</strong></td>
                   <td>Manual restoration</td>
-                  <td>Auto-recovery + hourly snapshots</td>
+                  <td>Auto-recovery + smart cleanup + hourly snapshots</td>
                   <td>🏆 Nexus</td>
                 </tr>
                 <tr>
@@ -321,6 +321,8 @@
                   <li><strong>Permission testing detection</strong></li>
                   <li><strong>Auto-recovery with snapshots</strong></li>
                   <li><strong>Parallel restoration (10x faster)</strong></li>
+                  <li><strong>🆕 Smart cleanup: Auto-deletes spam channels, roles, and webhooks created by attacker before restoring</strong></li>
+                  <li><strong>Safety checks: Only deletes items created in last 5 minutes by detected threat</strong></li>
                 </ul>
               </div>
             </div>
@@ -632,8 +634,9 @@
                     <li><strong>Attempts ban + permission removal</strong></li>
                     <li><strong>⚠️ Success if bot role > attacker role</strong></li>
                     <li><strong>Auto-recovery starts if ban succeeds</strong></li>
+                    <li><strong>🆕 Smart cleanup: Deletes all spam channels/roles/webhooks created by attacker</strong></li>
                     <li><strong>Channels restored from snapshot</strong></li>
-                    <li><strong>Server restoration in seconds</strong></li>
+                    <li><strong>Server restoration in seconds - clean and complete</strong></li>
                   </ol>
                   <p style="color: #ffa500; margin-top: 10px">
                     <strong>Result:</strong> Some damage possible, but fast recovery (depends on role positioning)
@@ -816,6 +819,26 @@
                 </tr>
                 <tr>
                   <td>Parallel Recovery</td>
+                  <td class="cross">✗</td>
+                  <td class="check">✓</td>
+                </tr>
+                <tr>
+                  <td><strong>Smart Spam Cleanup</strong></td>
+                  <td class="cross">✗</td>
+                  <td class="check">✓</td>
+                </tr>
+                <tr>
+                  <td style="padding-left: 30px; font-size: 0.9rem;">Auto-delete attacker's channels</td>
+                  <td class="cross">✗</td>
+                  <td class="check">✓</td>
+                </tr>
+                <tr>
+                  <td style="padding-left: 30px; font-size: 0.9rem;">Auto-delete attacker's roles</td>
+                  <td class="cross">✗</td>
+                  <td class="check">✓</td>
+                </tr>
+                <tr>
+                  <td style="padding-left: 30px; font-size: 0.9rem;">Auto-delete attacker's webhooks</td>
                   <td class="cross">✗</td>
                   <td class="check">✓</td>
                 </tr>
