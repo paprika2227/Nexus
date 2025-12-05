@@ -56,18 +56,34 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction, client) {
-    const subcommand = interaction.options.getSubcommand();
+    try {
+      const subcommand = interaction.options.getSubcommand();
 
-    if (subcommand === "enable") {
-      await this.handleEnable(interaction);
-    } else if (subcommand === "disable") {
-      await this.handleDisable(interaction);
-    } else if (subcommand === "status") {
-      await this.handleStatus(interaction, client);
-    } else if (subcommand === "config") {
-      await this.handleConfig(interaction);
-    } else if (subcommand === "test") {
-      await this.handleTest(interaction);
+      if (subcommand === "enable") {
+        await this.handleEnable(interaction);
+      } else if (subcommand === "disable") {
+        await this.handleDisable(interaction);
+      } else if (subcommand === "status") {
+        await this.handleStatus(interaction, client);
+      } else if (subcommand === "config") {
+        await this.handleConfig(interaction);
+      } else if (subcommand === "test") {
+        await this.handleTest(interaction);
+      }
+    } catch (error) {
+      const logger = require("../utils/logger");
+      logger.error("Error in /antinuke command:", error);
+
+      const reply = {
+        content: `❌ Error: ${error.message}`,
+        ephemeral: true,
+      };
+
+      if (interaction.replied || interaction.deferred) {
+        await interaction.editReply(reply).catch(() => {});
+      } else {
+        await interaction.reply(reply).catch(() => {});
+      }
     }
   },
 
