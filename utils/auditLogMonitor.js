@@ -59,10 +59,9 @@ class AuditLogMonitor {
   // Analyze audit logs for suspicious patterns
   async analyzeAuditLogs(guild) {
     try {
-      const auditLogs = await guild.fetchAuditLogs({
-        limit: 100,
-        type: null, // Get all types
-      });
+      // Fetch audit logs with retry logic for socket errors
+      const auditLogs = await this.fetchAuditLogsWithRetry(guild);
+      if (!auditLogs) return; // Skip this cycle if fetch failed
 
       const recentLogs = Array.from(auditLogs.entries.values()).filter(
         (entry) => Date.now() - entry.createdTimestamp < this.patternWindow
@@ -100,6 +99,59 @@ class AuditLogMonitor {
         throw error;
       }
     }
+  }
+
+  // Fetch audit logs with retry logic for network errors
+  async fetchAuditLogsWithRetry(guild, maxRetries = 3) {
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const auditLogs = await guild.fetchAuditLogs({
+          limit: 100,
+          type: null, // Get all types
+        });
+        return auditLogs;
+      } catch (error) {
+        lastError = error;
+        
+        // Handle socket/network errors with retry
+        const isSocketError = 
+          error.name === 'SocketError' ||
+          error.message?.includes('socket') ||
+          error.message?.includes('ECONNRESET') ||
+          error.message?.includes('other side closed') ||
+          error.code === 'ECONNRESET';
+        
+        // Handle rate limit errors
+        const isRateLimit = error.code === 429 || error.httpStatus === 429;
+        
+        if (isSocketError || isRateLimit) {
+          if (attempt < maxRetries) {
+            // Exponential backoff: 1s, 2s, 4s
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+            logger.debug(
+              "AuditLogMonitor",
+              `Retry ${attempt}/${maxRetries} for ${guild.name} after ${delay}ms (${error.name || error.message})`
+            );
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          } else {
+            // Max retries reached, log and skip
+            logger.debug(
+              "AuditLogMonitor",
+              `Max retries reached for ${guild.name}, skipping this cycle`
+            );
+            return null;
+          }
+        }
+        
+        // For other errors, throw immediately
+        throw error;
+      }
+    }
+    
+    return null;
   }
 
   // Detect permission testing (slow nuke preparation)

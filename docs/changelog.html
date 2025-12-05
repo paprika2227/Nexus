@@ -84,8 +84,24 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.22.0 - December 5, 2025</h2>
+          <h2>Version 3.22.1 - December 5, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔧 BUG FIX - AUDIT LOG SOCKET ERRORS</h3>
+          <ul>
+            <li>
+              ✅ <strong>Fixed Socket Errors:</strong> Added retry logic with exponential backoff for audit log fetch failures due to network/socket errors
+            </li>
+            <li>
+              ✅ <strong>Graceful Degradation:</strong> Audit log monitor now handles connection failures gracefully without crashing or spamming logs
+            </li>
+            <li>
+              ✅ <strong>Rate Limit Handling:</strong> Improved handling of Discord API rate limits with automatic retry and backoff
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.22.0 - December 5, 2025</h2>
           <h3>⚡ ENHANCED RECOVERY & SECURITY ANALYTICS - EXCEEDS WICK</h3>
           <ul>
             <li>
