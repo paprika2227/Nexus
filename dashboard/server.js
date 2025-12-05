@@ -3,8 +3,9 @@ const session = require("express-session");
 const passport = require("passport");
 const DiscordStrategy = require("passport-discord").Strategy;
 const path = require("path");
-const db = require("../utils/database");
+// Ensure logger is loaded first to prevent initialization errors
 const logger = require("../utils/logger");
+const db = require("../utils/database");
 
 class DashboardServer {
   constructor(client) {
@@ -257,7 +258,7 @@ class DashboardServer {
         const guild = this.client.guilds.cache.get(req.params.id);
         if (!guild) return res.status(404).json({ error: "Server not found" });
 
-        const db = require("../utils/database");
+        // Use the already-required db from top level
         const config = await db.getServerConfig(guild.id);
 
         res.json({
@@ -4019,7 +4020,7 @@ class DashboardServer {
         }
 
         // Store in pending_referrals table for later association with guild
-        const db = require("../utils/database");
+        // Use the already-required db from top level
 
         // Create table if not exists
         await new Promise((resolve, reject) => {
@@ -4068,7 +4069,7 @@ class DashboardServer {
         const { source, referrer, timestamp } = req.body;
 
         // Log click for analytics
-        const db = require("../utils/database");
+        // Use the already-required db from top level
 
         await new Promise((resolve, reject) => {
           db.db.run(
