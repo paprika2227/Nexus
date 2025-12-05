@@ -5,10 +5,18 @@ const db = require("./database");
 
 class CustomCommands {
   constructor() {
-    this.createTable();
+    // Defer table creation to ensure database is ready
+    setImmediate(() => {
+      this.createTable();
+    });
   }
 
   createTable() {
+    if (!db.db) {
+      // Database not ready yet, retry
+      setTimeout(() => this.createTable(), 100);
+      return;
+    }
     db.db.run(`
       CREATE TABLE IF NOT EXISTS custom_commands (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
