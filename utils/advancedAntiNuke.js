@@ -620,6 +620,13 @@ class AdvancedAntiNuke {
           `[Anti-Nuke] ✅ IMMEDIATE BAN SUCCESS: ${userId} removed from ${guild.name}`
         );
         actionTaken = true;
+        
+        // Trigger auto-recovery IMMEDIATELY after ban
+        logger.info(`[Anti-Nuke] Starting auto-recovery after successful ban...`);
+        this.attemptRecovery(guild, threatType, counts).catch((error) => {
+          logger.error(`[Anti-Nuke] Auto-recovery failed:`, error);
+        });
+        
         return; // Success - exit early
       } catch (banError) {
         logger.error(`[Anti-Nuke] Immediate ban failed: ${banError.message}`);
@@ -635,6 +642,13 @@ class AdvancedAntiNuke {
           `[Anti-Nuke] ✅ IMMEDIATE KICK SUCCESS: ${userId} removed from ${guild.name}`
         );
         actionTaken = true;
+        
+        // Trigger auto-recovery IMMEDIATELY after kick
+        logger.info(`[Anti-Nuke] Starting auto-recovery after successful kick...`);
+        this.attemptRecovery(guild, threatType, counts).catch((error) => {
+          logger.error(`[Anti-Nuke] Auto-recovery failed:`, error);
+        });
+        
         return; // Success - exit early
       } catch (kickError) {
         logger.error(`[Anti-Nuke] Immediate kick failed: ${kickError.message}`);
