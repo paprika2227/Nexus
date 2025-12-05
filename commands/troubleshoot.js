@@ -51,6 +51,8 @@ module.exports = {
       configStatus: {},
       issues: [],
       recommendations: [],
+      roleHierarchy: {},
+      recentErrors: 0,
     };
 
     // Check bot permissions
@@ -65,7 +67,10 @@ module.exports = {
         "BanMembers",
         "KickMembers",
         "ManageRoles",
+        "ManageChannels",
+        "ManageGuild",
         "ModerateMembers",
+        "ViewAuditLog",
       ];
 
       requiredPerms.forEach((perm) => {
@@ -73,11 +78,40 @@ module.exports = {
         diagnostics.botPermissions.push({ name: perm, has: hasPerm });
         if (!hasPerm) {
           diagnostics.issues.push(`Missing permission: ${perm}`);
+          diagnostics.recommendations.push(
+            `Grant permission: ${perm} in Server Settings > Roles`
+          );
         }
       });
+
+      // Check role hierarchy
+      const botRole = me.roles.highest;
+      const rolesAbove = guild.roles.cache.filter(
+        (r) => r.position > botRole.position && r.id !== guild.id
+      );
+
+      diagnostics.roleHierarchy = {
+        position: botRole.position,
+        name: botRole.name,
+        rolesAbove: rolesAbove.size,
+        isAtTop: rolesAbove.size === 0,
+      };
+
+      if (rolesAbove.size > 0) {
+        diagnostics.issues.push(
+          `Bot role not at top - ${rolesAbove.size} roles above it (anti-nuke may fail)`
+        );
+        diagnostics.recommendations.push(
+          "Move bot role to TOP in Server Settings > Roles for full protection"
+        );
+      }
     } else {
       diagnostics.issues.push("Bot is not in the server");
     }
+
+    // Check for recent errors
+    const errorStats = ErrorHandler.getErrorStats();
+    diagnostics.recentErrors = errorStats.totalErrors || 0;
 
     // Check configuration
     const config = await db.getServerConfig(guild.id);
@@ -197,6 +231,28 @@ module.exports = {
       inline: true,
     });
 
+    // Role Hierarchy
+    if (diagnostics.roleHierarchy.name) {
+      const hierarchyStatus = diagnostics.roleHierarchy.isAtTop
+        ? "✅ At top"
+        : `⚠️ ${diagnostics.roleHierarchy.rolesAbove} roles above`;
+
+      embed.addFields({
+        name: "🎭 Role Position",
+        value: `${diagnostics.roleHierarchy.name}\n${hierarchyStatus}`,
+        inline: true,
+      });
+    }
+
+    // Recent Errors
+    if (diagnostics.recentErrors > 0) {
+      embed.addFields({
+        name: "⚠️ Recent Errors",
+        value: `${diagnostics.recentErrors} errors logged\nUse \`/debug export:true\` for details`,
+        inline: true,
+      });
+    }
+
     // Issues
     if (diagnostics.issues.length > 0) {
       embed.addFields({
@@ -227,7 +283,9 @@ module.exports = {
           ? "⚠️ Minor issues detected"
           : "❌ Multiple issues detected";
 
-    embed.setFooter({ text: status });
+    embed.setFooter({
+      text: `${status} | Use /debug for advanced diagnostics`,
+    });
 
     return embed;
   },
