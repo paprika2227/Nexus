@@ -40,6 +40,26 @@ module.exports = {
           db.db.run("DELETE FROM pending_invite_sources WHERE user_id = ?", [
             owner.id,
           ]);
+        } else {
+          // Fallback: Check for anonymous clicks by IP address (within last 24 hours)
+          // Note: We can't get the owner's IP directly, but we can check recent anonymous clicks
+          // This is a best-effort fallback for when users click invite but don't authenticate
+          const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+          const anonymousSource = await new Promise((resolve) => {
+            db.db.get(
+              "SELECT source FROM pending_invite_sources WHERE user_id = 'anonymous' AND timestamp > ? ORDER BY timestamp DESC LIMIT 1",
+              [oneDayAgo],
+              (err, row) => {
+                if (err || !row) resolve(null);
+                else resolve(row.source);
+              }
+            );
+          });
+
+          if (anonymousSource) {
+            inviteSource = anonymousSource;
+            logger.info("Guild Create", `Matched invite source by anonymous click: ${anonymousSource}`);
+          }
         }
       }
 
