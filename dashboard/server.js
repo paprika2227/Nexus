@@ -2041,8 +2041,7 @@ class DashboardServer {
 
         const patterns = await UsageAnalyzer.analyzeUsagePatterns(days);
         const currentActivity = await UsageAnalyzer.getCurrentActivity();
-        const maintenanceSafe =
-          await UsageAnalyzer.isMaintenanceWindowSafe();
+        const maintenanceSafe = await UsageAnalyzer.isMaintenanceWindowSafe();
 
         res.json({
           period: patterns.period,
