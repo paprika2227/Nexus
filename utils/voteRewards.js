@@ -1,5 +1,5 @@
-const db = require("./database");
 const logger = require("./logger");
+const db = require("./database");
 
 class VoteRewards {
   constructor(client) {

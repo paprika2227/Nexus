@@ -1,8 +1,8 @@
 // Server Health Scoring System
 // Calculates a 0-100 health score for each server based on multiple factors
 
-const db = require("./database");
 const logger = require("./logger");
+const db = require("./database");
 
 class ServerHealth {
   constructor() {

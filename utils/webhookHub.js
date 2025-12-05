@@ -2,12 +2,15 @@
 // Send events to external services for custom integrations
 
 const axios = require("axios");
-const db = require("./database");
 const logger = require("./logger");
+const db = require("./database");
 
 class WebhookHub {
   constructor() {
-    this.createTable();
+    // Defer table creation to ensure database is ready
+    setImmediate(() => {
+      this.createTable();
+    });
   }
 
   createTable() {

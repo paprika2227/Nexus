@@ -1,8 +1,8 @@
 // AI Threat Prediction System
 // Analyze patterns across all servers to predict raids before they happen
 
-const db = require("./database");
 const logger = require("./logger");
+const db = require("./database");
 
 class ThreatPredictor {
   constructor() {
@@ -15,7 +15,10 @@ class ThreatPredictor {
       rapidMessages: { weight: 0.1, threshold: 5 }, // 5+ msgs/sec
     };
 
-    this.createTable();
+    // Defer table creation to ensure database is ready
+    setImmediate(() => {
+      this.createTable();
+    });
   }
 
   createTable() {

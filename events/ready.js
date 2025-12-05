@@ -205,7 +205,6 @@ module.exports = {
 
     // Create recovery snapshots for all servers (if auto-recovery is enabled)
     const AutoRecovery = require("../utils/autoRecovery");
-    const logger = require("../utils/logger");
     const db = client.db;
     for (const guild of client.guilds.cache.values()) {
       try {
@@ -273,7 +272,6 @@ module.exports = {
     // Initialize bot list stats posting (for non-sharded mode only)
     // DO NOT initialize if sharding is enabled - shard.js handles it
     if (!process.env.USING_SHARDING && !shardInfo.isSharded) {
-      const logger = require("../utils/logger");
 
       // Initialize Void Bots stats posting
       if (process.env.VOIDBOTS_TOKEN && !client.voidBots) {
