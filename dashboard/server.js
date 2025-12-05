@@ -1357,6 +1357,24 @@ class DashboardServer {
 
     // ========== V2 API ENDPOINTS (NEW) ==========
 
+    // Helper function to add rate limit headers to v2 responses
+    const addRateLimitHeaders = (req, res) => {
+      const cleanIP = req.ip.replace(/::ffff:/, "");
+      const rateLimit = this.rateLimitStore.get(cleanIP) || {
+        count: 0,
+        resetTime: Date.now() + 60000,
+      };
+      res.setHeader("X-RateLimit-Limit", "100");
+      res.setHeader(
+        "X-RateLimit-Remaining",
+        Math.max(0, 100 - rateLimit.count)
+      );
+      res.setHeader(
+        "X-RateLimit-Reset",
+        Math.floor(rateLimit.resetTime / 1000)
+      );
+    };
+
     // GET /api/v2/commands - Get all available commands (v2)
     this.app.get("/api/v2/commands", async (req, res) => {
       try {
@@ -1395,6 +1413,7 @@ class DashboardServer {
     // GET /api/v2/health - Enhanced health check (v2)
     this.app.get("/api/v2/health", async (req, res) => {
       try {
+        addRateLimitHeaders(req, res);
         const memoryUsage = process.memoryUsage();
         res.json({
           success: true,
@@ -1432,6 +1451,7 @@ class DashboardServer {
     // GET /api/v2/stats - Enhanced bot stats (v2)
     this.app.get("/api/v2/stats", async (req, res) => {
       try {
+        addRateLimitHeaders(req, res);
         const stats = {
           serverCount: this.client.guilds.cache.size,
           userCount: this.client.guilds.cache.reduce(
@@ -1463,6 +1483,7 @@ class DashboardServer {
 
     // GET /api/v2/version - Enhanced version info (v2)
     this.app.get("/api/v2/version", (req, res) => {
+      addRateLimitHeaders(req, res);
       const packageJson = require("../package.json");
       res.json({
         success: true,
@@ -1545,6 +1566,7 @@ class DashboardServer {
       this.apiAuth.bind(this),
       async (req, res) => {
         try {
+          addRateLimitHeaders(req, res);
           const serverId = req.params.id;
           const guild = this.client.guilds.cache.get(serverId);
 
@@ -1631,6 +1653,7 @@ class DashboardServer {
       this.apiAuth.bind(this),
       async (req, res) => {
         try {
+          addRateLimitHeaders(req, res);
           const { userId } = req.params;
           const { guild_id } = req.query;
 
@@ -1704,7 +1727,60 @@ class DashboardServer {
       }
     );
 
-    // GET /api/v1/votes/leaderboard - Get voting leaderboard
+    // GET /api/v2/votes/leaderboard - Get voting leaderboard (v2)
+    this.app.get(
+      "/api/v2/votes/leaderboard",
+      this.apiAuth.bind(this),
+      async (req, res) => {
+        try {
+          addRateLimitHeaders(req, res);
+          const type = req.query.type || "total";
+          const limit = Math.min(parseInt(req.query.limit) || 10, 100);
+
+          let orderBy;
+          switch (type) {
+            case "streak":
+              orderBy = "current_streak DESC";
+              break;
+            case "longest":
+              orderBy = "longest_streak DESC";
+              break;
+            default:
+              orderBy = "total_votes DESC";
+          }
+
+          const leaderboard = await new Promise((resolve, reject) => {
+            db.db.all(
+              `SELECT user_id, total_votes, current_streak, longest_streak 
+               FROM vote_rewards 
+               WHERE total_votes > 0 
+               ORDER BY ${orderBy} 
+               LIMIT ?`,
+              [limit],
+              (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+              }
+            );
+          });
+
+          res.json({
+            success: true,
+            data: { leaderboard, type, limit },
+            apiVersion: "2.0.0",
+          });
+        } catch (error) {
+          logger.error("API", "V2 leaderboard error", error);
+          res.status(500).json({
+            success: false,
+            error: "Internal server error",
+            apiVersion: "2.0.0",
+          });
+        }
+      }
+    );
+
+    // GET /api/v1/votes/leaderboard - Get voting leaderboard - DEPRECATED
     this.app.get(
       "/api/v1/votes/leaderboard",
       this.apiAuth.bind(this),
@@ -1773,6 +1849,7 @@ class DashboardServer {
     // GET /api/v2/security-analytics - Get real security analytics (v2)
     this.app.get("/api/v2/security-analytics", async (req, res) => {
       try {
+        addRateLimitHeaders(req, res);
         const totalServers = this.client.guilds.cache.size;
 
         // Count servers with each feature enabled
@@ -1926,7 +2003,78 @@ class DashboardServer {
       }
     });
 
-    // GET /api/v1/recent-activity - Get recent bot activity
+    // GET /api/v2/recent-activity - Get recent bot activity (v2)
+    this.app.get("/api/v2/recent-activity", async (req, res) => {
+      try {
+        addRateLimitHeaders(req, res);
+        const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+        const activities = [];
+
+        // Get recent security logs (last 24 hours)
+        const last24h = Date.now() - 24 * 60 * 60 * 1000;
+        const securityLogs = await new Promise((resolve) => {
+          db.db.all(
+            `SELECT * FROM security_logs 
+             WHERE timestamp > ? 
+             ORDER BY timestamp DESC 
+             LIMIT ?`,
+            [last24h, limit],
+            (err, rows) => {
+              if (err) resolve([]);
+              else resolve(rows || []);
+            }
+          );
+        });
+
+        // Convert security logs to activity items
+        securityLogs.forEach((log) => {
+          let icon, text;
+          if (log.threat_type === "raid") {
+            icon = "🛡️";
+            text = `Stopped raid attempt in ${log.guild_id}`;
+          } else if (log.threat_type === "nuke") {
+            icon = "💣";
+            text = `Prevented nuke in ${log.guild_id}`;
+          } else if (
+            log.event_type === "mass_ban" ||
+            log.event_type === "mass_kick"
+          ) {
+            icon = "⚡";
+            text = `Blocked mass ${log.event_type.replace("mass_", "")} attempt`;
+          } else {
+            icon = "🔒";
+            text = `Security action: ${log.event_type}`;
+          }
+
+          activities.push({
+            icon,
+            text,
+            timestamp: log.timestamp,
+            type: "security",
+            guildId: log.guild_id,
+          });
+        });
+
+        res.json({
+          success: true,
+          data: {
+            activities,
+            count: activities.length,
+            timeframe: "24h",
+          },
+          apiVersion: "2.0.0",
+        });
+      } catch (error) {
+        logger.error("API", "V2 recent activity error", error);
+        res.status(500).json({
+          success: false,
+          error: "Internal server error",
+          apiVersion: "2.0.0",
+        });
+      }
+    });
+
+    // GET /api/v1/recent-activity - Get recent bot activity - DEPRECATED
     this.app.get("/api/v1/recent-activity", async (req, res) => {
       try {
         const limit = Math.min(parseInt(req.query.limit) || 10, 50);

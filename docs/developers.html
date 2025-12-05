@@ -248,7 +248,7 @@
                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                 <pre><code>// Fetch Nexus bot statistics
 async function getNexusStats() {
-  const response = await fetch('YOUR_API_URL/api/v1/stats');
+  const response = await fetch('YOUR_API_URL/api/v2/stats');
   const stats = await response.json();
   
   console.log(`Servers: ${stats.serverCount}`);
@@ -269,7 +269,7 @@ getNexusStats();</code></pre>
                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                 <pre><code>// Get growth analytics
 async function getGrowthData() {
-  const response = await fetch('YOUR_API_URL/api/v1/growth');
+  const response = await fetch('YOUR_API_URL/api/v1/growth'); // v2 not yet available
   const growth = await response.json();
   
   console.log(`Net Growth: ${growth.netGrowth} servers`);
@@ -290,7 +290,7 @@ getGrowthData();</code></pre>
                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                 <pre><code>// Check if Nexus is operational
 async function checkHealth() {
-  const response = await fetch('YOUR_API_URL/api/v1/health');
+  const response = await fetch('YOUR_API_URL/api/v2/health');
   const health = await response.json();
   
   if (health.status === 'operational') {
@@ -320,7 +320,7 @@ setInterval(checkHealth, 60000);</code></pre>
 
 # Fetch Nexus bot statistics
 def get_nexus_stats():
-    response = requests.get('YOUR_API_URL/api/v1/stats')
+    response = requests.get('YOUR_API_URL/api/v2/stats')
     stats = response.json()
     
     print(f"Servers: {stats['serverCount']}")
@@ -343,7 +343,7 @@ import matplotlib.pyplot as plt
 
 # Get and visualize growth data
 def visualize_growth():
-    response = requests.get('YOUR_API_URL/api/v1/growth')
+    response = requests.get('YOUR_API_URL/api/v1/growth')  # v2 not yet available
     growth = response.json()
     
     # Extract dates and values
@@ -372,7 +372,7 @@ import time
 # Health monitoring with alerts
 def monitor_health():
     while True:
-        response = requests.get('YOUR_API_URL/api/v1/health')
+        response = requests.get('YOUR_API_URL/api/v2/health')
         health = response.json()
         
         if health['status'] == 'operational':
@@ -394,7 +394,7 @@ monitor_health()</code></pre>
               <h3>📊 Get Bot Stats</h3>
               <div class="code-block">
                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                <pre><code>curl -X GET "YOUR_API_URL/api/v1/stats" \
+                <pre><code>curl -X GET "YOUR_API_URL/api/v2/stats" \
   -H "Content-Type: application/json"</code></pre>
               </div>
             </div>
@@ -403,7 +403,7 @@ monitor_health()</code></pre>
               <h3>📈 Get Growth Data</h3>
               <div class="code-block">
                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                <pre><code>curl -X GET "YOUR_API_URL/api/v1/growth" \
+                <pre><code>curl -X GET "YOUR_API_URL/api/v1/growth" \  # v2 not yet available
   -H "Content-Type: application/json"</code></pre>
               </div>
             </div>
@@ -412,7 +412,7 @@ monitor_health()</code></pre>
               <h3>🏥 Check Health Status</h3>
               <div class="code-block">
                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                <pre><code>curl -X GET "YOUR_API_URL/api/v1/health" \
+                <pre><code>curl -X GET "YOUR_API_URL/api/v2/health" \
   -H "Content-Type: application/json"</code></pre>
               </div>
             </div>

@@ -186,7 +186,7 @@ async function fetchTopGGStats() {
 async function fetchSecurityAnalytics() {
   try {
     const SECURITY_URL =
-      "https://regular-puma-clearly.ngrok-free.app/api/v1/security-analytics";
+      "https://regular-puma-clearly.ngrok-free.app/api/v2/security-analytics";
     console.log("🔄 Fetching security analytics from:", SECURITY_URL);
 
     const response = await fetch(SECURITY_URL, {
@@ -198,7 +198,9 @@ async function fetchSecurityAnalytics() {
     });
 
     if (response.ok) {
-      const data = await response.json();
+      const responseData = await response.json();
+      // Handle v2 response format
+      const data = responseData.success ? responseData.data : responseData;
       console.log("📊 Received security analytics:", data);
 
       // Update security analytics with REAL data
@@ -210,14 +212,23 @@ async function fetchSecurityAnalytics() {
       const activeThreatsEl = document.getElementById("active-threats");
       const threatUpdateEl = document.getElementById("threat-update");
 
-      if (protectedEl) protectedEl.textContent = data.protectedServers || 0;
+      // Handle v2 format (nested in features object) or v1 format (flat)
+      const features = data.features || {};
+      if (protectedEl)
+        protectedEl.textContent =
+          data.totalServers || data.protectedServers || 0;
       if (avgScoreEl)
         avgScoreEl.textContent = (data.averageSecurityScore || 0) + "%";
-      if (antiNukeEl) antiNukeEl.textContent = data.serversWithAntiNuke || 0;
-      if (antiRaidEl) antiRaidEl.textContent = data.serversWithAntiRaid || 0;
+      if (antiNukeEl)
+        antiNukeEl.textContent =
+          features.antiNuke?.enabled || data.serversWithAntiNuke || 0;
+      if (antiRaidEl)
+        antiRaidEl.textContent =
+          features.antiRaid?.enabled || data.serversWithAntiRaid || 0;
       if (autoModEl) autoModEl.textContent = data.serversWithAutoMod || 0;
       if (activeThreatsEl)
-        activeThreatsEl.textContent = data.activeThreats || 0;
+        activeThreatsEl.textContent =
+          data.recentThreats?.count || data.activeThreats || 0;
       if (threatUpdateEl)
         threatUpdateEl.textContent = new Date().toLocaleTimeString();
 
