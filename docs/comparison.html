@@ -324,16 +324,27 @@
                 </ul>
               </div>
             </div>
-            <div style="background: rgba(255,165,0,0.2); padding: 20px; border-radius: 10px; border-left: 4px solid #ffa500; margin-top: 20px;">
-              <strong style="color: #ffa500;">⚠️ CRITICAL REQUIREMENT:</strong>
-              <p style="margin: 10px 0 0 0; font-size: 1rem;">
-                Both bots require their role to be positioned <strong>ABOVE all other roles</strong> to function. 
-                Without proper role hierarchy, detection works but action fails (permission errors).
-                Use <code>/security rolecheck</code> after adding Nexus to verify setup.
+            <div
+              style="
+                background: rgba(255, 165, 0, 0.2);
+                padding: 20px;
+                border-radius: 10px;
+                border-left: 4px solid #ffa500;
+                margin-top: 20px;
+              "
+            >
+              <strong style="color: #ffa500">⚠️ CRITICAL REQUIREMENT:</strong>
+              <p style="margin: 10px 0 0 0; font-size: 1rem">
+                Both bots require their role to be positioned
+                <strong>ABOVE all other roles</strong> to function. Without
+                proper role hierarchy, detection works but action fails
+                (permission errors). Use <code>/security rolecheck</code> after
+                adding Nexus to verify setup.
               </p>
             </div>
             <div class="success-box" style="margin-top: 20px">
-              <strong>Winner: Nexus</strong> - More detection algorithms and faster recovery.
+              <strong>Winner: Nexus</strong> - More detection algorithms and
+              faster recovery.
               <strong>Both require proper role positioning to work.</strong>
             </div>
           </div>
@@ -387,35 +398,99 @@
         </div>
 
         <!-- Privacy & Trust Comparison -->
-        <div class="feature-category" style="background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,165,0,0.1) 100%); padding: 40px; border-radius: 15px; border: 2px solid rgba(255,215,0,0.3);">
+        <div
+          class="feature-category"
+          style="
+            background: linear-gradient(
+              135deg,
+              rgba(255, 215, 0, 0.1) 0%,
+              rgba(255, 165, 0, 0.1) 100%
+            );
+            padding: 40px;
+            border-radius: 15px;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+          "
+        >
           <h2>🔒 Privacy & Trust - THE Critical Difference</h2>
-          
-          <div style="background: rgba(255,0,0,0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #ff0000; margin-bottom: 30px;">
-            <h3 style="color: #ff6b6b; margin-top: 0;">⚠️ The Wick Problem: Closed Source = Unknown Risks</h3>
-            <p style="font-size: 1.1rem; margin-bottom: 15px;">
-              <strong>Wick is closed source.</strong> This means <strong>you cannot verify</strong> what it's actually doing on your server.
+
+          <div
+            style="
+              background: rgba(255, 0, 0, 0.1);
+              padding: 20px;
+              border-radius: 10px;
+              border-left: 4px solid #ff0000;
+              margin-bottom: 30px;
+            "
+          >
+            <h3 style="color: #ff6b6b; margin-top: 0">
+              ⚠️ The Wick Problem: Closed Source = Unknown Risks
+            </h3>
+            <p style="font-size: 1.1rem; margin-bottom: 15px">
+              <strong>Wick is closed source.</strong> This means
+              <strong>you cannot verify</strong> what it's actually doing on
+              your server.
             </p>
-            <ul style="font-size: 1rem;">
-              <li><strong>❌ Could be logging all your messages</strong> - You wouldn't know</li>
-              <li><strong>❌ Could be collecting user data</strong> - You can't verify</li>
-              <li><strong>❌ Could have security vulnerabilities</strong> - No community audit</li>
-              <li><strong>❌ Could be selling your data</strong> - No way to check</li>
-              <li><strong>❌ Could have backdoors</strong> - Zero transparency</li>
+            <ul style="font-size: 1rem">
+              <li>
+                <strong>❌ Could be logging all your messages</strong> - You
+                wouldn't know
+              </li>
+              <li>
+                <strong>❌ Could be collecting user data</strong> - You can't
+                verify
+              </li>
+              <li>
+                <strong>❌ Could have security vulnerabilities</strong> - No
+                community audit
+              </li>
+              <li>
+                <strong>❌ Could be selling your data</strong> - No way to check
+              </li>
+              <li>
+                <strong>❌ Could have backdoors</strong> - Zero transparency
+              </li>
             </ul>
           </div>
 
-          <div style="background: rgba(0,255,136,0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #00ff88; margin-bottom: 30px;">
-            <h3 style="color: #00ff88; margin-top: 0;">✅ The Nexus Advantage: Open Source = Complete Trust</h3>
-            <p style="font-size: 1.1rem; margin-bottom: 15px;">
-              <strong>Nexus is 100% open source.</strong> Every single line of code is public and auditable.
+          <div
+            style="
+              background: rgba(0, 255, 136, 0.1);
+              padding: 20px;
+              border-radius: 10px;
+              border-left: 4px solid #00ff88;
+              margin-bottom: 30px;
+            "
+          >
+            <h3 style="color: #00ff88; margin-top: 0">
+              ✅ The Nexus Advantage: Open Source = Complete Trust
+            </h3>
+            <p style="font-size: 1.1rem; margin-bottom: 15px">
+              <strong>Nexus is 100% open source.</strong> Every single line of
+              code is public and auditable.
             </p>
-            <ul style="font-size: 1rem;">
-              <li><strong>✅ Verify every feature yourself</strong> - Code is on GitHub</li>
-              <li><strong>✅ No hidden data collection</strong> - Transparent logging</li>
-              <li><strong>✅ Community-audited security</strong> - Anyone can review</li>
-              <li><strong>✅ Privacy-focused</strong> - Minimal data storage</li>
-              <li><strong>✅ No backdoors possible</strong> - Code is public</li>
-              <li><strong>✅ Self-hostable</strong> - Run your own instance if desired</li>
+            <ul style="font-size: 1rem">
+              <li>
+                <strong>✅ Verify every feature yourself</strong> - Code is on
+                GitHub
+              </li>
+              <li>
+                <strong>✅ No hidden data collection</strong> - Transparent
+                logging
+              </li>
+              <li>
+                <strong>✅ Community-audited security</strong> - Anyone can
+                review
+              </li>
+              <li>
+                <strong>✅ Privacy-focused</strong> - Minimal data storage
+              </li>
+              <li>
+                <strong>✅ No backdoors possible</strong> - Code is public
+              </li>
+              <li>
+                <strong>✅ Self-hostable</strong> - Run your own instance if
+                desired
+              </li>
             </ul>
           </div>
 
@@ -463,14 +538,28 @@
             </table>
           </div>
 
-          <div style="background: rgba(102,126,234,0.2); padding: 25px; border-radius: 10px; margin-top: 30px; text-align: center;">
-            <h3 style="color: #00ff88; font-size: 1.5rem; margin-bottom: 15px;">
+          <div
+            style="
+              background: rgba(102, 126, 234, 0.2);
+              padding: 25px;
+              border-radius: 10px;
+              margin-top: 30px;
+              text-align: center;
+            "
+          >
+            <h3 style="color: #00ff88; font-size: 1.5rem; margin-bottom: 15px">
               💡 The Bottom Line
             </h3>
-            <p style="font-size: 1.2rem; line-height: 1.6;">
-              <strong>Would you trust a closed-source security bot with admin permissions on your server?</strong><br>
-              Wick asks you to trust them blindly. Nexus lets you verify everything.<br>
-              <span style="color: #00ff88; font-weight: 700;">Trust through transparency, not promises.</span>
+            <p style="font-size: 1.2rem; line-height: 1.6">
+              <strong
+                >Would you trust a closed-source security bot with admin
+                permissions on your server?</strong
+              ><br />
+              Wick asks you to trust them blindly. Nexus lets you verify
+              everything.<br />
+              <span style="color: #00ff88; font-weight: 700"
+                >Trust through transparency, not promises.</span
+              >
             </p>
           </div>
         </div>
