@@ -2033,6 +2033,36 @@ class DashboardServer {
       }
     });
 
+    // GET /api/admin/usage-patterns - Get usage patterns for maintenance planning (OWNER ONLY)
+    this.app.get("/api/admin/usage-patterns", async (req, res) => {
+      try {
+        const UsageAnalyzer = require("../utils/usageAnalyzer");
+        const days = parseInt(req.query.days) || 7;
+
+        const patterns = await UsageAnalyzer.analyzeUsagePatterns(days);
+        const currentActivity = await UsageAnalyzer.getCurrentActivity();
+        const maintenanceSafe =
+          await UsageAnalyzer.isMaintenanceWindowSafe();
+
+        res.json({
+          period: patterns.period,
+          totalStats: patterns.totalStats,
+          hourlyData: patterns.hourlyData,
+          dailyData: patterns.dailyData,
+          peakHours: patterns.peakHours,
+          quietHours: patterns.quietHours,
+          maintenanceWindow: patterns.maintenanceWindow,
+          busiestDay: patterns.busiestDay,
+          avgCommandsPerDay: patterns.avgCommandsPerDay,
+          currentActivity,
+          maintenanceSafe,
+        });
+      } catch (error) {
+        console.error("[Usage Patterns] Error:", error);
+        res.status(500).json({ error: "Failed to fetch usage patterns" });
+      }
+    });
+
     // GET /api/admin/server-health - Get health scores for all servers
     this.app.get("/api/admin/server-health", async (req, res) => {
       try {
