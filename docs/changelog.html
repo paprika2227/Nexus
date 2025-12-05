@@ -84,8 +84,19 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.16.4 - December 5, 2025</h2>
+          <h2>Version 3.16.5 - December 5, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🛡️ Anti-Nuke Recovery Timing Fix</h3>
+          <ul>
+            <li>✅ Added 3-second delay after ban/kick before starting recovery</li>
+            <li>✅ Verifies attacker is actually removed from server before recovery begins</li>
+            <li>✅ Prevents trying to recover while attack is still in progress</li>
+            <li>✅ Recovery now happens AFTER attacker is fully removed, not during the attack</li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.16.4 - December 5, 2025</h2>
           <h3>🔧 Database Schema Fix - Complete</h3>
           <ul>
             <li>✅ Added migrations for ALL missing backups table columns</li>
