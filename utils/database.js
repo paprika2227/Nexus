@@ -919,10 +919,16 @@ class Database {
                 severity TEXT DEFAULT 'medium',
                 confidence INTEGER DEFAULT 50,
                 detected_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
-                pattern_data TEXT,
-                INDEX idx_user_id (user_id),
-                INDEX idx_detected_at (detected_at)
+                pattern_data TEXT
             )
+        `);
+
+    // Create indexes for threat_patterns (SQLite doesn't support inline INDEX)
+    this.db.run(`
+            CREATE INDEX IF NOT EXISTS idx_threat_patterns_user_id ON threat_patterns(user_id)
+        `);
+    this.db.run(`
+            CREATE INDEX IF NOT EXISTS idx_threat_patterns_detected_at ON threat_patterns(detected_at)
         `);
 
     // Botlist voting links
