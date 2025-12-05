@@ -84,8 +84,21 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.17.2 - December 5, 2025</h2>
+          <h2>Version 3.18.0 - December 5, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🧹 Complete Spam Cleanup: Roles & Webhooks</h3>
+          <ul>
+            <li>✅ <strong>NEW:</strong> Auto-delete spam roles created by attacker</li>
+            <li>✅ <strong>NEW:</strong> Auto-delete spam webhooks created by attacker</li>
+            <li>✅ Same safety checks as channels (5-minute age limit)</li>
+            <li>✅ Skips managed roles (bot roles) and @everyone</li>
+            <li>✅ Complete cleanup: channels + roles + webhooks all removed before recovery</li>
+            <li>✅ Only attacker's creations deleted - all legitimate content safe</li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.17.2 - December 5, 2025</h2>
           <h3>🛡️ Enhanced Safety: Channel Cleanup</h3>
           <ul>
             <li>✅ Added age check: Only deletes channels created in last 5 minutes</li>

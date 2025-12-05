@@ -34,6 +34,8 @@ class AdvancedAntiNuke {
     this.predictiveThreats = new Map(); // Track predictive threat patterns (guildId -> Map<userId, {pattern, confidence, timestamp}>)
     this.permissionChanges = new Map(); // Track permission changes per user (userId-guildId -> {changes: [], firstChange, count})
     this.attackerCreatedChannels = new Map(); // Track channels created by attackers (userId-guildId -> Set<channelId>)
+    this.attackerCreatedRoles = new Map(); // Track roles created by attackers (userId-guildId -> Set<roleId>)
+    this.attackerCreatedWebhooks = new Map(); // Track webhooks created by attackers (userId-guildId -> Set<webhookId>)
   }
 
   // Get server-size-aware adaptive thresholds
@@ -405,6 +407,44 @@ class AdvancedAntiNuke {
           channels.delete(details.channelId);
           if (channels.size === 0) {
             this.attackerCreatedChannels.delete(key);
+          }
+        }
+      }, 300000); // 5 minutes
+    }
+
+    // Track roles created by this user (for cleanup during recovery)
+    if (actionType === "roleCreate" && details.roleId) {
+      if (!this.attackerCreatedRoles.has(key)) {
+        this.attackerCreatedRoles.set(key, new Set());
+      }
+      this.attackerCreatedRoles.get(key).add(details.roleId);
+
+      // Auto-cleanup tracking after 5 minutes if no threat detected
+      setTimeout(() => {
+        const roles = this.attackerCreatedRoles.get(key);
+        if (roles) {
+          roles.delete(details.roleId);
+          if (roles.size === 0) {
+            this.attackerCreatedRoles.delete(key);
+          }
+        }
+      }, 300000); // 5 minutes
+    }
+
+    // Track webhooks created by this user (for cleanup during recovery)
+    if (actionType === "webhookCreate" && details.webhookId) {
+      if (!this.attackerCreatedWebhooks.has(key)) {
+        this.attackerCreatedWebhooks.set(key, new Set());
+      }
+      this.attackerCreatedWebhooks.get(key).add(details.webhookId);
+
+      // Auto-cleanup tracking after 5 minutes if no threat detected
+      setTimeout(() => {
+        const webhooks = this.attackerCreatedWebhooks.get(key);
+        if (webhooks) {
+          webhooks.delete(details.webhookId);
+          if (webhooks.size === 0) {
+            this.attackerCreatedWebhooks.delete(key);
           }
         }
       }, 300000); // 5 minutes
@@ -1407,6 +1447,89 @@ class AdvancedAntiNuke {
 
           // Clear the tracking
           this.attackerCreatedChannels.delete(key);
+        }
+
+        // Clean up spam roles created by attacker
+        const attackerRoles = this.attackerCreatedRoles.get(key);
+        if (attackerRoles && attackerRoles.size > 0) {
+          logger.info(
+            `[Anti-Nuke] Cleaning up ${attackerRoles.size} spam roles created ONLY by detected threat ${attackerUserId}`
+          );
+
+          let deletedRoles = 0;
+          for (const roleId of attackerRoles) {
+            try {
+              const role = await guild.roles.fetch(roleId).catch(() => null);
+              if (role) {
+                // Extra safety: Only delete if role is very recent
+                const roleAge = Date.now() - role.createdTimestamp;
+                if (roleAge > 300000) {
+                  logger.debug(
+                    `[Anti-Nuke] Skipping role ${role.name} - too old (${Math.floor(roleAge / 1000)}s), likely legitimate`
+                  );
+                  continue;
+                }
+
+                // Don't delete @everyone or managed roles (bot roles)
+                if (role.id === guild.id || role.managed) {
+                  continue;
+                }
+
+                await role.delete("Anti-Nuke: Cleaning up spam role created during attack");
+                deletedRoles++;
+                logger.debug(`[Anti-Nuke] Deleted spam role: ${role.name} (${roleId})`);
+              }
+            } catch (error) {
+              logger.debug(`[Anti-Nuke] Failed to delete spam role ${roleId}:`, error.message);
+            }
+          }
+
+          logger.success(
+            `[Anti-Nuke] ✅ Cleaned up ${deletedRoles}/${attackerRoles.size} spam roles`
+          );
+
+          this.attackerCreatedRoles.delete(key);
+        }
+
+        // Clean up spam webhooks created by attacker
+        const attackerWebhooks = this.attackerCreatedWebhooks.get(key);
+        if (attackerWebhooks && attackerWebhooks.size > 0) {
+          logger.info(
+            `[Anti-Nuke] Cleaning up ${attackerWebhooks.size} spam webhooks created ONLY by detected threat ${attackerUserId}`
+          );
+
+          let deletedWebhooks = 0;
+          for (const webhookId of attackerWebhooks) {
+            try {
+              // Fetch all webhooks in guild and find this one
+              const channels = await guild.channels.fetch();
+              for (const channel of channels.values()) {
+                if (channel.isTextBased()) {
+                  try {
+                    const webhooks = await channel.fetchWebhooks();
+                    const webhook = webhooks.get(webhookId);
+                    if (webhook) {
+                      await webhook.delete("Anti-Nuke: Cleaning up spam webhook created during attack");
+                      deletedWebhooks++;
+                      logger.debug(`[Anti-Nuke] Deleted spam webhook: ${webhook.name} (${webhookId})`);
+                      break;
+                    }
+                  } catch (err) {
+                    // Channel might not have webhook permissions
+                    continue;
+                  }
+                }
+              }
+            } catch (error) {
+              logger.debug(`[Anti-Nuke] Failed to delete spam webhook ${webhookId}:`, error.message);
+            }
+          }
+
+          logger.success(
+            `[Anti-Nuke] ✅ Cleaned up ${deletedWebhooks}/${attackerWebhooks.size} spam webhooks`
+          );
+
+          this.attackerCreatedWebhooks.delete(key);
         }
       }
 
