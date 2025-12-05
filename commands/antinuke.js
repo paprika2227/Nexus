@@ -55,7 +55,7 @@ module.exports = {
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
-  async execute(interaction, client) {
+  async execute(interaction) {
     try {
       const subcommand = interaction.options.getSubcommand();
 
@@ -64,7 +64,7 @@ module.exports = {
       } else if (subcommand === "disable") {
         await this.handleDisable(interaction);
       } else if (subcommand === "status") {
-        await this.handleStatus(interaction, client);
+        await this.handleStatus(interaction);
       } else if (subcommand === "config") {
         await this.handleConfig(interaction);
       } else if (subcommand === "test") {
@@ -151,7 +151,8 @@ module.exports = {
     const isOptimal = botRoleIndex === 0;
 
     // Get recent threat stats from anti-nuke system
-    const recentThreats = client.advancedAntiNuke?.processedThreats?.size || 0;
+    const recentThreats =
+      interaction.client.advancedAntiNuke?.processedThreats?.size || 0;
 
     const embed = new EmbedBuilder()
       .setTitle("🛡️ Anti-Nuke Status")
