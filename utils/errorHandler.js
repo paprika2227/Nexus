@@ -331,12 +331,12 @@ class ErrorHandler {
    * @param {Object|String} context - Context information
    * @param {String} source - Source of the error
    */
-  static logError(error, context, source) {
+  logError(error, context, source) {
     const ErrorHelper = require("./errorHelper");
     ErrorHelper.logError(error, {
       commandName: typeof context === "string" ? context : context.commandName,
-      userId: context.userId,
-      guildId: context.guildId,
+      userId: context?.userId,
+      guildId: context?.guildId,
       source: source,
     });
   }
