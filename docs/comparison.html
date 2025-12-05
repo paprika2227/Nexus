@@ -215,9 +215,9 @@
                 </tr>
                 <tr>
                   <td><strong>Anti-Nuke</strong></td>
-                  <td>Basic protection</td>
-                  <td>Advanced + predictive</td>
-                  <td>🏆 Nexus</td>
+                  <td>Basic protection (requires role hierarchy)</td>
+                  <td>Advanced + predictive (requires role hierarchy)</td>
+                  <td>🏆 Nexus (more features)</td>
                 </tr>
                 <tr>
                   <td><strong>Recovery</strong></td>
@@ -324,11 +324,17 @@
                 </ul>
               </div>
             </div>
+            <div style="background: rgba(255,165,0,0.2); padding: 20px; border-radius: 10px; border-left: 4px solid #ffa500; margin-top: 20px;">
+              <strong style="color: #ffa500;">⚠️ CRITICAL REQUIREMENT:</strong>
+              <p style="margin: 10px 0 0 0; font-size: 1rem;">
+                Both bots require their role to be positioned <strong>ABOVE all other roles</strong> to function. 
+                Without proper role hierarchy, detection works but action fails (permission errors).
+                Use <code>/security rolecheck</code> after adding Nexus to verify setup.
+              </p>
+            </div>
             <div class="success-box" style="margin-top: 20px">
-              <strong>Winner: Nexus</strong> - Prevents more attack types and
-              recovers instantly. <strong>NEW:</strong> Large servers (1K+) can
-              perform bulk role cleanups and channel reorganizations without
-              false nuke alerts!
+              <strong>Winner: Nexus</strong> - More detection algorithms and faster recovery.
+              <strong>Both require proper role positioning to work.</strong>
             </div>
           </div>
         </div>
