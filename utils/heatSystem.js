@@ -13,7 +13,7 @@ class HeatSystem {
   }
 
   // Calculate heat for a message
-  calculateHeat(message, config = {}) {
+  async calculateHeat(message, config = {}) {
     let heat = 0;
     const content = message.content || "";
     const lowerContent = content.toLowerCase();
@@ -128,11 +128,57 @@ class HeatSystem {
       }
     }
 
-    // Inactivity factor (works well in quiet channels)
-    // This would need channel activity tracking - simplified for now
+    // Inactivity factor (works well in quiet channels) - FULLY IMPLEMENTED
     if (message.channel) {
       const channelKey = `${message.guild.id}-${message.channel.id}`;
-      // Could track last message time here
+      const db = require("./database");
+
+      // Track channel activity in database
+      try {
+        await new Promise((resolve, reject) => {
+          db.db.run(
+            `INSERT OR REPLACE INTO channel_activity 
+             (guild_id, channel_id, last_message_time, message_count, updated_at)
+             VALUES (?, ?, ?, COALESCE((SELECT message_count FROM channel_activity WHERE guild_id = ? AND channel_id = ?), 0) + 1, ?)`,
+            [
+              message.guild.id,
+              message.channel.id,
+              Date.now(),
+              message.guild.id,
+              message.channel.id,
+              Date.now(),
+            ],
+            (err) => {
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+
+        // Get last message time for this channel
+        const activity = await new Promise((resolve, reject) => {
+          db.db.get(
+            `SELECT last_message_time, message_count 
+             FROM channel_activity 
+             WHERE guild_id = ? AND channel_id = ?`,
+            [message.guild.id, message.channel.id],
+            (err, row) => {
+              if (err) reject(err);
+              else resolve(row);
+            }
+          );
+        });
+
+        if (activity && activity.last_message_time) {
+          const timeSinceLastMessage = Date.now() - activity.last_message_time;
+          // If channel was inactive for > 1 hour, reduce heat slightly
+          if (timeSinceLastMessage > 3600000) {
+            heat *= 0.9; // 10% reduction for inactive channels
+          }
+        }
+      } catch (error) {
+        // Continue if tracking fails
+      }
     }
 
     return Math.floor(heat);

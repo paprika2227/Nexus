@@ -44,13 +44,22 @@ class ZeroDayDetection {
 
     if (isAnomaly || isNewPattern) {
       const confidence = await this.calculateConfidence(patternHash, pattern);
-      
+
       if (confidence >= this.minConfidence) {
-        await this.handleZeroDayThreat(guildId, userId, patternHash, sequence, confidence);
+        await this.handleZeroDayThreat(
+          guildId,
+          userId,
+          patternHash,
+          sequence,
+          confidence
+        );
       }
     }
 
-    return { isAnomaly, confidence: await this.calculateConfidence(patternHash, pattern) };
+    return {
+      isAnomaly,
+      confidence: await this.calculateConfidence(patternHash, pattern),
+    };
   }
 
   // Hash behavior sequence for pattern matching
@@ -93,7 +102,9 @@ class ZeroDayDetection {
       (o) => Date.now() - o.timestamp < 3600000 // Last hour
     );
     const olderOccurrences = pattern.occurrences.filter(
-      (o) => Date.now() - o.timestamp >= 3600000 && Date.now() - o.timestamp < 7200000 // Hour before that
+      (o) =>
+        Date.now() - o.timestamp >= 3600000 &&
+        Date.now() - o.timestamp < 7200000 // Hour before that
     );
 
     if (recentOccurrences.length > olderOccurrences.length * 3) {
@@ -115,8 +126,10 @@ class ZeroDayDetection {
     let confidence = 0;
 
     // Factor 1: Rarity (rare patterns are more suspicious)
-    const totalPatterns = Array.from(this.anomalyPatterns.values())
-      .reduce((sum, guildPatterns) => sum + guildPatterns.size, 0);
+    const totalPatterns = Array.from(this.anomalyPatterns.values()).reduce(
+      (sum, guildPatterns) => sum + guildPatterns.size,
+      0
+    );
     const rarity = 1 / Math.max(1, totalPatterns / 1000);
     confidence += Math.min(30, rarity * 30);
 
@@ -141,9 +154,13 @@ class ZeroDayDetection {
 
     // Factor 5: Time clustering (rapid succession = suspicious)
     if (pattern.occurrences.length >= 2) {
-      const timestamps = pattern.occurrences.map((o) => o.timestamp).sort((a, b) => a - b);
+      const timestamps = pattern.occurrences
+        .map((o) => o.timestamp)
+        .sort((a, b) => a - b);
       const avgInterval =
-        timestamps.slice(1).reduce((sum, ts, i) => sum + (ts - timestamps[i]), 0) /
+        timestamps
+          .slice(1)
+          .reduce((sum, ts, i) => sum + (ts - timestamps[i]), 0) /
         (timestamps.length - 1);
       if (avgInterval < 10000) {
         // < 10 seconds between occurrences
@@ -155,7 +172,13 @@ class ZeroDayDetection {
   }
 
   // Handle detected zero-day threat
-  async handleZeroDayThreat(guildId, userId, patternHash, sequence, confidence) {
+  async handleZeroDayThreat(
+    guildId,
+    userId,
+    patternHash,
+    sequence,
+    confidence
+  ) {
     // Log to database
     await new Promise((resolve, reject) => {
       db.db.run(
@@ -198,8 +221,11 @@ class ZeroDayDetection {
 
     // High confidence = alert admins
     if (confidence >= 80) {
-      logger.warn("ZeroDayDetection", `High-confidence zero-day threat detected in ${guildId}: ${patternHash} (${confidence}% confidence)`);
-      
+      logger.warn(
+        "ZeroDayDetection",
+        `High-confidence zero-day threat detected in ${guildId}: ${patternHash} (${confidence}% confidence)`
+      );
+
       // Get guild config for mod channel
       const config = await db.getServerConfig(guildId);
       if (config?.mod_log_channel) {
@@ -210,12 +236,26 @@ class ZeroDayDetection {
             const { EmbedBuilder } = require("discord.js");
             const embed = new EmbedBuilder()
               .setTitle("🚨 Zero-Day Attack Detected")
-              .setDescription(`Unknown attack pattern detected with ${confidence}% confidence`)
+              .setDescription(
+                `Unknown attack pattern detected with ${confidence}% confidence`
+              )
               .addFields(
                 { name: "User", value: `<@${userId}>`, inline: true },
-                { name: "Pattern Hash", value: patternHash.substring(0, 20) + "...", inline: true },
+                {
+                  name: "Pattern Hash",
+                  value: patternHash.substring(0, 20) + "...",
+                  inline: true,
+                },
                 { name: "Confidence", value: `${confidence}%`, inline: true },
-                { name: "Sequence", value: sequence.slice(-5).map(s => s.type || "UNKNOWN").join(" -> ").substring(0, 1024), inline: false }
+                {
+                  name: "Sequence",
+                  value: sequence
+                    .slice(-5)
+                    .map((s) => s.type || "UNKNOWN")
+                    .join(" -> ")
+                    .substring(0, 1024),
+                  inline: false,
+                }
               )
               .setColor(0xff0000)
               .setTimestamp();
@@ -243,4 +283,3 @@ class ZeroDayDetection {
 }
 
 module.exports = ZeroDayDetection;
-

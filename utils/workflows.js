@@ -27,12 +27,12 @@ class WorkflowEngine {
     }
   }
 
-  matchesTrigger(workflow, eventType, eventData) {
+  async matchesTrigger(workflow, eventType, eventData) {
     const { trigger_type, trigger_config } = workflow;
 
     switch (trigger_type) {
       case "message_count":
-        return this.checkMessageCountTrigger(
+        return await this.checkMessageCountTrigger(
           eventType,
           eventData,
           trigger_config

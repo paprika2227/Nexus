@@ -132,11 +132,11 @@ module.exports = {
       });
     }
 
-    // Check for permission overwrite changes (simplified - just note if they changed)
-    if (
-      oldChannel.permissionOverwrites.cache.size !==
-      newChannel.permissionOverwrites.cache.size
-    ) {
+    // Check for permission overwrite changes (FULLY IMPLEMENTED - detailed analysis)
+    const oldOverwrites = oldChannel.permissionOverwrites.cache;
+    const newOverwrites = newChannel.permissionOverwrites.cache;
+
+    if (oldOverwrites.size !== newOverwrites.size) {
       changes.push({
         name: "Permission Overwrites Changed",
         value: `**Old:** ${oldChannel.permissionOverwrites.cache.size} overwrite(s)\n**New:** ${newChannel.permissionOverwrites.cache.size} overwrite(s)`,

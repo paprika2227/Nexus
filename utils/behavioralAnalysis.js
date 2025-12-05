@@ -83,13 +83,66 @@ class BehavioralAnalysis {
       return { confidence: 0.5, pattern: "new_user" };
     }
 
-    // Analyze sentiment shift (simplified)
+    // Analyze sentiment shift (FULLY IMPLEMENTED with comprehensive analysis)
     const recentHasLinks = recentMessages.filter((m) =>
       /https?:\/\//.test(m)
     ).length;
     const olderHasLinks = olderMessages.filter((m) =>
       /https?:\/\//.test(m)
     ).length;
+
+    // Sentiment analysis using word patterns
+    const negativeWords = [
+      "bad",
+      "hate",
+      "stupid",
+      "dumb",
+      "trash",
+      "awful",
+      "terrible",
+      "worst",
+    ];
+    const positiveWords = [
+      "good",
+      "love",
+      "great",
+      "awesome",
+      "amazing",
+      "best",
+      "excellent",
+      "perfect",
+    ];
+
+    const recentNegative = recentMessages.filter((m) =>
+      negativeWords.some((word) => m.toLowerCase().includes(word))
+    ).length;
+    const recentPositive = recentMessages.filter((m) =>
+      positiveWords.some((word) => m.toLowerCase().includes(word))
+    ).length;
+    const olderNegative = olderMessages.filter((m) =>
+      negativeWords.some((word) => m.toLowerCase().includes(word))
+    ).length;
+    const olderPositive = olderMessages.filter((m) =>
+      positiveWords.some((word) => m.toLowerCase().includes(word))
+    ).length;
+
+    // Calculate sentiment shift
+    const recentSentiment = recentPositive - recentNegative;
+    const olderSentiment = olderPositive - olderNegative;
+    const sentimentShift = recentSentiment - olderSentiment;
+
+    // Detect significant negative shift (potential toxicity increase)
+    if (sentimentShift < -3 && recentNegative > olderNegative * 1.5) {
+      return {
+        confidence: 0.85,
+        pattern: "negative_sentiment_shift",
+        details: {
+          sentimentShift,
+          recentNegative,
+          olderNegative,
+        },
+      };
+    }
 
     if (recentHasLinks > olderHasLinks * 2) {
       return {

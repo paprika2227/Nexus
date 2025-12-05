@@ -554,6 +554,24 @@ class Database {
             )
         `);
 
+    // Channel activity tracking (for heat system and activity analysis)
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS channel_activity (
+                guild_id TEXT,
+                channel_id TEXT,
+                last_message_time INTEGER,
+                message_count INTEGER DEFAULT 0,
+                updated_at INTEGER,
+                PRIMARY KEY (guild_id, channel_id)
+            )
+        `);
+
+    // Create index for channel activity queries
+    this.db.run(`
+            CREATE INDEX IF NOT EXISTS idx_channel_activity_guild 
+            ON channel_activity(guild_id, updated_at)
+        `);
+
     // Join Gate configuration
     this.db.run(`
             CREATE TABLE IF NOT EXISTS join_gate_config (
@@ -887,6 +905,23 @@ class Database {
                 severity_low INTEGER DEFAULT 10,
                 recent_multiplier INTEGER DEFAULT 5,
                 recent_days INTEGER DEFAULT 7
+            )
+        `);
+
+    // Threat patterns (EXCEEDS WICK - cross-server pattern detection)
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS threat_patterns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                pattern_type TEXT NOT NULL,
+                threat_type TEXT,
+                affected_guilds INTEGER DEFAULT 1,
+                severity TEXT DEFAULT 'medium',
+                confidence INTEGER DEFAULT 50,
+                detected_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+                pattern_data TEXT,
+                INDEX idx_user_id (user_id),
+                INDEX idx_detected_at (detected_at)
             )
         `);
 

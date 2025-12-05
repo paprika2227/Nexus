@@ -92,30 +92,105 @@ class IntelligentDetection {
     };
   }
 
-  // Detect coordinated attacks across multiple servers
+  /**
+   * Enhanced cross-server threat detection with pattern analysis (EXCEEDS WICK - better intelligence)
+   */
   static async detectCrossServerThreat(userId) {
-    // Check if user has been flagged in other servers
-    const crossServerFlags = await new Promise((resolve, reject) => {
-      db.db.all(
-        "SELECT guild_id, threat_score FROM security_logs WHERE user_id = ? AND threat_score > 60 ORDER BY timestamp DESC LIMIT 10",
-        [userId],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows || []);
-        }
-      );
-    });
+    const ThreatIntelligence = require("./threatIntelligence");
 
-    if (crossServerFlags.length >= 3) {
+    // Get comprehensive threat data
+    const threatCheck = await ThreatIntelligence.checkThreat(userId);
+
+    if (!threatCheck.hasThreat) {
+      return { isThreat: false };
+    }
+
+    // Enhanced: Check for patterns
+    const patterns = threatCheck.patterns || [];
+    const hasCoordinatedPattern = patterns.some(
+      (p) =>
+        p.pattern_type === "coordinated_attack" ||
+        p.pattern_type === "rapid_cross_server"
+    );
+
+    // Enhanced: Analyze cross-server analytics
+    const analytics = threatCheck.analytics || {};
+    const uniqueGuilds = analytics.uniqueGuilds || 0;
+    const threatTypes = analytics.threatTypes || {};
+    const timeline = analytics.timeline || {};
+
+    // Determine severity based on multiple factors
+    let severity = "medium";
+    if (threatCheck.crossServerCount >= 5 || uniqueGuilds >= 5) {
+      severity = "critical";
+    } else if (threatCheck.crossServerCount >= 3 || uniqueGuilds >= 3) {
+      severity = "high";
+    }
+
+    // Enhanced: Check for rapid escalation (multiple threats in short time)
+    if (timeline.last24h >= 3) {
+      severity = "critical";
+    }
+
+    return {
+      isThreat: true,
+      severity,
+      riskScore: threatCheck.riskScore,
+      flaggedIn: uniqueGuilds,
+      threatCount: threatCheck.threatCount,
+      crossServerCount: threatCheck.crossServerCount,
+      hasPattern: hasCoordinatedPattern,
+      patterns: patterns.length,
+      recommendation: this.getRecommendation(severity, threatCheck),
+      analytics: {
+        threatTypes: Object.keys(threatTypes).length,
+        timeline,
+        uniqueGuilds,
+      },
+    };
+  }
+
+  /**
+   * Get recommendation based on threat analysis (EXCEEDS WICK - actionable insights)
+   */
+  static getRecommendation(severity, threatCheck) {
+    if (severity === "critical") {
+      return "Immediate ban recommended - high cross-server threat with coordinated patterns";
+    } else if (severity === "high") {
+      return "Pre-emptive action recommended - monitor closely or consider timeout";
+    } else if (threatCheck.crossServerCount >= 2) {
+      return "Monitor user - multiple cross-server threats detected";
+    } else {
+      return "Monitor user - threat detected in other servers";
+    }
+  }
+
+  /**
+   * Detect coordinated attack patterns across multiple users (EXCEEDS WICK - network detection)
+   */
+  static async detectCoordinatedNetwork(userIds, timeWindow = 3600000) {
+    const ThreatIntelligence = require("./threatIntelligence");
+
+    // Check for coordinated attacks
+    const coordination = await ThreatIntelligence.detectCoordinatedAttack(
+      userIds,
+      timeWindow
+    );
+
+    if (coordination.isCoordinated) {
       return {
-        isThreat: true,
-        severity: "high",
-        flaggedIn: crossServerFlags.length,
-        recommendation: "Pre-emptive action recommended",
+        isCoordinated: true,
+        affectedGuilds: coordination.totalAffectedGuilds,
+        patterns: coordination.patterns,
+        severity: coordination.patterns.some((p) => p.isCoordinated)
+          ? "critical"
+          : "high",
+        recommendation:
+          "Coordinated attack detected - consider server-wide lockdown",
       };
     }
 
-    return { isThreat: false };
+    return { isCoordinated: false };
   }
 }
 

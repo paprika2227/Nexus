@@ -21,7 +21,8 @@ class AuditLogMonitor {
       return; // Already monitoring
     }
 
-    logger.info(
+    // Use debug level to avoid console spam - summary is logged in ready.js
+    logger.debug(
       "AuditLogMonitor",
       `Starting audit log monitoring for ${guild.name} (${guild.id})`
     );
@@ -63,8 +64,9 @@ class AuditLogMonitor {
         type: null, // Get all types
       });
 
-      const recentLogs = Array.from(auditLogs.entries.values())
-        .filter((entry) => Date.now() - entry.createdTimestamp < this.patternWindow);
+      const recentLogs = Array.from(auditLogs.entries.values()).filter(
+        (entry) => Date.now() - entry.createdTimestamp < this.patternWindow
+      );
 
       // Pattern 1: Permission Testing Detection (Slow Nuke)
       await this.detectPermissionTesting(guild, recentLogs);

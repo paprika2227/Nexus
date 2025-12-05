@@ -63,13 +63,86 @@ class AdvancedAntiRaid {
       return false;
     },
 
-    // Algorithm 4: Network analysis (check for IP patterns - simplified)
-    networkBased: (joins) => {
-      // In a real implementation, you'd track IPs
-      // For now, we use account creation patterns
+    // Algorithm 4: Network analysis (IP-based detection - FULLY IMPLEMENTED)
+    networkBased: async (joins, guildId) => {
+      // Track IP addresses from invite clicks and correlate with joins
+      const db = require("./database");
+
+      // Get IP addresses for recent joins by checking invite tracking
+      const joinUserIds = joins.map((j) => j.userId || j.id);
+      const ipClusters = new Map(); // IP -> [userIds]
+
+      // Check pending invite sources for IP addresses
+      for (const userId of joinUserIds) {
+        try {
+          const ipData = await new Promise((resolve, reject) => {
+            db.db.all(
+              `SELECT ip_address FROM pending_invite_sources 
+               WHERE user_id = ? AND timestamp > ? 
+               ORDER BY timestamp DESC LIMIT 1`,
+              [userId, Date.now() - 24 * 60 * 60 * 1000], // Last 24 hours
+              (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+              }
+            );
+          });
+
+          if (ipData.length > 0 && ipData[0].ip_address) {
+            const ip = ipData[0].ip_address;
+            if (!ipClusters.has(ip)) {
+              ipClusters.set(ip, []);
+            }
+            ipClusters.get(ip).push(userId);
+          }
+        } catch (error) {
+          // Continue if IP lookup fails
+        }
+      }
+
+      // Also check ip_logs table for recent activity
+      try {
+        const recentIPs = await new Promise((resolve, reject) => {
+          db.db.all(
+            `SELECT DISTINCT ip_address, discord_user_id 
+             FROM ip_logs 
+             WHERE discord_user_id IN (${joinUserIds.map(() => "?").join(",")}) 
+             AND timestamp > ?`,
+            [...joinUserIds, Date.now() - 24 * 60 * 60 * 1000],
+            (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows || []);
+            }
+          );
+        });
+
+        recentIPs.forEach((row) => {
+          if (row.ip_address && row.discord_user_id) {
+            if (!ipClusters.has(row.ip_address)) {
+              ipClusters.set(row.ip_address, []);
+            }
+            if (!ipClusters.get(row.ip_address).includes(row.discord_user_id)) {
+              ipClusters.get(row.ip_address).push(row.discord_user_id);
+            }
+          }
+        });
+      } catch (error) {
+        // Continue if IP lookup fails
+      }
+
+      // Detect IP clusters: Multiple users from same IP = suspicious
+      for (const [ip, userIds] of ipClusters) {
+        if (userIds.length >= 3) {
+          // 3+ users from same IP = likely bot farm
+          return true;
+        }
+      }
+
+      // Fallback: Use account creation patterns if IP data unavailable
       const creationTimes = joins.map((j) => j.createdTimestamp);
       const timeClusters = this.findClusters(creationTimes, 3600000); // 1 hour clusters
       if (timeClusters.length > 0 && timeClusters[0].length >= 3) return true;
+
       return false;
     },
 
@@ -78,7 +151,7 @@ class AdvancedAntiRaid {
       if (joins.length < 5) return false;
 
       const timestamps = joins.map((j) => j.timestamp).sort((a, b) => a - b);
-      
+
       // Detect burst patterns (many joins in very short time)
       const burstWindows = [];
       for (let i = 0; i < timestamps.length - 1; i++) {
@@ -98,9 +171,14 @@ class AdvancedAntiRaid {
       for (let i = 1; i < timestamps.length; i++) {
         intervals.push(timestamps[i] - timestamps[i - 1]);
       }
-      const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-      const variance = intervals.reduce((sum, interval) => sum + Math.pow(interval - avgInterval, 2), 0) / intervals.length;
-      
+      const avgInterval =
+        intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      const variance =
+        intervals.reduce(
+          (sum, interval) => sum + Math.pow(interval - avgInterval, 2),
+          0
+        ) / intervals.length;
+
       // Low variance = consistent timing = coordinated wave attack
       if (variance < 1000000 && intervals.length >= 5) return true; // < 1 second variance
 
@@ -125,18 +203,18 @@ class AdvancedAntiRaid {
       // Find connected components (clusters of similar accounts)
       const visited = new Set();
       const components = [];
-      
+
       for (let i = 0; i < joins.length; i++) {
         if (visited.has(i)) continue;
-        
+
         const component = [];
         const queue = [i];
         visited.add(i);
-        
+
         while (queue.length > 0) {
           const current = queue.shift();
           component.push(current);
-          
+
           similarities.forEach(({ i: idx1, j: idx2 }) => {
             if (idx1 === current && !visited.has(idx2)) {
               visited.add(idx2);
@@ -147,15 +225,16 @@ class AdvancedAntiRaid {
             }
           });
         }
-        
+
         if (component.length >= 3) {
           components.push(component);
         }
       }
 
       // Multiple large components = attack network
-      if (components.length >= 2 && components.some(c => c.length >= 4)) return true;
-      
+      if (components.length >= 2 && components.some((c) => c.length >= 4))
+        return true;
+
       return false;
     },
   };
@@ -169,7 +248,7 @@ class AdvancedAntiRaid {
     const ageDiff = Math.abs(user1.accountAge - user2.accountAge);
     const maxAge = Math.max(user1.accountAge, user2.accountAge);
     if (maxAge > 0) {
-      similarity += 1 - (ageDiff / maxAge);
+      similarity += 1 - ageDiff / maxAge;
       factors++;
     }
 
@@ -199,9 +278,9 @@ class AdvancedAntiRaid {
   static stringSimilarity(str1, str2) {
     const longer = str1.length > str2.length ? str1 : str2;
     const shorter = str1.length > str2.length ? str2 : str1;
-    
+
     if (longer.length === 0) return 1.0;
-    
+
     const distance = this.levenshteinDistance(longer, shorter);
     return (longer.length - distance) / longer.length;
   }
@@ -321,7 +400,10 @@ class AdvancedAntiRaid {
       ),
       patternBased: this.detectionAlgorithms.patternBased(joinData.joins),
       behavioral: this.detectionAlgorithms.behavioral(joinData.joins),
-      networkBased: this.detectionAlgorithms.networkBased(joinData.joins),
+      networkBased: await this.detectionAlgorithms.networkBased(
+        joinData.joins,
+        guild.id
+      ),
     };
 
     // Calculate threat score (0-100) - adjusted by server size + sensitivity

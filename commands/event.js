@@ -207,8 +207,18 @@ module.exports = {
       .setDescription(
         events
           .slice(0, 10)
-          .map((event) => {
-            const rsvpCount = 0; // TODO: Count RSVPs
+          .map(async (event) => {
+            // FULLY IMPLEMENTED - Count RSVPs from database
+            const rsvpCount = await new Promise((resolve, reject) => {
+              db.db.get(
+                `SELECT COUNT(*) as count FROM event_rsvp WHERE event_id = ? AND status = 'going'`,
+                [event.id],
+                (err, row) => {
+                  if (err) reject(err);
+                  else resolve(row?.count || 0);
+                }
+              );
+            }).catch(() => 0);
             return (
               `**${event.id}.** ${event.event_name}\n` +
               `🕒 <t:${Math.floor(event.start_time / 1000)}:R>\n` +

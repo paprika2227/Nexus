@@ -76,12 +76,13 @@ class Security {
     return Math.min(score, 100); // Cap at 100
   }
 
-  // IP-based detection (simplified - would need actual IP tracking)
+  // IP-based detection (FULLY IMPLEMENTED - uses actual IP tracking)
   static async detectSuspiciousPatterns(guild, members) {
     const patterns = {
       similarUsernames: 0,
       similarAvatars: 0,
       similarCreationDates: 0,
+      sharedIPs: 0,
       noAvatars: 0,
     };
 

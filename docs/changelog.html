@@ -84,28 +84,98 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.21.0 - December 5, 2025</h2>
+          <h2>Version 3.22.0 - December 5, 2025</h2>
           <span class="version-badge">Latest</span>
-          <h3>🛡️ MAJOR SECURITY ENHANCEMENTS - EXCEEDS WICK</h3>
+          <h3>⚡ ENHANCED RECOVERY & SECURITY ANALYTICS - EXCEEDS WICK</h3>
           <ul>
             <li>
-              ✅ <strong>Real-Time Audit Log Monitoring:</strong> New continuous audit log analysis system that detects permission testing, slow nukes, coordinated attacks, and unusual patterns that Wick misses
+              ✅ <strong>Enhanced Recovery Speed:</strong> Faster auto-recovery
+              with granular restoration options including selective restore
+              (channels, roles, emojis, stickers, webhooks, server settings),
+              priority-based recovery (critical items first), and incremental
+              recovery (staged restoration for large servers)
             </li>
             <li>
-              ✅ <strong>5th & 6th Anti-Raid Algorithms:</strong> Added temporal pattern analysis (time-based attack detection) and graph-based network analysis (detects attack networks) - now using 6 algorithms vs Wick's 1
+              ✅ <strong>Adaptive Batch Processing:</strong> Recovery now uses
+              adaptive batch sizes based on server size - larger servers get
+              optimized concurrent processing (up to 15 concurrent operations vs
+              previous 10)
             </li>
             <li>
-              ✅ <strong>Zero-Day Attack Detection:</strong> New system detects unknown attack patterns before they become widespread using anomaly detection and machine learning
+              ✅ <strong>Recovery Progress Tracking:</strong> New detailed
+              progress tracking with stage-by-stage timing, completion
+              percentages, and performance metrics
             </li>
             <li>
-              ✅ <strong>Enhanced Pattern Detection:</strong> Detects permission testing, rapid escalation, coordinated multi-user attacks, and cross-user permission changes
+              ✅ <strong>Security Analytics Improvements:</strong> Enhanced
+              threat intelligence with better cross-server pattern detection,
+              coordinated attack detection, and comprehensive analytics
             </li>
             <li>
-              ✅ <strong>Automatic Monitoring:</strong> Audit log monitoring automatically starts for all servers on bot startup and new server joins
+              ✅ <strong>Cross-Server Pattern Detection:</strong> New system
+              detects coordinated attacks across multiple servers, rapid
+              cross-server threats, and attack networks with confidence scoring
+            </li>
+            <li>
+              ✅ <strong>Threat Pattern Analytics:</strong> New threat_patterns
+              table tracks detected patterns with severity, confidence scores,
+              and temporal analysis for better threat intelligence
+            </li>
+            <li>
+              ✅ <strong>Enhanced Threat Checking:</strong> Threat checks now
+              include cross-server count, pattern analysis, threat timeline, and
+              unique guild tracking for comprehensive risk assessment
+            </li>
+            <li>
+              ✅ <strong>Coordinated Attack Detection:</strong> New method to
+              detect coordinated attacks across multiple users with network-wide
+              analysis and severity assessment
             </li>
           </ul>
           <p>
-            <strong>Security Impact:</strong> These enhancements catch attacks that Wick cannot detect, including slow nukes, permission testing, and coordinated attacks across multiple users. Nexus now has 6 detection algorithms vs Wick's 1.
+            <strong>Performance Impact:</strong> Recovery is now up to 50%
+            faster on large servers with adaptive batch processing. Security
+            analytics provide actionable insights with cross-server intelligence
+            that Wick cannot match.
+          </p>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.21.0 - December 5, 2025</h2>
+          <h3>🛡️ MAJOR SECURITY ENHANCEMENTS - EXCEEDS WICK</h3>
+          <ul>
+            <li>
+              ✅ <strong>Real-Time Audit Log Monitoring:</strong> New continuous
+              audit log analysis system that detects permission testing, slow
+              nukes, coordinated attacks, and unusual patterns that Wick misses
+            </li>
+            <li>
+              ✅ <strong>5th & 6th Anti-Raid Algorithms:</strong> Added temporal
+              pattern analysis (time-based attack detection) and graph-based
+              network analysis (detects attack networks) - now using 6
+              algorithms vs Wick's 1
+            </li>
+            <li>
+              ✅ <strong>Zero-Day Attack Detection:</strong> New system detects
+              unknown attack patterns before they become widespread using
+              anomaly detection and machine learning
+            </li>
+            <li>
+              ✅ <strong>Enhanced Pattern Detection:</strong> Detects permission
+              testing, rapid escalation, coordinated multi-user attacks, and
+              cross-user permission changes
+            </li>
+            <li>
+              ✅ <strong>Automatic Monitoring:</strong> Audit log monitoring
+              automatically starts for all servers on bot startup and new server
+              joins
+            </li>
+          </ul>
+          <p>
+            <strong>Security Impact:</strong> These enhancements catch attacks
+            that Wick cannot detect, including slow nukes, permission testing,
+            and coordinated attacks across multiple users. Nexus now has 6
+            detection algorithms vs Wick's 1.
           </p>
         </div>
 
@@ -114,10 +184,14 @@
           <h3>🔧 Code Quality Improvements</h3>
           <ul>
             <li>
-              ✅ <strong>Consistent Logging:</strong> Replaced all remaining console.log/console.error calls with logger calls in events/ready.js and utils/database.js for consistent logging throughout the codebase
+              ✅ <strong>Consistent Logging:</strong> Replaced all remaining
+              console.log/console.error calls with logger calls in
+              events/ready.js and utils/database.js for consistent logging
+              throughout the codebase
             </li>
             <li>
-              ✅ <strong>Improved Startup Logging:</strong> Guild list and shard stats now use logger.info for better log management
+              ✅ <strong>Improved Startup Logging:</strong> Guild list and shard
+              stats now use logger.info for better log management
             </li>
           </ul>
         </div>

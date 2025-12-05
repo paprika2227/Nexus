@@ -185,7 +185,33 @@ class AutoRecovery {
     return snapshotData;
   }
 
-  static async recover(guild, snapshotIdOrData) {
+  /**
+   * Enhanced recovery with granular restoration options (EXCEEDS WICK - faster and more flexible)
+   * @param {Guild} guild - The guild to recover
+   * @param {number|object} snapshotIdOrData - Snapshot ID or snapshot data
+   * @param {object} options - Recovery options
+   * @param {string[]} options.types - Types to restore: ['channels', 'roles', 'emojis', 'stickers', 'webhooks', 'server_settings']
+   * @param {boolean} options.priority - Priority-based recovery (restore critical items first)
+   * @param {boolean} options.incremental - Incremental recovery (restore in stages)
+   * @param {number} options.maxConcurrent - Max concurrent operations (default: optimized per type)
+   * @returns {Promise<object>} Recovery result
+   */
+  static async recover(guild, snapshotIdOrData, options = {}) {
+    const startTime = Date.now();
+    const {
+      types = [
+        "channels",
+        "roles",
+        "emojis",
+        "stickers",
+        "webhooks",
+        "server_settings",
+      ],
+      priority = true,
+      incremental = false,
+      maxConcurrent = null,
+    } = options;
+
     // If snapshotIdOrData is a number, it's an ID. Otherwise, it's the snapshot data itself
     let snapshot;
     if (typeof snapshotIdOrData === "number") {
@@ -204,28 +230,69 @@ class AutoRecovery {
     const snapshotData = snapshot.snapshot_data || snapshot;
     const recovered = [];
     const skipped = [];
+    const progress = {
+      total: 0,
+      completed: 0,
+      stages: [],
+    };
+
+    // Calculate total items for progress tracking
+    progress.total =
+      (types.includes("channels") ? snapshotData.channels?.length || 0 : 0) +
+      (types.includes("roles") ? snapshotData.roles?.length || 0 : 0) +
+      (types.includes("emojis") ? snapshotData.emojis?.length || 0 : 0) +
+      (types.includes("stickers") ? snapshotData.stickers?.length || 0 : 0) +
+      (types.includes("webhooks") ? snapshotData.webhooks?.length || 0 : 0) +
+      (types.includes("server_settings") ? 1 : 0);
 
     logger.info(
-      `[AutoRecovery] Starting recovery for ${guild.name} - ${
+      `[AutoRecovery] Starting ${priority ? "priority-based " : ""}${incremental ? "incremental " : ""}recovery for ${guild.name} - ${
         snapshotData.channels?.length || 0
       } channels, ${snapshotData.roles?.length || 0} roles, ${
         snapshotData.webhooks?.length || 0
       } webhooks, ${snapshotData.emojis?.length || 0} emojis, ${
         snapshotData.stickers?.length || 0
-      } stickers in snapshot`
+      } stickers in snapshot (restoring: ${types.join(", ")})`
     );
 
-    // Recover channels FIRST (before roles) - PARALLEL PROCESSING (EXCEEDS WICK - faster recovery)
-    if (snapshotData.channels && snapshotData.channels.length > 0) {
+    // Priority-based recovery: Sort channels by importance (system channels first, then by position)
+    const sortChannelsByPriority = (channels) => {
+      if (!priority) return channels;
+      return channels.sort((a, b) => {
+        // System channels first
+        const aIsSystem = a.type === 4 || a.type === 5; // Category or Announcement
+        const bIsSystem = b.type === 4 || b.type === 5;
+        if (aIsSystem && !bIsSystem) return -1;
+        if (!aIsSystem && bIsSystem) return 1;
+        // Then by position
+        return (a.position || 0) - (b.position || 0);
+      });
+    };
+
+    // Recover channels FIRST (before roles) - ENHANCED PARALLEL PROCESSING (EXCEEDS WICK - faster recovery)
+    if (
+      types.includes("channels") &&
+      snapshotData.channels &&
+      snapshotData.channels.length > 0
+    ) {
+      const stageStart = Date.now();
       logger.info(
-        `[AutoRecovery] Attempting to recover ${snapshotData.channels.length} channels (parallel processing enabled)`
+        `[AutoRecovery] Stage 1: Recovering ${snapshotData.channels.length} channels (parallel processing enabled)`
       );
 
-      // Process channels in parallel batches (max 10 at a time - optimized for speed)
-      // EXCEEDS WICK - Faster parallel processing (10 concurrent vs sequential)
+      // Sort by priority if enabled
+      const sortedChannels = sortChannelsByPriority([...snapshotData.channels]);
+
+      // Optimized batch size based on server size (larger servers = larger batches)
+      const batchSize =
+        maxConcurrent ||
+        (guild.memberCount > 5000 ? 15 : guild.memberCount > 1000 ? 12 : 10);
+
+      // Process channels in parallel batches (optimized for speed)
+      // EXCEEDS WICK - Adaptive batch sizing based on server size
       const channelBatches = [];
-      for (let i = 0; i < snapshotData.channels.length; i += 10) {
-        channelBatches.push(snapshotData.channels.slice(i, i + 10));
+      for (let i = 0; i < sortedChannels.length; i += batchSize) {
+        channelBatches.push(sortedChannels.slice(i, i + batchSize));
       }
 
       for (const batch of channelBatches) {
@@ -243,26 +310,34 @@ class AutoRecovery {
                   position: channelData.position,
                 });
 
-                // Restore permissions in parallel
+                // Restore permissions in parallel (optimized)
                 if (
                   channelData.permissions &&
                   channelData.permissions.length > 0
                 ) {
-                  await Promise.all(
-                    channelData.permissions.map((perm) =>
-                      newChannel.permissionOverwrites
-                        .edit(perm.id, {
-                          allow: perm.allow,
-                          deny: perm.deny,
-                        })
-                        .catch(
-                          ErrorHandler.createSafeCatch(
-                            `autoRecovery [${guild.id}]`,
-                            `Restore permission overwrite for ${perm.id}`
+                  // Process permissions in smaller batches to avoid rate limits
+                  const permBatches = [];
+                  for (let i = 0; i < channelData.permissions.length; i += 5) {
+                    permBatches.push(channelData.permissions.slice(i, i + 5));
+                  }
+
+                  for (const permBatch of permBatches) {
+                    await Promise.all(
+                      permBatch.map((perm) =>
+                        newChannel.permissionOverwrites
+                          .edit(perm.id, {
+                            allow: perm.allow,
+                            deny: perm.deny,
+                          })
+                          .catch(
+                            ErrorHandler.createSafeCatch(
+                              `autoRecovery [${guild.id}]`,
+                              `Restore permission overwrite for ${perm.id}`
+                            )
                           )
-                        )
-                    )
-                  );
+                      )
+                    );
+                  }
                 }
 
                 recovered.push({
@@ -270,6 +345,14 @@ class AutoRecovery {
                   id: newChannel.id,
                   name: newChannel.name,
                 });
+                progress.completed++;
+              } else {
+                skipped.push({
+                  type: "channel",
+                  name: channelData.name,
+                  reason: "Already exists",
+                });
+                progress.completed++;
               }
             } catch (error) {
               ErrorHandler.logError(
@@ -277,23 +360,60 @@ class AutoRecovery {
                 `autoRecovery [${guild.id}]`,
                 `Recover channel ${channelData.name}`
               );
+              progress.completed++;
             }
           })
         );
+
+        // Incremental recovery: yield control between batches
+        if (
+          incremental &&
+          channelBatches.indexOf(batch) < channelBatches.length - 1
+        ) {
+          await new Promise((resolve) => setImmediate(resolve));
+        }
       }
+
+      const stageDuration = Date.now() - stageStart;
+      progress.stages.push({
+        stage: "channels",
+        duration: stageDuration,
+        recovered: recovered.filter((r) => r.type === "channel").length,
+        skipped: skipped.filter((s) => s.type === "channel").length,
+      });
+      logger.info(
+        `[AutoRecovery] Stage 1 complete: ${recovered.filter((r) => r.type === "channel").length} channels recovered in ${stageDuration}ms`
+      );
     }
 
-    // Recover roles - PARALLEL PROCESSING (EXCEEDS WICK - faster recovery)
-    if (snapshotData.roles && snapshotData.roles.length > 0) {
+    // Recover roles - ENHANCED PARALLEL PROCESSING (EXCEEDS WICK - faster recovery)
+    if (
+      types.includes("roles") &&
+      snapshotData.roles &&
+      snapshotData.roles.length > 0
+    ) {
+      const stageStart = Date.now();
       logger.info(
-        `[AutoRecovery] Attempting to recover ${snapshotData.roles.length} roles (parallel processing enabled)`
+        `[AutoRecovery] Stage 2: Recovering ${snapshotData.roles.length} roles (parallel processing enabled)`
       );
 
-      // Process roles in parallel batches (max 5 at a time - optimized for speed)
-      // EXCEEDS WICK - Faster parallel processing (5 concurrent vs sequential)
+      // Priority-based: Sort roles by position (higher position = more important)
+      const sortedRoles = priority
+        ? [...snapshotData.roles].sort(
+            (a, b) => (b.position || 0) - (a.position || 0)
+          )
+        : snapshotData.roles;
+
+      // Optimized batch size for roles (smaller than channels due to permission complexity)
+      const roleBatchSize =
+        maxConcurrent ||
+        (guild.memberCount > 5000 ? 8 : guild.memberCount > 1000 ? 6 : 5);
+
+      // Process roles in parallel batches (optimized for speed)
+      // EXCEEDS WICK - Adaptive batch sizing and priority-based recovery
       const roleBatches = [];
-      for (let i = 0; i < snapshotData.roles.length; i += 5) {
-        roleBatches.push(snapshotData.roles.slice(i, i + 5));
+      for (let i = 0; i < sortedRoles.length; i += roleBatchSize) {
+        roleBatches.push(sortedRoles.slice(i, i + roleBatchSize));
       }
 
       for (const batch of roleBatches) {
@@ -358,6 +478,7 @@ class AutoRecovery {
                   id: newRole.id,
                   name: newRole.name,
                 });
+                progress.completed++;
 
                 logger.info(
                   `[AutoRecovery] ✅ Recreated role: ${roleData.name}`
@@ -368,6 +489,7 @@ class AutoRecovery {
                   name: roleData.name,
                   reason: "Already exists",
                 });
+                progress.completed++;
               }
             } catch (error) {
               logger.error(
@@ -379,173 +501,327 @@ class AutoRecovery {
                 `autoRecovery [${guild.id}]`,
                 `Recover role ${roleData.name || roleData.id}`
               );
+              progress.completed++;
             }
           })
         );
+
+        // Incremental recovery: yield control between batches
+        if (
+          incremental &&
+          roleBatches.indexOf(batch) < roleBatches.length - 1
+        ) {
+          await new Promise((resolve) => setImmediate(resolve));
+        }
       }
-    } else {
+
+      const stageDuration = Date.now() - stageStart;
+      progress.stages.push({
+        stage: "roles",
+        duration: stageDuration,
+        recovered: recovered.filter((r) => r.type === "role").length,
+        skipped: skipped.filter((s) => s.type === "role").length,
+      });
+      logger.info(
+        `[AutoRecovery] Stage 2 complete: ${recovered.filter((r) => r.type === "role").length} roles recovered in ${stageDuration}ms`
+      );
+    } else if (types.includes("roles")) {
       logger.warn(`[AutoRecovery] No roles in snapshot data`);
     }
 
     // Recover webhooks (EXCEEDS WICK - they don't restore webhooks)
-    if (snapshotData.webhooks && snapshotData.webhooks.length > 0) {
+    if (
+      types.includes("webhooks") &&
+      snapshotData.webhooks &&
+      snapshotData.webhooks.length > 0
+    ) {
+      const stageStart = Date.now();
       logger.info(
-        `[AutoRecovery] Attempting to recover ${snapshotData.webhooks.length} webhooks`
+        `[AutoRecovery] Stage 3: Attempting to recover ${snapshotData.webhooks.length} webhooks`
       );
 
-      for (const webhookData of snapshotData.webhooks) {
-        try {
-          const channel = guild.channels.cache.get(webhookData.channelId);
-          if (!channel) {
-            skipped.push({
-              type: "webhook",
-              id: webhookData.id,
-              name: webhookData.name,
-              reason: "Channel not found",
-            });
-            continue;
-          }
+      // Process webhooks in parallel batches for faster recovery
+      const webhookBatches = [];
+      const webhookBatchSize = maxConcurrent || 10;
+      for (let i = 0; i < snapshotData.webhooks.length; i += webhookBatchSize) {
+        webhookBatches.push(
+          snapshotData.webhooks.slice(i, i + webhookBatchSize)
+        );
+      }
 
-          // Check if webhook already exists
-          const existingWebhooks = await channel
-            .fetchWebhooks()
-            .catch(() => []);
-          const existingWebhook = existingWebhooks.find(
-            (w) => w.id === webhookData.id || w.name === webhookData.name
-          );
+      for (const batch of webhookBatches) {
+        await Promise.all(
+          batch.map(async (webhookData) => {
+            try {
+              const channel = guild.channels.cache.get(webhookData.channelId);
+              if (!channel) {
+                skipped.push({
+                  type: "webhook",
+                  id: webhookData.id,
+                  name: webhookData.name,
+                  reason: "Channel not found",
+                });
+                progress.completed++;
+                return;
+              }
 
-          if (!existingWebhook) {
-            // Note: We can't recreate webhooks with exact same properties without the token
-            // But we can log that it was missing
-            logger.info(
-              `[AutoRecovery] Webhook ${webhookData.name} was deleted (cannot recreate without token)`
-            );
-            skipped.push({
-              type: "webhook",
-              id: webhookData.id,
-              name: webhookData.name,
-              reason: "Cannot recreate without token",
-            });
-          }
-        } catch (error) {
-          ErrorHandler.logError(
-            error,
-            `autoRecovery [${guild.id}]`,
-            `Recover webhook ${webhookData.name}`
-          );
+              // Check if webhook already exists
+              const existingWebhooks = await channel
+                .fetchWebhooks()
+                .catch(() => []);
+              const existingWebhook = existingWebhooks.find(
+                (w) => w.id === webhookData.id || w.name === webhookData.name
+              );
+
+              if (!existingWebhook) {
+                // Note: We can't recreate webhooks with exact same properties without the token
+                // But we can log that it was missing
+                logger.info(
+                  `[AutoRecovery] Webhook ${webhookData.name} was deleted (cannot recreate without token)`
+                );
+                skipped.push({
+                  type: "webhook",
+                  id: webhookData.id,
+                  name: webhookData.name,
+                  reason: "Cannot recreate without token",
+                });
+              }
+              progress.completed++;
+            } catch (error) {
+              ErrorHandler.logError(
+                error,
+                `autoRecovery [${guild.id}]`,
+                `Recover webhook ${webhookData.name}`
+              );
+              progress.completed++;
+            }
+          })
+        );
+
+        if (
+          incremental &&
+          webhookBatches.indexOf(batch) < webhookBatches.length - 1
+        ) {
+          await new Promise((resolve) => setImmediate(resolve));
         }
       }
+
+      const stageDuration = Date.now() - stageStart;
+      progress.stages.push({
+        stage: "webhooks",
+        duration: stageDuration,
+        recovered: recovered.filter((r) => r.type === "webhook").length,
+        skipped: skipped.filter((s) => s.type === "webhook").length,
+      });
+      logger.info(
+        `[AutoRecovery] Stage 3 complete: ${skipped.filter((s) => s.type === "webhook").length} webhooks processed in ${stageDuration}ms`
+      );
     }
 
-    // Recover emojis (EXCEEDS WICK - they don't restore emojis)
-    if (snapshotData.emojis && snapshotData.emojis.length > 0) {
+    // Recover emojis (EXCEEDS WICK - they don't restore emojis) - PARALLEL PROCESSING
+    if (
+      types.includes("emojis") &&
+      snapshotData.emojis &&
+      snapshotData.emojis.length > 0
+    ) {
+      const stageStart = Date.now();
       logger.info(
-        `[AutoRecovery] Attempting to recover ${snapshotData.emojis.length} emojis`
+        `[AutoRecovery] Stage 4: Attempting to recover ${snapshotData.emojis.length} emojis (parallel processing)`
       );
 
-      for (const emojiData of snapshotData.emojis) {
-        try {
-          const existingEmoji = guild.emojis.cache.get(emojiData.id);
-          if (!existingEmoji) {
-            // Try to fetch emoji image and recreate
+      // Process emojis in parallel batches for faster recovery
+      const emojiBatches = [];
+      const emojiBatchSize = maxConcurrent || 5; // Smaller batches due to file downloads
+      for (let i = 0; i < snapshotData.emojis.length; i += emojiBatchSize) {
+        emojiBatches.push(snapshotData.emojis.slice(i, i + emojiBatchSize));
+      }
+
+      for (const batch of emojiBatches) {
+        await Promise.all(
+          batch.map(async (emojiData) => {
             try {
-              const response = await fetch(emojiData.url);
-              const buffer = await response.arrayBuffer();
-              const attachment = Buffer.from(buffer);
+              const existingEmoji = guild.emojis.cache.get(emojiData.id);
+              if (!existingEmoji) {
+                // Try to fetch emoji image and recreate
+                try {
+                  const response = await fetch(emojiData.url);
+                  const buffer = await response.arrayBuffer();
+                  const attachment = Buffer.from(buffer);
 
-              const newEmoji = await guild.emojis.create({
-                attachment: attachment,
-                name: emojiData.name,
-                reason: "Auto-recovery: Restore deleted emoji",
-              });
+                  const newEmoji = await guild.emojis.create({
+                    attachment: attachment,
+                    name: emojiData.name,
+                    reason: "Auto-recovery: Restore deleted emoji",
+                  });
 
-              recovered.push({
-                type: "emoji",
-                id: newEmoji.id,
-                name: newEmoji.name,
-              });
-              logger.info(`[AutoRecovery] Recovered emoji: ${newEmoji.name}`);
+                  recovered.push({
+                    type: "emoji",
+                    id: newEmoji.id,
+                    name: newEmoji.name,
+                  });
+                  progress.completed++;
+                  logger.info(
+                    `[AutoRecovery] Recovered emoji: ${newEmoji.name}`
+                  );
+                } catch (error) {
+                  logger.warn(
+                    `[AutoRecovery] Failed to recover emoji ${emojiData.name}:`,
+                    error.message
+                  );
+                  skipped.push({
+                    type: "emoji",
+                    id: emojiData.id,
+                    name: emojiData.name,
+                    reason: error.message,
+                  });
+                  progress.completed++;
+                }
+              } else {
+                skipped.push({
+                  type: "emoji",
+                  name: emojiData.name,
+                  reason: "Already exists",
+                });
+                progress.completed++;
+              }
             } catch (error) {
-              logger.warn(
-                `[AutoRecovery] Failed to recover emoji ${emojiData.name}:`,
-                error.message
+              ErrorHandler.logError(
+                error,
+                `autoRecovery [${guild.id}]`,
+                `Recover emoji ${emojiData.name}`
               );
-              skipped.push({
-                type: "emoji",
-                id: emojiData.id,
-                name: emojiData.name,
-                reason: error.message,
-              });
+              progress.completed++;
             }
-          }
-        } catch (error) {
-          ErrorHandler.logError(
-            error,
-            `autoRecovery [${guild.id}]`,
-            `Recover emoji ${emojiData.name}`
-          );
+          })
+        );
+
+        if (
+          incremental &&
+          emojiBatches.indexOf(batch) < emojiBatches.length - 1
+        ) {
+          await new Promise((resolve) => setImmediate(resolve));
         }
       }
+
+      const stageDuration = Date.now() - stageStart;
+      progress.stages.push({
+        stage: "emojis",
+        duration: stageDuration,
+        recovered: recovered.filter((r) => r.type === "emoji").length,
+        skipped: skipped.filter((s) => s.type === "emoji").length,
+      });
+      logger.info(
+        `[AutoRecovery] Stage 4 complete: ${recovered.filter((r) => r.type === "emoji").length} emojis recovered in ${stageDuration}ms`
+      );
     }
 
-    // Recover stickers (EXCEEDS WICK - they don't restore stickers)
-    if (snapshotData.stickers && snapshotData.stickers.length > 0) {
+    // Recover stickers (EXCEEDS WICK - they don't restore stickers) - PARALLEL PROCESSING
+    if (
+      types.includes("stickers") &&
+      snapshotData.stickers &&
+      snapshotData.stickers.length > 0
+    ) {
+      const stageStart = Date.now();
       logger.info(
-        `[AutoRecovery] Attempting to recover ${snapshotData.stickers.length} stickers`
+        `[AutoRecovery] Stage 5: Attempting to recover ${snapshotData.stickers.length} stickers (parallel processing)`
       );
 
-      for (const stickerData of snapshotData.stickers) {
-        try {
-          const existingSticker = guild.stickers.cache.get(stickerData.id);
-          if (!existingSticker) {
-            // Try to fetch sticker file and recreate
+      // Process stickers in parallel batches for faster recovery
+      const stickerBatches = [];
+      const stickerBatchSize = maxConcurrent || 5; // Smaller batches due to file downloads
+      for (let i = 0; i < snapshotData.stickers.length; i += stickerBatchSize) {
+        stickerBatches.push(
+          snapshotData.stickers.slice(i, i + stickerBatchSize)
+        );
+      }
+
+      for (const batch of stickerBatches) {
+        await Promise.all(
+          batch.map(async (stickerData) => {
             try {
-              const response = await fetch(stickerData.url);
-              const buffer = await response.arrayBuffer();
-              const attachment = Buffer.from(buffer);
+              const existingSticker = guild.stickers.cache.get(stickerData.id);
+              if (!existingSticker) {
+                // Try to fetch sticker file and recreate
+                try {
+                  const response = await fetch(stickerData.url);
+                  const buffer = await response.arrayBuffer();
+                  const attachment = Buffer.from(buffer);
 
-              const newSticker = await guild.stickers.create({
-                file: attachment,
-                name: stickerData.name,
-                description: stickerData.description || "",
-                tags: stickerData.name, // Use name as tag
-                reason: "Auto-recovery: Restore deleted sticker",
-              });
+                  const newSticker = await guild.stickers.create({
+                    file: attachment,
+                    name: stickerData.name,
+                    description: stickerData.description || "",
+                    tags: stickerData.name, // Use name as tag
+                    reason: "Auto-recovery: Restore deleted sticker",
+                  });
 
-              recovered.push({
-                type: "sticker",
-                id: newSticker.id,
-                name: newSticker.name,
-              });
-              logger.info(
-                `[AutoRecovery] Recovered sticker: ${newSticker.name}`
-              );
+                  recovered.push({
+                    type: "sticker",
+                    id: newSticker.id,
+                    name: newSticker.name,
+                  });
+                  progress.completed++;
+                  logger.info(
+                    `[AutoRecovery] Recovered sticker: ${newSticker.name}`
+                  );
+                } catch (error) {
+                  logger.warn(
+                    `[AutoRecovery] Failed to recover sticker ${stickerData.name}:`,
+                    error.message
+                  );
+                  skipped.push({
+                    type: "sticker",
+                    id: stickerData.id,
+                    name: stickerData.name,
+                    reason: error.message,
+                  });
+                  progress.completed++;
+                }
+              } else {
+                skipped.push({
+                  type: "sticker",
+                  name: stickerData.name,
+                  reason: "Already exists",
+                });
+                progress.completed++;
+              }
             } catch (error) {
-              logger.warn(
-                `[AutoRecovery] Failed to recover sticker ${stickerData.name}:`,
-                error.message
+              ErrorHandler.logError(
+                error,
+                `autoRecovery [${guild.id}]`,
+                `Recover sticker ${stickerData.name}`
               );
-              skipped.push({
-                type: "sticker",
-                id: stickerData.id,
-                name: stickerData.name,
-                reason: error.message,
-              });
+              progress.completed++;
             }
-          }
-        } catch (error) {
-          ErrorHandler.logError(
-            error,
-            `autoRecovery [${guild.id}]`,
-            `Recover sticker ${stickerData.name}`
-          );
+          })
+        );
+
+        if (
+          incremental &&
+          stickerBatches.indexOf(batch) < stickerBatches.length - 1
+        ) {
+          await new Promise((resolve) => setImmediate(resolve));
         }
       }
+
+      const stageDuration = Date.now() - stageStart;
+      progress.stages.push({
+        stage: "stickers",
+        duration: stageDuration,
+        recovered: recovered.filter((r) => r.type === "sticker").length,
+        skipped: skipped.filter((s) => s.type === "sticker").length,
+      });
+      logger.info(
+        `[AutoRecovery] Stage 5 complete: ${recovered.filter((r) => r.type === "sticker").length} stickers recovered in ${stageDuration}ms`
+      );
     }
 
     // Recover server settings (EXCEEDS WICK - they don't restore server settings)
-    if (snapshotData.serverSettings) {
-      logger.info(`[AutoRecovery] Attempting to recover server settings`);
+    if (types.includes("server_settings") && snapshotData.serverSettings) {
+      const stageStart = Date.now();
+      logger.info(
+        `[AutoRecovery] Stage 6: Attempting to recover server settings`
+      );
 
       try {
         const botMember = await guild.members
@@ -644,11 +920,14 @@ class AutoRecovery {
               type: "server_settings",
               count: Object.keys(updates).length,
             });
+            progress.completed++;
             logger.info(
               `[AutoRecovery] Recovered ${
                 Object.keys(updates).length
               } server settings`
             );
+          } else {
+            progress.completed++;
           }
 
           // Restore icon/banner if available (requires additional permissions)
@@ -701,6 +980,7 @@ class AutoRecovery {
           logger.warn(
             `[AutoRecovery] Bot lacks ManageGuild permission - skipping server settings recovery`
           );
+          progress.completed++;
         }
       } catch (error) {
         ErrorHandler.logError(
@@ -708,11 +988,30 @@ class AutoRecovery {
           `autoRecovery [${guild.id}]`,
           `Recover server settings`
         );
+        progress.completed++;
       }
+
+      const stageDuration = Date.now() - stageStart;
+      progress.stages.push({
+        stage: "server_settings",
+        duration: stageDuration,
+        recovered: recovered.filter((r) => r.type === "server_settings").length,
+        skipped: skipped.filter((s) => s.type === "server_settings").length,
+      });
+      logger.info(
+        `[AutoRecovery] Stage 6 complete: Server settings processed in ${stageDuration}ms`
+      );
     }
 
+    const totalDuration = Date.now() - startTime;
+    const avgStageTime =
+      progress.stages.length > 0
+        ? progress.stages.reduce((sum, s) => sum + s.duration, 0) /
+          progress.stages.length
+        : 0;
+
     logger.info(
-      `[AutoRecovery] Recovery complete: ${recovered.length} items recovered, ${skipped.length} items skipped`
+      `[AutoRecovery] Recovery complete in ${totalDuration}ms (avg ${Math.round(avgStageTime)}ms per stage): ${recovered.length} items recovered, ${skipped.length} items skipped`
     );
 
     return {
@@ -721,7 +1020,53 @@ class AutoRecovery {
       skipped: skipped.length,
       items: recovered,
       skippedItems: skipped,
+      duration: totalDuration,
+      progress: {
+        total: progress.total,
+        completed: progress.completed,
+        percentage:
+          progress.total > 0
+            ? Math.round((progress.completed / progress.total) * 100)
+            : 100,
+      },
+      stages: progress.stages,
+      options: {
+        types,
+        priority,
+        incremental,
+      },
     };
+  }
+
+  /**
+   * Selective recovery - restore only specific types (EXCEEDS WICK - granular control)
+   * @param {Guild} guild - The guild to recover
+   * @param {number} snapshotId - Snapshot ID
+   * @param {string[]} types - Types to restore
+   * @returns {Promise<object>} Recovery result
+   */
+  static async recoverSelective(guild, snapshotId, types) {
+    return await this.recover(guild, snapshotId, { types });
+  }
+
+  /**
+   * Priority-based recovery - restore critical items first (EXCEEDS WICK - faster critical recovery)
+   * @param {Guild} guild - The guild to recover
+   * @param {number} snapshotId - Snapshot ID
+   * @returns {Promise<object>} Recovery result
+   */
+  static async recoverPriority(guild, snapshotId) {
+    return await this.recover(guild, snapshotId, { priority: true });
+  }
+
+  /**
+   * Incremental recovery - restore in stages with progress tracking (EXCEEDS WICK - better for large servers)
+   * @param {Guild} guild - The guild to recover
+   * @param {number} snapshotId - Snapshot ID
+   * @returns {Promise<object>} Recovery result
+   */
+  static async recoverIncremental(guild, snapshotId) {
+    return await this.recover(guild, snapshotId, { incremental: true });
   }
 
   static async autoSnapshot(guild, reason) {

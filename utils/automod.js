@@ -18,7 +18,13 @@ class AutoMod {
     for (const rule of rules) {
       if (!rule.enabled) continue;
 
-      const triggered = await this.checkRule(message, rule);
+      let triggered = false;
+      if (rule.trigger === "spam") {
+        triggered = await this.detectSpam(message);
+      } else {
+        triggered = await this.checkRule(message, rule);
+      }
+
       if (triggered) {
         actionTaken = await this.executeAction(message, rule, client);
         if (actionTaken) break;
@@ -74,12 +80,56 @@ class AutoMod {
     }
   }
 
-  static detectSpam(message) {
+  static async detectSpam(message) {
     // Check for repeated characters
     if (/(.)\1{10,}/.test(message.content)) return true;
 
-    // Check for rapid messages (would need message history tracking)
-    // This is a simplified version
+    // Check for rapid messages (FULLY IMPLEMENTED with message history tracking)
+    const db = require("./database");
+    const userId = message.author.id;
+    const guildId = message.guild.id;
+
+    try {
+      // Get recent messages from this user (last 10 seconds)
+      const recentMessages = await new Promise((resolve, reject) => {
+        db.db.all(
+          `SELECT timestamp FROM user_stats 
+           WHERE guild_id = ? AND user_id = ? 
+           AND last_message_time > ?`,
+          [guildId, userId, Date.now() - 10000], // Last 10 seconds
+          (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows || []);
+          }
+        );
+      });
+
+      // Also check enhanced_logs for recent message events
+      const logMessages = await new Promise((resolve, reject) => {
+        db.db.all(
+          `SELECT timestamp FROM enhanced_logs 
+           WHERE guild_id = ? AND user_id = ? 
+           AND log_type = 'message' 
+           AND timestamp > ? 
+           ORDER BY timestamp DESC LIMIT 10`,
+          [guildId, userId, Date.now() - 10000],
+          (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows || []);
+          }
+        );
+      });
+
+      const totalRecent = recentMessages.length + logMessages.length;
+
+      // 5+ messages in 10 seconds = rapid spam
+      if (totalRecent >= 5) {
+        return true;
+      }
+    } catch (error) {
+      // Continue if check fails
+    }
+
     return false;
   }
 
