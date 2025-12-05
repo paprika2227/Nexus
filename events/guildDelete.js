@@ -1,5 +1,5 @@
-const db = require("../utils/database");
 const logger = require("../utils/logger");
+const db = require("../utils/database");
 const growthTracker = require("../utils/growthTracker");
 const { version } = require("../package.json");
 
