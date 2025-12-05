@@ -84,6 +84,20 @@
 
       <div class="content-section">
         <div class="changelog-entry">
+          <h2>Version 3.20.11 - December 5, 2025</h2>
+          <span class="version-badge">Latest</span>
+          <h3>🐛 Critical Bug Fix</h3>
+          <ul>
+            <li>
+              ✅ <strong>Fixed Logger Initialization Error:</strong> Fixed "Cannot access 'logger' before initialization" error by reordering module requires in index.js
+            </li>
+            <li>
+              ✅ <strong>Module Load Order:</strong> Logger now loads before database to prevent circular dependency issues
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
           <h2>Version 3.20.10 - December 5, 2025</h2>
           <h3>🧹 Logging Cleanup & API Improvements</h3>
           <ul>
