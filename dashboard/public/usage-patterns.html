@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Usage Patterns - Nexus Admin</title>
-    <link rel="stylesheet" href="pages.css" />
+    <link rel="stylesheet" href="dashboard.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <style>
       .admin-container {
@@ -99,7 +99,7 @@
   </head>
   <body>
     <div class="admin-container">
-      <h1>📊 Usage Patterns Analysis</h1>
+      <h1>📊 Usage Patterns Analysis (OWNER ONLY)</h1>
       <p style="color: rgba(255, 255, 255, 0.6)">
         Internal analytics for maintenance planning
       </p>
@@ -122,7 +122,7 @@
 
       <div style="margin-top: 20px">
         <button
-          onclick="window.location.href = 'admin.html'"
+          onclick="window.location.href = '/'"
           style="
             padding: 10px 20px;
             background: #667eea;
@@ -132,7 +132,7 @@
             cursor: pointer;
           "
         >
-          ← Back to Admin
+          ← Back to Dashboard
         </button>
       </div>
     </div>
@@ -141,6 +141,11 @@
       async function loadUsagePatterns() {
         try {
           const response = await fetch("/api/admin/usage-patterns?days=7");
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
           const data = await response.json();
 
           // Display current status
@@ -328,7 +333,8 @@
           document.getElementById("currentStatus").innerHTML = `
             <div class="warning-box">
               <h2>❌ Error Loading Data</h2>
-              <p>${error.message}</p>
+              <p>Make sure dashboard is running and restart after pulling new code</p>
+              <p style="color: #ff6b6b; font-size: 0.9rem;">${error.message}</p>
             </div>
           `;
         }
@@ -340,3 +346,4 @@
     </script>
   </body>
 </html>
+
