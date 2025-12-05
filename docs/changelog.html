@@ -84,8 +84,21 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.18.0 - December 5, 2025</h2>
+          <h2>Version 3.18.1 - December 5, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🐛 Critical Bug Fixes + Config</h3>
+          <ul>
+            <li>✅ Fixed ErrorHandler.logError missing method error</li>
+            <li>✅ Removed static keyword (ErrorHandler exported as instance)</li>
+            <li>✅ Added proper method delegation to ErrorHelper</li>
+            <li>✅ Configured git for LF line endings (Linux deployment)</li>
+            <li>✅ Added .gitattributes to enforce consistent line endings</li>
+            <li>✅ No more "logError is not a function" crashes</li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.18.0 - December 5, 2025</h2>
           <h3>🧹 Complete Spam Cleanup: Roles & Webhooks</h3>
           <ul>
             <li>
