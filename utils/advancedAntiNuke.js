@@ -594,11 +594,24 @@ class AdvancedAntiNuke {
           deleteMessageSeconds: 604800,
         });
         logger.success(
-          `[Anti-Nuke] ✅ BANNED ${userId} | ${threatType} | Starting recovery...`
+          `[Anti-Nuke] ✅ BANNED ${userId} | ${threatType} | Waiting for removal...`
         );
         actionTaken = true;
         
-        // Trigger auto-recovery IMMEDIATELY after ban
+        // Wait 3 seconds for Discord to actually remove the attacker from the server
+        // This prevents trying to recover while attack is still in progress
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Verify attacker is actually gone before starting recovery
+        const stillPresent = await guild.members.fetch(userId).catch(() => null);
+        if (stillPresent) {
+          logger.warn(`[Anti-Nuke] Attacker still in server after ban - waiting longer...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+        
+        logger.info(`[Anti-Nuke] Starting recovery...`);
+        
+        // Trigger auto-recovery after attacker is removed
         this.attemptRecovery(guild, threatType, counts).catch((error) => {
           logger.error(`[Anti-Nuke] Recovery failed:`, error);
         });
@@ -615,11 +628,23 @@ class AdvancedAntiNuke {
       try {
         await member.kick(`Anti-Nuke: ${threatType} detected`);
         logger.success(
-          `[Anti-Nuke] ✅ KICKED ${userId} | ${threatType} | Starting recovery...`
+          `[Anti-Nuke] ✅ KICKED ${userId} | ${threatType} | Waiting for removal...`
         );
         actionTaken = true;
         
-        // Trigger auto-recovery IMMEDIATELY after kick
+        // Wait 2 seconds for Discord to actually remove the attacker from the server
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Verify attacker is actually gone before starting recovery
+        const stillPresent = await guild.members.fetch(userId).catch(() => null);
+        if (stillPresent) {
+          logger.warn(`[Anti-Nuke] Attacker still in server after kick - waiting longer...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+        
+        logger.info(`[Anti-Nuke] Starting recovery...`);
+        
+        // Trigger auto-recovery after attacker is removed
         this.attemptRecovery(guild, threatType, counts).catch((error) => {
           logger.error(`[Anti-Nuke] Recovery failed:`, error);
         });
