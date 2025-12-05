@@ -405,11 +405,19 @@ if (!process.env.USING_SHARDING) {
 
 // Error handling
 process.on("unhandledRejection", (error) => {
-  logger.error("Unhandled promise rejection:", error);
+  logger.error("Unhandled promise rejection:", {
+    message: error?.message || String(error),
+    stack: error?.stack,
+    name: error?.name,
+  });
 });
 
 process.on("uncaughtException", (error) => {
-  logger.error("Uncaught exception:", error);
+  logger.error("Uncaught exception:", {
+    message: error.message,
+    stack: error.stack,
+    name: error.name,
+  });
   // Don't exit - let the process manager handle it
 });
 
