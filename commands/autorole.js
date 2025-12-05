@@ -75,61 +75,61 @@ module.exports = {
             },
           ],
         });
-    } else if (subcommand === "remove") {
-      const role = interaction.options.getRole("role");
+      } else if (subcommand === "remove") {
+        const role = interaction.options.getRole("role");
 
-      await new Promise((resolve, reject) => {
-        db.db.run(
-          "DELETE FROM auto_roles WHERE guild_id = ? AND role_id = ?",
-          [interaction.guild.id, role.id],
-          (err) => {
-            if (err) reject(err);
-            else resolve();
-          }
-        );
-      });
+        await new Promise((resolve, reject) => {
+          db.db.run(
+            "DELETE FROM auto_roles WHERE guild_id = ? AND role_id = ?",
+            [interaction.guild.id, role.id],
+            (err) => {
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
 
-      await interaction.reply({
-        content: `✅ Removed auto-role: ${role.name}`,
-        flags: MessageFlags.Ephemeral,
-      });
-    } else if (subcommand === "list") {
-      const autoRoles = await new Promise((resolve, reject) => {
-        db.db.all(
-          "SELECT role_id, type FROM auto_roles WHERE guild_id = ?",
-          [interaction.guild.id],
-          (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows || []);
-          }
-        );
-      });
-
-      if (autoRoles.length === 0) {
-        return interaction.reply({
-          content: "❌ No auto-roles configured!",
+        await interaction.reply({
+          content: `✅ Removed auto-role: ${role.name}`,
           flags: MessageFlags.Ephemeral,
         });
-      }
+      } else if (subcommand === "list") {
+        const autoRoles = await new Promise((resolve, reject) => {
+          db.db.all(
+            "SELECT role_id, type FROM auto_roles WHERE guild_id = ?",
+            [interaction.guild.id],
+            (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows || []);
+            }
+          );
+        });
 
-      const list = await Promise.all(
-        autoRoles.map(async (ar) => {
-          const role = interaction.guild.roles.cache.get(ar.role_id);
-          return `${role ? role.name : "Unknown"} - ${ar.type}`;
-        })
-      );
+        if (autoRoles.length === 0) {
+          return interaction.reply({
+            content: "❌ No auto-roles configured!",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
 
-      const embed = new EmbedBuilder()
-        .setTitle("📋 Auto-Roles")
-        .setDescription(list.join("\n"))
-        .setColor(0x0099ff)
-        .setTimestamp();
+        const list = await Promise.all(
+          autoRoles.map(async (ar) => {
+            const role = interaction.guild.roles.cache.get(ar.role_id);
+            return `${role ? role.name : "Unknown"} - ${ar.type}`;
+          })
+        );
 
-      await interaction.reply({ embeds: [embed] });
+        const embed = new EmbedBuilder()
+          .setTitle("📋 Auto-Roles")
+          .setDescription(list.join("\n"))
+          .setColor(0x0099ff)
+          .setTimestamp();
+
+        await interaction.reply({ embeds: [embed] });
       }
     } catch (error) {
       logger.error("Error in autorole command:", error);
-      
+
       const reply = {
         content: `❌ Error: ${error.message}`,
         flags: MessageFlags.Ephemeral,
