@@ -9,7 +9,7 @@ class AdvancedAntiNuke {
     this.actionHistory = new Map(); // Track recent actions per user
     this.guildConfigCache = new Map(); // PERFORMANCE: Cache guild configs to avoid repeated fetches
     this.baseThresholds = {
-      channelsDeleted: 3, // 3+ channels deleted in 5 seconds = potential nuke
+      channelsDeleted: 2, // 2+ channels deleted in SHORT TIME = nuke (AGGRESSIVE)
       channelsCreated: 4, // 4+ channels created in 5 seconds = spam creation
       rolesDeleted: 2, // 2+ roles deleted in 5 seconds = potential threat
       rolesCreated: 3, // 3+ roles created in 5 seconds
@@ -419,8 +419,31 @@ class AdvancedAntiNuke {
     let threatDetected = false;
     let threatType = null;
 
+    // AGGRESSIVE: Rate-based detection for channel deletions
+    // If 2+ channels deleted AND they happened within 1 second of each other = NUKE
+    if (counts.channelsDeleted >= 2) {
+      const channelDeletions = userHistory.actions.filter(
+        (a) => a.type === "channelDelete"
+      );
+      if (channelDeletions.length >= 2) {
+        // Check if any 2 deletions happened within 1 second
+        for (let i = 0; i < channelDeletions.length - 1; i++) {
+          const timeDiff = channelDeletions[i + 1].timestamp - channelDeletions[i].timestamp;
+          if (timeDiff < 1000) {
+            // 2 channels deleted within 1 second = DEFINITE NUKE
+            threatDetected = true;
+            threatType = "rapid_channel_deletion";
+            logger.warn(
+              `[Anti-Nuke] 🚨 RAPID NUKE DETECTED: 2 channels deleted ${timeDiff}ms apart by ${userId} - IMMEDIATE BAN`
+            );
+            break;
+          }
+        }
+      }
+    }
+
     // PERFORMANCE: Check thresholds with early return (faster than else-if chain)
-    if (counts.channelsDeleted >= thresholds.channelsDeleted) {
+    if (!threatDetected && counts.channelsDeleted >= thresholds.channelsDeleted) {
       threatDetected = true;
       threatType = "mass_channel_deletion";
     }
