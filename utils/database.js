@@ -3974,7 +3974,8 @@ class Database {
             (err2) => {
               // Don't fail if source doesn't exist yet
               if (err2)
-                console.log(
+                logger.debug(
+                  "Database",
                   `[Invite Tracking] Note: Source '${source}' not found in invite_sources table`
                 );
               resolve();

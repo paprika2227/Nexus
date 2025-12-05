@@ -80,7 +80,7 @@ module.exports = {
     }
 
     // List all guilds
-    console.log(`\n📋 Guilds (${client.guilds.cache.size}):`);
+    logger.info("Ready", `\n📋 Guilds (${client.guilds.cache.size}):`);
     const guilds = Array.from(client.guilds.cache.values()).sort(
       (a, b) => (b.memberCount || 0) - (a.memberCount || 0)
     );
@@ -88,24 +88,30 @@ module.exports = {
       const memberCount = guild.memberCount || 0;
       const owner = guild.members.cache.get(guild.ownerId);
       const ownerTag = owner?.user?.tag || "Unknown";
-      console.log(
+      logger.info(
+        "Ready",
         `  ${index + 1}. ${guild.name} (${
           guild.id
         }) - ${memberCount} members - Owner: ${ownerTag}`
       );
     });
-    console.log(""); // Empty line for spacing
+    logger.info("Ready", ""); // Empty line for spacing
 
     // Get total stats if sharded
     if (shardInfo.isSharded) {
       try {
         const totalGuilds = await ShardManager.getGuildCount(client);
         const totalUsers = await ShardManager.getUserCount(client);
-        console.log(
+        logger.info(
+          "Ready",
           `🌐 Total across all shards: ${totalGuilds} servers, ${totalUsers} users`
         );
       } catch (error) {
-        console.error("Failed to fetch shard stats:", error);
+        logger.error("Ready", "Failed to fetch shard stats", {
+          message: error?.message || String(error),
+          stack: error?.stack,
+          name: error?.name,
+        });
       }
     }
 
