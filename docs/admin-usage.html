@@ -194,6 +194,10 @@
       const USAGE_API =
         "https://regular-puma-clearly.ngrok-free.app/api/admin/usage-patterns";
 
+      // Store chart instances globally to update instead of recreate
+      let hourlyChart = null;
+      let dailyChart = null;
+
       // Check if already authenticated
       const isAuthenticated = sessionStorage.getItem("adminAuthenticated");
       if (isAuthenticated === "true") {
