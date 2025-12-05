@@ -7,7 +7,10 @@ const { version } = require("../package.json");
 module.exports = {
   name: "guildCreate",
   async execute(guild, client) {
-    logger.info("Guild Create", `Joined new server: ${guild.name} (${guild.id})`);
+    logger.info(
+      "Guild Create",
+      `Joined new server: ${guild.name} (${guild.id})`
+    );
 
     // Track invite source if present
     let inviteSource = "direct"; // default
@@ -58,7 +61,10 @@ module.exports = {
 
           if (anonymousSource) {
             inviteSource = anonymousSource;
-            logger.info("Guild Create", `Matched invite source by anonymous click: ${anonymousSource}`);
+            logger.info(
+              "Guild Create",
+              `Matched invite source by anonymous click: ${anonymousSource}`
+            );
           }
         }
       }
@@ -165,7 +171,10 @@ module.exports = {
           req.write(postData);
           req.end();
 
-          logger.info("Guild Create", `Admin notification sent for ${guild.name}`);
+          logger.info(
+            "Guild Create",
+            `Admin notification sent for ${guild.name}`
+          );
         } catch (webhookError) {
           logger.error("Guild Create", "Failed to send webhook notification", {
             message: webhookError?.message || String(webhookError),
@@ -202,7 +211,10 @@ module.exports = {
           }
         );
       });
-      logger.info("Guild Create", `Owner: ${owner ? owner.user.tag : "Unknown"}`);
+      logger.info(
+        "Guild Create",
+        `Owner: ${owner ? owner.user.tag : "Unknown"}`
+      );
       logger.info("Guild Create", `Members: ${guild.memberCount || 0}`);
     } catch (error) {
       logger.error("Guild Create", "Failed to log guild join", {
@@ -275,20 +287,27 @@ module.exports = {
           systemChannel.permissionsFor(botMember).has("SendMessages")
         ) {
           await systemChannel.send({ embeds: [warningEmbed] });
-          logger.info("Guild Create", "Sent role hierarchy warning to system channel");
+          logger.info(
+            "Guild Create",
+            "Sent role hierarchy warning to system channel"
+          );
         } else {
           // Try to DM owner
           const owner = await guild.fetchOwner().catch(() => null);
           if (owner) {
             await owner.send({ embeds: [warningEmbed] }).catch(() => {
-              logger.info("Guild Create",
+              logger.info(
+                "Guild Create",
                 `   ⚠️ Could not send role hierarchy warning - no accessible channel`
               );
             });
           }
         }
       } else {
-        logger.info("Guild Create", "Bot role is at highest position - optimal setup!");
+        logger.info(
+          "Guild Create",
+          "Bot role is at highest position - optimal setup!"
+        );
       }
     } catch (error) {
       logger.error("Guild Create", "Failed to check role hierarchy", {
@@ -325,13 +344,20 @@ module.exports = {
         { body: commands }
       );
 
-      logger.info("Guild Create", `Registered ${commands.length} commands for ${guild.name}`);
+      logger.info(
+        "Guild Create",
+        `Registered ${commands.length} commands for ${guild.name}`
+      );
     } catch (error) {
-      logger.error("Guild Create", `Failed to register commands for ${guild.name}`, {
-        message: error?.message || String(error),
-        stack: error?.stack,
-        name: error?.name,
-      });
+      logger.error(
+        "Guild Create",
+        `Failed to register commands for ${guild.name}`,
+        {
+          message: error?.message || String(error),
+          stack: error?.stack,
+          name: error?.name,
+        }
+      );
     }
 
     // Create initial recovery snapshot for new servers
@@ -341,13 +367,20 @@ module.exports = {
       logger.info(
         `📸 Created initial recovery snapshot for ${guild.name} (${guild.id})`
       );
-      logger.info("Guild Create", `Created initial recovery snapshot for ${guild.name}`);
+      logger.info(
+        "Guild Create",
+        `Created initial recovery snapshot for ${guild.name}`
+      );
     } catch (error) {
-      logger.error("Guild Create", `Failed to create initial snapshot for ${guild.name}`, {
-        message: error?.message || String(error),
-        stack: error?.stack,
-        name: error?.name,
-      });
+      logger.error(
+        "Guild Create",
+        `Failed to create initial snapshot for ${guild.name}`,
+        {
+          message: error?.message || String(error),
+          stack: error?.stack,
+          name: error?.name,
+        }
+      );
     }
   },
 };

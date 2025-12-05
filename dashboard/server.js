@@ -3042,7 +3042,10 @@ class DashboardServer {
 
         if (source) {
           await db.trackInviteClick(source, ipAddress, userAgent);
-          logger.info("API", `Invite click tracked: ${source} from ${ipAddress}`);
+          logger.info(
+            "API",
+            `Invite click tracked: ${source} from ${ipAddress}`
+          );
         }
 
         res.json({ success: true });
@@ -3063,7 +3066,10 @@ class DashboardServer {
 
         if (userId && source) {
           await db.trackPendingInviteSource(userId, source);
-          logger.info("API", `Associated user ${userId} with source: ${source}`);
+          logger.info(
+            "API",
+            `Associated user ${userId} with source: ${source}`
+          );
         }
 
         res.json({ success: true });

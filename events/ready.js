@@ -209,7 +209,7 @@ module.exports = {
     const db = client.db;
     const allGuilds = Array.from(client.guilds.cache.values());
     const batchSize = 5;
-    
+
     for (let i = 0; i < allGuilds.length; i += batchSize) {
       const batch = allGuilds.slice(i, i + batchSize);
       await Promise.all(
@@ -219,23 +219,37 @@ module.exports = {
             // Default to enabled if not set
             if (config?.auto_recovery_enabled !== 0) {
               // Check if we have a recent snapshot (within last 24 hours)
-              const recentSnapshots = await db.getRecoverySnapshots(guild.id, 1);
+              const recentSnapshots = await db.getRecoverySnapshots(
+                guild.id,
+                1
+              );
               const hasRecentSnapshot =
                 recentSnapshots.length > 0 &&
-                Date.now() - recentSnapshots[0].created_at < 24 * 60 * 60 * 1000;
+                Date.now() - recentSnapshots[0].created_at <
+                  24 * 60 * 60 * 1000;
 
               if (!hasRecentSnapshot) {
-                await AutoRecovery.autoSnapshot(guild, "Periodic auto-snapshot");
-                logger.info("Ready", `Created recovery snapshot for ${guild.name}`);
+                await AutoRecovery.autoSnapshot(
+                  guild,
+                  "Periodic auto-snapshot"
+                );
+                logger.info(
+                  "Ready",
+                  `Created recovery snapshot for ${guild.name}`
+                );
               }
             }
           } catch (error) {
             // Silently continue - not critical
-            logger.debug("Ready", `Failed to create snapshot for ${guild.name}`, {
-              message: error?.message || String(error),
-              stack: error?.stack,
-              name: error?.name,
-            });
+            logger.debug(
+              "Ready",
+              `Failed to create snapshot for ${guild.name}`,
+              {
+                message: error?.message || String(error),
+                stack: error?.stack,
+                name: error?.name,
+              }
+            );
           }
         })
       );
@@ -282,7 +296,6 @@ module.exports = {
     // Initialize bot list stats posting (for non-sharded mode only)
     // DO NOT initialize if sharding is enabled - shard.js handles it
     if (!process.env.USING_SHARDING && !shardInfo.isSharded) {
-
       // Initialize Void Bots stats posting
       if (process.env.VOIDBOTS_TOKEN && !client.voidBots) {
         try {

@@ -1711,9 +1711,13 @@ class Database {
       `ALTER TABLE automod_config ADD COLUMN enabled INTEGER DEFAULT 1`,
       (err) => {
         if (err && !err.message.includes("duplicate column")) {
-          logger.warn("Database", "Error adding automod_config enabled column", {
-            message: err?.message || String(err),
-          });
+          logger.warn(
+            "Database",
+            "Error adding automod_config enabled column",
+            {
+              message: err?.message || String(err),
+            }
+          );
         }
       }
     );
@@ -1926,7 +1930,9 @@ class Database {
             const config = row || null;
             if (config) {
               // Cache in both Redis and memory
-              getRedisCache().set(cacheKey, config, 300).catch(() => {}); // 5 min
+              getRedisCache()
+                .set(cacheKey, config, 300)
+                .catch(() => {}); // 5 min
               cache.set(cacheKey, config, 300000);
             }
             resolve(config);
@@ -1939,7 +1945,9 @@ class Database {
   async setServerConfig(guildId, data) {
     // Clear both Redis and memory cache when config changes
     const cacheKey = `config_${guildId}`;
-    await getRedisCache().del(cacheKey).catch(() => {});
+    await getRedisCache()
+      .del(cacheKey)
+      .catch(() => {});
     cache.delete(cacheKey);
 
     // WHITELIST allowed config keys (prevent SQL injection)
