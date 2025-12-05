@@ -3,10 +3,24 @@ const logger = require("./logger");
 
 class GrowthTracker {
   constructor() {
-    this.initTable();
+    // Defer initialization until database is ready
+    if (db.db) {
+      this.initTable();
+    } else {
+      // Wait for database to be initialized
+      const checkDb = setInterval(() => {
+        if (db.db) {
+          clearInterval(checkDb);
+          this.initTable();
+        }
+      }, 10);
+      // Timeout after 5 seconds
+      setTimeout(() => clearInterval(checkDb), 5000);
+    }
   }
 
   initTable() {
+    if (!db.db) return;
     db.db.run(`
       CREATE TABLE IF NOT EXISTS growth_metrics (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
