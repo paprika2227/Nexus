@@ -102,7 +102,10 @@ class DashboardServer {
           res.setHeader("Access-Control-Allow-Origin", "*");
           res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
           res.setHeader("Access-Control-Allow-Headers", "Content-Type, Range");
-          res.setHeader("Access-Control-Expose-Headers", "Content-Length, Content-Type, Accept-Ranges");
+          res.setHeader(
+            "Access-Control-Expose-Headers",
+            "Content-Length, Content-Type, Accept-Ranges"
+          );
 
           // Cache headers for better performance
           res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
