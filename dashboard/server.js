@@ -1192,33 +1192,39 @@ class DashboardServer {
       }
     });
 
-    // Get shard-specific stats and health (public endpoint)
+    // Get shard-specific stats (public endpoint for users to check their shard)
     this.app.get("/api/shards", async (req, res) => {
       try {
         const ShardManager = require("../utils/shardManager");
         const shardStats = await ShardManager.getShardStats(this.client);
+        const guildId = req.query.guild; // Optional: check specific guild's shard
 
-        // Get health data if available
-        let healthSummary = null;
-        try {
-          // Check if running in shard mode and health monitor is available
-          if (process.env.USING_SHARDING === "true") {
-            // Health monitor runs in shard.js, not accessible from client process
-            // We'll add a message-based communication later
-            healthSummary = {
-              note: "Health data available in shard manager logs",
-            };
-          }
-        } catch (err) {
-          // Health monitor not available in this context
-        }
-
-        res.json({
+        let response = {
           shards: shardStats.shards || [shardStats],
           totalGuilds: shardStats.totalGuilds || shardStats.guilds,
           totalUsers: shardStats.totalUsers || shardStats.users,
-          health: healthSummary,
-        });
+          timestamp: Date.now(),
+        };
+
+        // If guild ID provided, find which shard it's on
+        if (guildId) {
+          const guild = this.client.guilds.cache.get(guildId);
+          if (guild) {
+            const shardId = guild.shardId || 0;
+            response.yourGuild = {
+              id: guildId,
+              name: guild.name,
+              shardId,
+              memberCount: guild.memberCount,
+            };
+          } else {
+            response.yourGuild = {
+              error: "Guild not found - bot may not be in that server",
+            };
+          }
+        }
+
+        res.json(response);
       } catch (error) {
         res.status(500).json({ error: error.message });
       }

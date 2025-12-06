@@ -5,6 +5,8 @@ const logger = require("../utils/logger");
 const databaseBackup = require("../utils/databaseBackup");
 const rateLimitHandler = require("../utils/rateLimitHandler");
 const memoryMonitor = require("../utils/memoryMonitor");
+const autoScaling = require("../utils/autoScaling");
+const shardErrorTracker = require("../utils/shardErrorTracker");
 
 module.exports = {
   name: "clientReady",
@@ -378,6 +380,14 @@ module.exports = {
       try {
         databaseBackup.startSchedule();
         logger.info("Ready", "📦 Database backup system started");
+
+        // Start auto-scaling monitor (checks every hour)
+        autoScaling.startMonitoring(client, 3600000);
+        logger.info("Ready", "📊 Auto-scaling monitor started");
+
+        // Start shard error tracker cleanup
+        shardErrorTracker.startCleanup();
+        logger.info("Ready", "🔍 Shard error tracking started");
 
         // Start memory monitoring (DISABLED - too noisy)
         // memoryMonitor.start(60000); // Check every minute
