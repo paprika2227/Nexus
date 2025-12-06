@@ -617,10 +617,18 @@ class DashboardServer {
       filename: (req, file, cb) => {
         // Allow custom filename via query parameter, otherwise use random
         if (req.query.filename) {
-          // Sanitize filename: remove path separators and dangerous chars
-          const customName = req.query.filename
-            .replace(/[\/\\:*?"<>|]/g, "")
+          // Sanitize filename: remove path separators, dangerous chars, and spaces
+          let customName = decodeURIComponent(req.query.filename)
+            .replace(/[\/\\:*?"<>|]/g, "") // Remove dangerous chars
+            .replace(/\s+/g, "-") // Replace spaces with hyphens
+            .replace(/[^\w.-]/g, "") // Remove any other non-alphanumeric except dots and hyphens
             .trim();
+
+          // Ensure filename isn't empty after sanitization
+          if (!customName || customName === "." || customName === "-") {
+            customName = crypto.randomBytes(4).toString("hex");
+          }
+
           const ext = path.extname(file.originalname);
           // Ensure it has the correct extension
           const finalName = customName.endsWith(ext)
@@ -698,9 +706,10 @@ class DashboardServer {
             });
           }
 
-          // Generate URL
+          // Generate URL (filename is already sanitized, so use directly)
           const dashboardURL =
             process.env.DASHBOARD_URL || req.protocol + "://" + req.get("host");
+          // Filename is sanitized (spaces -> hyphens, dangerous chars removed), safe for URL
           const fileURL = `${dashboardURL}/assets/${req.file.filename}`;
 
           logger.info(
