@@ -56,7 +56,8 @@ module.exports = {
 
         // Log command usage in parallel (non-blocking)
         logger.info(
-          `Command used: /${interaction.commandName} in ${interaction.guild.name} (${interaction.guild.id}) by ${interaction.user.tag}`
+          "Command",
+          `/${interaction.commandName} in ${interaction.guild.name} (${interaction.guild.id}) by ${interaction.user.tag}`
         );
 
         // Log to database (non-blocking)

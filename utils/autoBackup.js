@@ -63,7 +63,10 @@ class AutoBackup {
 
       if (!lastSnapshot) {
         // No snapshot exists, create one
-        logger.info(`[AutoBackup] Creating initial snapshot for ${guild.name}`);
+        logger.info(
+          "AutoBackup",
+          `Creating initial snapshot for ${guild.name}`
+        );
         await AutoRecovery.createSnapshot(
           guild,
           "full",
@@ -106,7 +109,7 @@ class AutoBackup {
   async forceBackup(guild, reason = "Manual backup") {
     try {
       await AutoRecovery.createSnapshot(guild, "full", reason);
-      logger.info(`[AutoBackup] ✅ Forced backup created for ${guild.name}`);
+      logger.info("AutoBackup", `✅ Forced backup created for ${guild.name}`);
       return true;
     } catch (error) {
       logger.error(`[AutoBackup] Error forcing backup:`, error);
