@@ -7,7 +7,7 @@ const {
 } = require("discord.js");
 
 const DEV_USER_ID = "1392165977793368124";
-const DEV_TIMEZONE_HINT = "Dev is usually online 2PM-2AM GMT";
+const DEV_TIMEZONE_HINT = "Dev is usually online 2PM-4AM GMT";
 
 // Helper function to format time ago
 function formatTimeAgo(timestamp) {
