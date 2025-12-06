@@ -60,18 +60,41 @@ async function registerCommands(client) {
     const guilds = Array.from(client.guilds.cache.values());
     let successCount = 0;
     let failCount = 0;
-    
-    logger.info("Commands", `Registering commands for ${guilds.length} servers in parallel...`);
+
+    logger.info(
+      "Commands",
+      `Registering commands for ${guilds.length} servers in parallel...`
+    );
+
+    // Add timeout wrapper to prevent hanging forever
+    const registerWithTimeout = (guild, timeout = 10000) => {
+      return Promise.race([
+        rest.put(Routes.applicationGuildCommands(client.user.id, guild.id), {
+          body: commands,
+        }),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`Timeout after ${timeout}ms`)),
+            timeout
+          )
+        ),
+      ]);
+    };
 
     const results = await Promise.allSettled(
       guilds.map(async (guild) => {
         try {
-          await rest.put(
-            Routes.applicationGuildCommands(client.user.id, guild.id),
-            { body: commands }
+          await registerWithTimeout(guild, 10000); // 10 second timeout per server
+          logger.debug(
+            "Commands",
+            `✅ Registered commands for ${guild.name}`
           );
           return { success: true, guild: guild.name };
         } catch (error) {
+          logger.debug(
+            "Commands",
+            `❌ Failed for ${guild.name}: ${error.message}`
+          );
           return { success: false, guild: guild.name, error };
         }
       })
@@ -85,18 +108,20 @@ async function registerCommands(client) {
       } else {
         failCount++;
         const guildName = guilds[index]?.name || "Unknown";
-        const error = result.status === "fulfilled" ? result.value.error : result.reason;
-        
+        const error =
+          result.status === "fulfilled" ? result.value.error : result.reason;
+
         // Check if it's a rate limit error
-        const isRateLimit = 
-          error?.code === 429 || 
-          error?.status === 429 || 
+        const isRateLimit =
+          error?.code === 429 ||
+          error?.status === 429 ||
           error?.message?.includes("rate limit") ||
           error?.message?.includes("429");
-          
+
         if (isRateLimit) {
           rateLimitedCount++;
-          const retryAfter = error?.retryAfter || error?.retry_after || "unknown";
+          const retryAfter =
+            error?.retryAfter || error?.retry_after || "unknown";
           logger.warn(
             `⚠️ Rate limited while registering commands for ${guildName} (retry after: ${retryAfter}s)`
           );
@@ -109,13 +134,20 @@ async function registerCommands(client) {
       }
     });
 
-    logger.success(
-      "Commands",
-      `Registered commands for ${successCount} servers${
-        failCount > 0 ? `, ${failCount} failed` : ""
-      }${rateLimitedCount > 0 ? ` (${rateLimitedCount} rate limited)` : ""}`
-    );
-    
+    if (successCount === 0 && failCount === guilds.length) {
+      logger.error(
+        "Commands",
+        `❌ ALL ${guilds.length} servers failed! Check rate limits or API status.`
+      );
+    } else {
+      logger.success(
+        "Commands",
+        `Registered commands for ${successCount} servers${
+          failCount > 0 ? `, ${failCount} failed` : ""
+        }${rateLimitedCount > 0 ? ` (${rateLimitedCount} rate limited)` : ""}`
+      );
+    }
+
     // Warn if rate limited
     if (rateLimitedCount > 0) {
       logger.warn(
@@ -125,9 +157,13 @@ async function registerCommands(client) {
     }
   } catch (error) {
     logger.error("❌ Error registering commands:", error);
-    
+
     // Check if it's a rate limit error
-    if (error.code === 429 || error.status === 429 || error.message?.includes("rate limit")) {
+    if (
+      error.code === 429 ||
+      error.status === 429 ||
+      error.message?.includes("rate limit")
+    ) {
       const retryAfter = error.retryAfter || error.retry_after || 1;
       logger.error(
         "Commands",
@@ -139,13 +175,13 @@ async function registerCommands(client) {
       );
     }
   }
-  
+
   // Check rate limit status after registration
   try {
     const rateLimitHandler = require("./rateLimitHandler");
     const rateLimitStats = rateLimitHandler.getStats();
     const isRateLimited = rateLimitHandler.isRateLimited();
-    
+
     if (isRateLimited.limited) {
       const resetIn = Math.ceil(isRateLimited.resetIn / 1000);
       logger.warn(
