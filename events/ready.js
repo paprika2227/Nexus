@@ -380,9 +380,9 @@ module.exports = {
         databaseBackup.startSchedule();
         logger.info("Ready", "📦 Database backup system started");
 
-        // Start memory monitoring
-        memoryMonitor.start(60000); // Check every minute
-        logger.info("Ready", "🧠 Memory monitoring started");
+        // Start memory monitoring (DISABLED - too noisy)
+        // memoryMonitor.start(60000); // Check every minute
+        // logger.info("Ready", "🧠 Memory monitoring started");
 
         // Initialize rate limit handler
         rateLimitHandler.initialize(client);
