@@ -98,6 +98,39 @@ class PerformanceMonitor {
       );
     });
   }
+
+  // Get stats in format expected by performance command
+  getStats() {
+    const allMetrics = this.getAllMetrics();
+    
+    // Find raid detection and ban/kick metrics
+    const raidMetrics = allMetrics.find((m) => 
+      m.operation.toLowerCase().includes("raid") || 
+      m.operation.toLowerCase().includes("detection")
+    );
+    
+    const banMetrics = allMetrics.find((m) => 
+      m.operation.toLowerCase().includes("ban") || 
+      m.operation.toLowerCase().includes("kick")
+    );
+
+    // Calculate P95 (simplified - using maxTime as approximation)
+    const calculateP95 = (metrics) => {
+      if (!metrics || metrics.count === 0) return 0;
+      // Simplified P95: assume maxTime is roughly P95 for small datasets
+      return metrics.maxTime || metrics.avgTime * 1.5;
+    };
+
+    return {
+      totalRaidDetections: raidMetrics?.count || 0,
+      avgRaidResponse: raidMetrics?.avgTime || 0,
+      p95RaidResponse: calculateP95(raidMetrics),
+      totalBans: banMetrics?.count || 0,
+      avgBanResponse: banMetrics?.avgTime || 0,
+      p95BanResponse: calculateP95(banMetrics),
+      activeOperations: this.activeTimers.size,
+    };
+  }
 }
 
 module.exports = new PerformanceMonitor();
