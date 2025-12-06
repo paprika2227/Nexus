@@ -61,61 +61,64 @@ async function registerCommands(client) {
     let successCount = 0;
     let failCount = 0;
 
+    // Process in smaller batches to avoid rate limits (10 at a time)
+    const batchSize = 10;
     logger.info(
       "Commands",
-      `Registering commands for ${guilds.length} servers in parallel...`
+      `Registering commands for ${guilds.length} servers in batches of ${batchSize}...`
     );
 
-    // Add overall timeout wrapper to prevent hanging forever (60 seconds max)
-    let results;
-    try {
-      const registrationPromise = Promise.allSettled(
-        guilds.map(async (guild) => {
-          try {
-            await rest.put(
-              Routes.applicationGuildCommands(client.user.id, guild.id),
-              { body: commands }
-            );
-            return { success: true, guild: guild.name };
-          } catch (error) {
-            return { success: false, guild: guild.name, error };
-          }
-        })
+    let results = [];
+    let rateLimitedCount = 0;
+
+    for (let i = 0; i < guilds.length; i += batchSize) {
+      const batch = guilds.slice(i, i + batchSize);
+      const batchNum = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(guilds.length / batchSize);
+
+      logger.info(
+        "Commands",
+        `Processing batch ${batchNum}/${totalBatches} (${batch.length} servers)...`
       );
 
-      // Race against overall timeout
-      results = await Promise.race([
-        registrationPromise,
-        new Promise((resolve) =>
-          setTimeout(() => {
-            logger.warn(
-              "Commands",
-              `⚠️ Registration timeout after 60s - continuing anyway`
-            );
-            resolve(
-              guilds.map((guild) => ({
-                status: "fulfilled",
-                value: {
-                  success: false,
-                  guild: guild.name,
-                  error: { message: "Overall timeout after 60s" },
-                },
-              }))
-            );
-          }, 60000)
-        ),
-      ]);
-    } catch (error) {
-      logger.error("Commands", `Critical error during registration:`, error);
-      // Continue with empty results
-      results = guilds.map((guild) => ({
-        status: "fulfilled",
-        value: {
-          success: false,
-          guild: guild.name,
-          error: { message: error.message || "Unknown error" },
-        },
-      }));
+      try {
+        const batchResults = await Promise.allSettled(
+          batch.map(async (guild) => {
+            try {
+              await rest.put(
+                Routes.applicationGuildCommands(client.user.id, guild.id),
+                { body: commands }
+              );
+              return { success: true, guild: guild.name };
+            } catch (error) {
+              return { success: false, guild: guild.name, error };
+            }
+          })
+        );
+        results.push(...batchResults);
+
+        // Small delay between batches to avoid rate limits
+        if (i + batchSize < guilds.length) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      } catch (error) {
+        logger.error(
+          "Commands",
+          `Error in batch ${batchNum}:`,
+          error.message
+        );
+        // Add failed results for this batch
+        results.push(
+          ...batch.map((guild) => ({
+            status: "fulfilled",
+            value: {
+              success: false,
+              guild: guild.name,
+              error: { message: error.message || "Batch error" },
+            },
+          }))
+        );
+      }
     }
 
     // Count successes and failures
