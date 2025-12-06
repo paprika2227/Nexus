@@ -109,7 +109,7 @@ class DashboardServer {
 
           // Security headers (but allow embedding)
           res.setHeader("X-Content-Type-Options", "nosniff");
-          res.setHeader("X-Frame-Options", "ALLOWALL"); // Allow embedding in Discord
+          // Don't set X-Frame-Options to allow Discord embeds
 
           // Accept-Ranges for partial content requests (Discord may use this)
           res.setHeader("Accept-Ranges", "bytes");
