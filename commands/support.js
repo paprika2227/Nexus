@@ -76,7 +76,7 @@ module.exports = {
 
     let devStatusMessage = "";
     if (isOnline) {
-      devStatusMessage = `✅ **Dev is currently online!** If you join the support server, your question will be answered promptly.\n\n⏰ ${DEV_TIMEZONE_HINT}`;
+      devStatusMessage = `✅ **Dev is currently online!** If you join the support server, your question will be answered in due time.\n\n⏰ ${DEV_TIMEZONE_HINT}`;
     } else if (lastSeen) {
       const timeAgo = formatTimeAgo(lastSeen);
       devStatusMessage = `⏸️ **Dev is currently offline.** Last seen: ${timeAgo}\n\n⏰ ${DEV_TIMEZONE_HINT}\n\n💬 Responses to support questions may be slower, but they will be gotten to!`;
