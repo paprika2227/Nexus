@@ -1274,6 +1274,7 @@ class DashboardServer {
       } catch (error) {
         res.status(500).json({ error: error.message });
       }
+      */
     });
 
     // Rate Limiting Middleware for Public API
