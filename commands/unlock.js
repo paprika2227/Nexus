@@ -21,40 +21,122 @@ module.exports = {
       });
     }
 
-    // Check if server is actually locked
-    // if (
-    //   !interaction.client.advancedAntiNuke.lockedGuilds.has(
-    //     interaction.guild.id
-    //   )
-    // ) {
-    //   return interaction.reply({
-    //     content: "✅ Server is not in lockdown mode!",
-    //     flags: MessageFlags.Ephemeral,
-    //   });
-    // }
-
     await interaction.deferReply();
 
+    // Check if channels are actually locked (even if Set was cleared)
+    // This handles cases where bot restarted but channels are still locked
+    const botMember = await interaction.guild.members
+      .fetch(interaction.client.user.id)
+      .catch(() => null);
+
+    if (!botMember) {
+      return interaction.editReply({
+        content: "❌ Could not fetch bot member!",
+      });
+    }
+
+    // Check if any channels have SendMessages: false for @everyone
+    const lockedChannels = interaction.guild.channels.cache.filter((c) => {
+      if (!c.isTextBased()) return false;
+      const everyonePerms = c.permissionsFor(interaction.guild.roles.everyone);
+      return (
+        everyonePerms &&
+        !everyonePerms.has("SendMessages") &&
+        c.permissionsFor(botMember)?.has("ManageChannels")
+      );
+    });
+
+    const isInLockdownSet = interaction.client.advancedAntiNuke.lockedGuilds.has(
+      interaction.guild.id
+    );
+
+    // If not in Set AND no locked channels found, server isn't locked
+    if (!isInLockdownSet && lockedChannels.size === 0) {
+      return interaction.editReply({
+        content: "✅ Server is not in lockdown mode!",
+      });
+    }
+
+    // Always unlock if there are locked channels OR if in lockdown Set
+
     try {
-      // Use the proper unlock method from advancedAntiNuke
-      await interaction.client.advancedAntiNuke.unlockServer(
-        interaction.guild
+      // If server is in lockdown Set, use the proper unlock method
+      // Otherwise, unlock manually
+      if (isInLockdownSet) {
+        await interaction.client.advancedAntiNuke.unlockServer(
+          interaction.guild
+        );
+      } else {
+        // Manual unlock for channels that are locked but Set was cleared
+        const everyone = interaction.guild.roles.everyone;
+        let unlockedCount = 0;
+
+        for (const channel of lockedChannels.values()) {
+          try {
+            await channel.permissionOverwrites.edit(everyone, {
+              SendMessages: null, // Remove overwrite (resets to default)
+              AddReactions: null,
+              CreatePublicThreads: null,
+              CreatePrivateThreads: null,
+            });
+            unlockedCount++;
+          } catch (error) {
+            // Continue with other channels
+          }
+        }
+
+        // Also restore @everyone role permissions if needed
+        if (botMember.permissions.has("ManageRoles")) {
+          try {
+            const everyoneRole = interaction.guild.roles.everyone;
+            const restoredPerms = everyoneRole.permissions.add([
+              "CreateInstantInvite",
+              "CreatePrivateThreads",
+              "CreatePublicThreads",
+              "ManageChannels",
+            ]);
+            await everyoneRole.setPermissions(
+              restoredPerms,
+              "Anti-Nuke: Restore permissions after manual unlock"
+            );
+          } catch (error) {
+            // Continue
+          }
+        }
+
+        const logger = require("../utils/logger");
+        logger.info(
+          `[Unlock] Manually unlocked ${unlockedCount} channels in ${interaction.guild.id} (Set was cleared)`
+        );
+      }
+
+      // Double-check if channels are still locked
+      const stillLockedChannels = interaction.guild.channels.cache.filter(
+        (c) => {
+          if (!c.isTextBased()) return false;
+          const everyonePerms = c.permissionsFor(
+            interaction.guild.roles.everyone
+          );
+          return (
+            everyonePerms &&
+            !everyonePerms.has("SendMessages") &&
+            c.permissionsFor(botMember)?.has("ManageChannels")
+          );
+        }
       );
 
-      // Double-check if it was actually unlocked
-      const stillLocked =
-        interaction.client.advancedAntiNuke.lockedGuilds.has(
-          interaction.guild.id
-        );
-
       const embed = new EmbedBuilder()
-        .setTitle(stillLocked ? "⚠️ Unlock In Progress" : "✅ Server Unlocked")
+        .setTitle(
+          stillLockedChannels.size > 0
+            ? "⚠️ Partially Unlocked"
+            : "✅ Server Unlocked"
+        )
         .setDescription(
-          stillLocked
-            ? `Unlock process started. If channels are still locked, they may not have ManageChannels permission.\n\nUse \`/lock remove channels\` as a fallback.`
+          stillLockedChannels.size > 0
+            ? `Unlocked most channels. ${stillLockedChannels.size} channel(s) may still be locked (missing permissions).\n\nUse \`/lock remove channels\` as a fallback.`
             : `All channels and permissions have been restored.\n\nThe server is now back to normal operation.`
         )
-        .setColor(stillLocked ? 0xff9900 : 0x00ff00)
+        .setColor(stillLockedChannels.size > 0 ? 0xff9900 : 0x00ff00)
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
