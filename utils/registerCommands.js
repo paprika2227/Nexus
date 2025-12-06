@@ -66,39 +66,57 @@ async function registerCommands(client) {
       `Registering commands for ${guilds.length} servers in parallel...`
     );
 
-    // Add timeout wrapper to prevent hanging forever
-    const registerWithTimeout = (guild, timeout = 10000) => {
-      return Promise.race([
-        rest.put(Routes.applicationGuildCommands(client.user.id, guild.id), {
-          body: commands,
-        }),
-        new Promise((_, reject) =>
-          setTimeout(
-            () => reject(new Error(`Timeout after ${timeout}ms`)),
-            timeout
-          )
+    // Add overall timeout wrapper to prevent hanging forever (60 seconds max)
+    let results;
+    try {
+      const registrationPromise = Promise.allSettled(
+        guilds.map(async (guild) => {
+          try {
+            await rest.put(
+              Routes.applicationGuildCommands(client.user.id, guild.id),
+              { body: commands }
+            );
+            return { success: true, guild: guild.name };
+          } catch (error) {
+            return { success: false, guild: guild.name, error };
+          }
+        })
+      );
+
+      // Race against overall timeout
+      results = await Promise.race([
+        registrationPromise,
+        new Promise((resolve) =>
+          setTimeout(() => {
+            logger.warn(
+              "Commands",
+              `⚠️ Registration timeout after 60s - continuing anyway`
+            );
+            resolve(
+              guilds.map((guild) => ({
+                status: "fulfilled",
+                value: {
+                  success: false,
+                  guild: guild.name,
+                  error: { message: "Overall timeout after 60s" },
+                },
+              }))
+            );
+          }, 60000)
         ),
       ]);
-    };
-
-    const results = await Promise.allSettled(
-      guilds.map(async (guild) => {
-        try {
-          await registerWithTimeout(guild, 10000); // 10 second timeout per server
-          logger.debug(
-            "Commands",
-            `✅ Registered commands for ${guild.name}`
-          );
-          return { success: true, guild: guild.name };
-        } catch (error) {
-          logger.debug(
-            "Commands",
-            `❌ Failed for ${guild.name}: ${error.message}`
-          );
-          return { success: false, guild: guild.name, error };
-        }
-      })
-    );
+    } catch (error) {
+      logger.error("Commands", `Critical error during registration:`, error);
+      // Continue with empty results
+      results = guilds.map((guild) => ({
+        status: "fulfilled",
+        value: {
+          success: false,
+          guild: guild.name,
+          error: { message: error.message || "Unknown error" },
+        },
+      }));
+    }
 
     // Count successes and failures
     let rateLimitedCount = 0;
