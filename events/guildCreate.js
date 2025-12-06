@@ -41,7 +41,13 @@ module.exports = {
       db.db.run(
         `INSERT OR IGNORE INTO server_joins (guild_id, guild_name, member_count, joined_at, source) 
          VALUES (?, ?, ?, ?, ?)`,
-        [guild.id, guild.name, guild.memberCount || 0, Date.now(), inviteSource],
+        [
+          guild.id,
+          guild.name,
+          guild.memberCount || 0,
+          Date.now(),
+          inviteSource,
+        ],
         (err) => {
           if (err) {
             logger.error("Failed to track server join for retention:", err);
@@ -403,13 +409,30 @@ module.exports = {
         const systemChannel = guild.systemChannel;
         if (
           systemChannel &&
-          systemChannel.permissionsFor(botMember).has("SendMessages")
+          systemChannel.permissionsFor(botMember).has(["ViewChannel", "SendMessages"])
         ) {
-          await systemChannel.send({ embeds: [warningEmbed] });
-          logger.info(
-            "Guild Create",
-            "Sent role hierarchy warning to system channel"
-          );
+          try {
+            await systemChannel.send({ embeds: [warningEmbed] });
+            logger.info(
+              "Guild Create",
+              "Sent role hierarchy warning to system channel"
+            );
+          } catch (sendError) {
+            // Permission check passed but send failed - try DM instead
+            logger.debug(
+              "Guild Create",
+              `Failed to send to system channel: ${sendError.message}, trying DM`
+            );
+            const owner = await guild.fetchOwner().catch(() => null);
+            if (owner) {
+              await owner.send({ embeds: [warningEmbed] }).catch(() => {
+                logger.info(
+                  "Guild Create",
+                  `   ⚠️ Could not send role hierarchy warning - no accessible channel`
+                );
+              });
+            }
+          }
         } else {
           // Try to DM owner
           const owner = await guild.fetchOwner().catch(() => null);
