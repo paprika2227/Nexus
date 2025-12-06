@@ -2,14 +2,28 @@ const { registerCommands } = require("../utils/registerCommands");
 const db = require("../utils/database");
 const logger = require("../utils/logger");
 const growthTracker = require("../utils/growthTracker");
+const contentFilter = require("../utils/contentFilter");
 const { version } = require("../package.json");
 
 module.exports = {
   name: "guildCreate",
   async execute(guild, client) {
+    // Check for offensive content and auto-leave if detected
+    const wasFiltered = await contentFilter.autoModerateGuild(guild);
+    if (wasFiltered) {
+      logger.warn(
+        "Guild Create",
+        `🚫 Auto-left offensive server (ID: ${guild.id})`
+      );
+      return; // Stop processing this guild join
+    }
+
+    // Sanitize guild name for logs
+    const sanitizedName = contentFilter.sanitize(guild.name);
+
     logger.info(
       "Guild Create",
-      `Joined new server: ${guild.name} (${guild.id})`
+      `Joined new server: ${sanitizedName} (${guild.id})`
     );
 
     // Track invite source if present
