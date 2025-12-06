@@ -70,8 +70,8 @@ class DashboardServer {
     });
 
     // Route for /assets/:filename
-    // Discord embeds work best with direct image URLs (like Discord's own CDN)
-    // So we serve images directly to Discord, but HTML with OG tags for other services
+    // Serve images directly by default (like Discord's CDN) for best compatibility
+    // Only serve HTML with OG tags when explicitly requested with ?preview
     this.app.get("/assets/:filename", async (req, res, next) => {
       const filename = req.params.filename;
       const filePath = path.join(__dirname, "../assets", filename);
@@ -83,39 +83,21 @@ class DashboardServer {
         return res.status(404).send("Image not found.");
       }
 
-      const userAgent = (req.headers["user-agent"] || "").toLowerCase();
+      // Only serve HTML if explicitly requested with ?preview parameter
+      // This allows rich previews for other services while Discord gets direct images
+      if (req.query.preview !== undefined) {
+        const dashboardURL =
+          process.env.DASHBOARD_URL || req.protocol + "://" + req.get("host");
+        // og:image points to the direct image URL (without ?preview)
+        const directImageURL = `${dashboardURL}/assets/${encodeURIComponent(
+          filename
+        )}`;
+        const pageURL = `${dashboardURL}/assets/${encodeURIComponent(
+          filename
+        )}?preview`;
 
-      // Detect Discord's user agent (Discordbot crawls links for embeds)
-      // Discord uses "Discordbot" or similar - be specific to avoid false positives
-      const isDiscordBot =
-        userAgent.includes("discordbot") ||
-        (userAgent.includes("discord") &&
-          !userAgent.includes("chrome") &&
-          !userAgent.includes("firefox"));
-
-      // Check if request wants direct image (Accept header contains image/* or ?raw param)
-      const acceptHeader = req.headers.accept || "";
-      const wantsDirectImage =
-        acceptHeader.includes("image/") ||
-        req.query.raw !== undefined ||
-        isDiscordBot; // Discord gets direct images (like its own CDN)
-
-      // If they explicitly want the image (like <img src> tags, ?raw, or Discord bot), serve it directly
-      if (wantsDirectImage) {
-        return next(); // Pass to static file middleware
-      }
-
-      // Otherwise, serve HTML wrapper with OG tags (for Twitter, Facebook, etc.)
-      const dashboardURL =
-        process.env.DASHBOARD_URL || req.protocol + "://" + req.get("host");
-      // og:image MUST point to direct image URL (with ?raw to bypass HTML wrapper)
-      const directImageURL = `${dashboardURL}/assets/${encodeURIComponent(
-        filename
-      )}?raw`;
-      const pageURL = `${dashboardURL}/assets/${encodeURIComponent(filename)}`;
-
-      // Serve HTML with Open Graph tags for other social media embeds
-      const html = `<!DOCTYPE html>
+        // Serve HTML with Open Graph tags for social media embeds
+        const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -167,8 +149,13 @@ class DashboardServer {
 </body>
 </html>`;
 
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      return res.send(html);
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        return res.send(html);
+      }
+
+      // Default: serve image directly (like Discord's CDN)
+      // This ensures Discord and all other services get the image file directly
+      return next(); // Pass to static file middleware
     });
 
     // Handle OPTIONS requests for CORS (Discord may send preflight requests)
