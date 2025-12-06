@@ -69,7 +69,16 @@ class DashboardServer {
       });
     });
 
-    // Serve protected assets from assets directory
+    // Handle OPTIONS requests for CORS (Discord may send preflight requests)
+    this.app.options("/assets/*", (req, res) => {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Range");
+      res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours
+      res.status(204).end();
+    });
+
+    // Serve assets from assets directory (publicly accessible for Discord embeds)
     this.app.use(
       "/assets",
       express.static(path.join(__dirname, "../assets"), {
@@ -89,17 +98,25 @@ class DashboardServer {
             res.setHeader("Content-Type", contentTypes[ext]);
           }
 
-          // CORS headers to allow embedding
+          // CORS headers to allow embedding from anywhere (Discord, etc.)
           res.setHeader("Access-Control-Allow-Origin", "*");
           res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
-          res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type, Range");
+          res.setHeader("Access-Control-Expose-Headers", "Content-Length, Content-Type, Accept-Ranges");
 
           // Cache headers for better performance
           res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
 
-          // Security headers
+          // Security headers (but allow embedding)
           res.setHeader("X-Content-Type-Options", "nosniff");
+          res.setHeader("X-Frame-Options", "ALLOWALL"); // Allow embedding in Discord
+
+          // Accept-Ranges for partial content requests (Discord may use this)
+          res.setHeader("Accept-Ranges", "bytes");
         },
+        // Enable HEAD requests (Discord sends HEAD first to check if image exists)
+        etag: true,
+        lastModified: true,
       })
     );
 
