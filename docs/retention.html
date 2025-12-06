@@ -3,11 +3,74 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Retention Analytics - Nexus Dashboard</title>
-    <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="mobile.css" />
+    <title>Retention Analytics - Nexus Admin</title>
+    <script src="admin-auth.js"></script>
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://cdn.discordapp.com/avatars/1444737244947443773/1c28215e501bc8ef6e04c1fb2a8ae1ed.png"
+    />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .header {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .header h1 {
+        color: #667eea;
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        color: #666;
+        margin-bottom: 15px;
+      }
+
+      .nav-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .nav-btn {
+        padding: 8px 16px;
+        background: #667eea;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 14px;
+        transition: all 0.3s;
+        display: inline-block;
+      }
+
+      .nav-btn:hover {
+        background: #764ba2;
+        transform: translateY(-2px);
+      }
+
       .retention-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -158,21 +221,17 @@
     </style>
   </head>
   <body>
-    <nav class="navbar">
-      <div class="nav-content">
-        <div class="nav-brand">
-          <h1>📊 Retention Analytics</h1>
-        </div>
-        <div class="nav-links">
-          <a href="index.html">🏠 Home</a>
-          <a href="dashboard.html">📊 Dashboard</a>
-          <a href="command-analytics.html">📈 Commands</a>
-          <a href="retention.html" class="active">🔄 Retention</a>
+    <div class="container">
+      <div class="header">
+        <h1>📊 Retention Analytics</h1>
+        <p>Track server churn, lifetime metrics, and growth patterns</p>
+        <div class="nav-buttons">
+          <a href="admin.html" class="nav-btn">← Admin Hub</a>
+          <a href="admin-incidents.html" class="nav-btn">Incidents</a>
+          <a href="admin-links.html" class="nav-btn">Invite Links</a>
+          <a href="admin-usage.html" class="nav-btn">Usage Stats</a>
         </div>
       </div>
-    </nav>
-
-    <div class="container">
       <div id="loading" class="loading">
         <p>Loading retention analytics...</p>
       </div>
@@ -244,9 +303,17 @@
     <script>
       let churnChart = null;
 
+      const API_URL = "https://regular-puma-clearly.ngrok-free.app";
+
       async function loadRetentionData() {
         try {
-          const response = await fetch("/api/analytics/retention");
+          const authToken = sessionStorage.getItem("adminToken");
+          const response = await fetch(`${API_URL}/api/analytics/retention`, {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              "ngrok-skip-browser-warning": "true",
+            },
+          });
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
