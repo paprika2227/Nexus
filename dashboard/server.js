@@ -60,6 +60,33 @@ class DashboardServer {
       "::ffff:127.0.0.1", // IPv4 mapped to IPv6
     ];
 
+    // Test endpoint for Discord bot connectivity
+    this.app.get("/test-discord", (req, res) => {
+      const userAgent = req.headers["user-agent"] || "unknown";
+      const ip = this.getRealIP(req);
+      logger.info("CDN", "Discord test endpoint hit", {
+        userAgent,
+        ip,
+        headers: req.headers,
+      });
+      res.json({
+        success: true,
+        message: "Discord bot can reach this server",
+        userAgent,
+        ip,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    // Robots.txt to explicitly allow Discord's bot
+    this.app.get("/robots.txt", (req, res) => {
+      res.setHeader("Content-Type", "text/plain");
+      res.send(`User-agent: Discordbot
+Allow: /
+User-agent: *
+Allow: /`);
+    });
+
     // Handle root /assets path (no filename)
     this.app.get("/assets", (req, res) => {
       res.status(400).json({
@@ -203,6 +230,19 @@ class DashboardServer {
     // Serve assets from assets directory (publicly accessible for Discord embeds)
     // Handle both encoded and non-encoded filenames
     this.app.use("/assets", (req, res, next) => {
+      // Log ALL requests to /assets (including static file serving)
+      const userAgent = req.headers["user-agent"] || "unknown";
+      const ip = this.getRealIP(req);
+      logger.info("CDN", "Static asset request", {
+        path: req.path,
+        method: req.method,
+        userAgent,
+        ip,
+        accept: req.headers.accept,
+        referer: req.headers.referer,
+        query: req.query,
+      });
+
       // If the filename is URL-encoded, decode it
       if (req.path && req.path !== "/") {
         try {
@@ -855,10 +895,16 @@ class DashboardServer {
           // Return clean URL - Discord bot will automatically get HTML wrapper
           const fileURL = `${dashboardURL}/assets/${encodedFilename}`;
 
-          logger.info(
-            "CDN",
-            `Image uploaded: ${req.file.filename} by IP ${cleanIP}`
-          );
+          logger.info("CDN", "Image uploaded", {
+            filename: req.file.filename,
+            ip: cleanIP,
+            url: fileURL,
+            dashboardURL,
+            encodedFilename,
+            originalName: req.file.originalname,
+            size: req.file.size,
+            mimetype: req.file.mimetype,
+          });
 
           res.json({
             success: true,
