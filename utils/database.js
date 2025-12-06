@@ -707,6 +707,43 @@ class Database {
             )
         `);
 
+    // General logs table for various events
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                event_type TEXT,
+                user_id TEXT,
+                executor_id TEXT,
+                channel_id TEXT,
+                emoji_id TEXT,
+                timestamp INTEGER,
+                details TEXT
+            )
+        `);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_logs_guild_type_time
+                 ON logs(guild_id, event_type, timestamp)`);
+
+    // Invite tracking for growth analytics
+    this.db.run(`
+            CREATE TABLE IF NOT EXISTS invite_tracking (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT,
+                invite_code TEXT,
+                inviter_id TEXT,
+                uses INTEGER DEFAULT 0,
+                created_at INTEGER,
+                UNIQUE(guild_id, invite_code)
+            )
+        `);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_invite_tracking_guild
+                 ON invite_tracking(guild_id)`);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_invite_tracking_inviter
+                 ON invite_tracking(inviter_id)`);
+
     // Anti-nuke whitelist (EXCEEDS WICK - prevents false positives)
     this.db.run(`
             CREATE TABLE IF NOT EXISTS anti_nuke_whitelist (
