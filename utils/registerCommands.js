@@ -69,7 +69,6 @@ async function registerCommands(client) {
     );
 
     let results = [];
-    let rateLimitedCount = 0;
 
     for (let i = 0; i < guilds.length; i += batchSize) {
       const batch = guilds.slice(i, i + batchSize);
