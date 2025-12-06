@@ -100,6 +100,43 @@ async function registerCommands(client) {
     );
   } catch (error) {
     logger.error("❌ Error registering commands:", error);
+    
+    // Check if it's a rate limit error
+    if (error.code === 429 || error.status === 429 || error.message?.includes("rate limit")) {
+      const retryAfter = error.retryAfter || error.retry_after || 1;
+      logger.error(
+        "Commands",
+        `⚠️ RATE LIMITED during registration! Waiting ${retryAfter}s before retry...`
+      );
+      logger.error(
+        "Commands",
+        `📊 Rate limit headers: ${JSON.stringify(error.request?.response?.headers || {})}`
+      );
+    }
+  }
+  
+  // Check rate limit status after registration
+  try {
+    const rateLimitHandler = require("./rateLimitHandler");
+    const rateLimitStats = rateLimitHandler.getStats();
+    const isRateLimited = rateLimitHandler.isRateLimited();
+    
+    if (isRateLimited.limited) {
+      const resetIn = Math.ceil(isRateLimited.resetIn / 1000);
+      logger.warn(
+        "Commands",
+        `⏳ Currently rate limited! ${isRateLimited.global ? "Global" : "Endpoint"} limit - Resets in ${resetIn}s`
+      );
+    } else if (rateLimitStats.rateLimitHits > 0) {
+      logger.info(
+        "Commands",
+        `📊 Rate limit status: ${rateLimitStats.rateLimitHitRate} hit rate (${rateLimitStats.rateLimitHits} hits / ${rateLimitStats.totalRequests} requests)`
+      );
+    } else {
+      logger.success("Commands", "✅ No rate limits encountered");
+    }
+  } catch (err) {
+    // Rate limit handler might not be initialized yet
   }
 }
 

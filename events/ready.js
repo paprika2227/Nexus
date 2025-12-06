@@ -407,6 +407,19 @@ module.exports = {
         // Initialize rate limit handler
         rateLimitHandler.initialize(client);
         logger.info("Ready", "⏱️  Rate limit protection enabled");
+        
+        // Log initial rate limit status
+        const rateLimitStats = rateLimitHandler.getStats();
+        const isRateLimited = rateLimitHandler.isRateLimited();
+        if (isRateLimited.limited) {
+          const resetIn = Math.ceil(isRateLimited.resetIn / 1000);
+          logger.warn(
+            "Ready",
+            `⏳ RATE LIMITED on startup! ${isRateLimited.global ? "Global" : "Endpoint"} limit - Resets in ${resetIn}s`
+          );
+        } else {
+          logger.success("Ready", "✅ No rate limits active");
+        }
       } catch (error) {
         logger.error("Ready", "Failed to start database backup", {
           message: error?.message || String(error),
