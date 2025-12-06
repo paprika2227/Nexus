@@ -6,16 +6,93 @@ const {
   ButtonStyle,
 } = require("discord.js");
 
+const DEV_USER_ID = "1392165977793368124";
+const DEV_TIMEZONE_HINT = "Dev is usually online 2PM-2AM GMT";
+
+// Helper function to format time ago
+function formatTimeAgo(timestamp) {
+  if (!timestamp) return "Never";
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days !== 1 ? "s" : ""} ago`;
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("support")
     .setDescription("Get support and help with Nexus Bot"),
 
   async execute(interaction) {
+    const client = interaction.client;
+
+    // Initialize dev tracking if not exists
+    if (!client.devTracking) {
+      client.devTracking = {
+        lastSeen: null,
+        currentStatus: null,
+      };
+    }
+
+    // Try to get dev user and check their presence
+    let devStatus = null;
+    let devPresence = null;
+    try {
+      const devUser = await client.users.fetch(DEV_USER_ID).catch(() => null);
+      if (devUser) {
+        // Check if dev is in any shared guilds
+        const sharedGuilds = client.guilds.cache.filter((guild) =>
+          guild.members.cache.has(DEV_USER_ID)
+        );
+
+        if (sharedGuilds.size > 0) {
+          const firstGuild = sharedGuilds.first();
+          const devMember = await firstGuild.members
+            .fetch(DEV_USER_ID)
+            .catch(() => null);
+
+          if (devMember?.presence) {
+            devPresence = devMember.presence.status;
+            // Update tracking
+            client.devTracking.lastSeen = Date.now();
+            client.devTracking.currentStatus = devPresence;
+          }
+        }
+      }
+    } catch (error) {
+      // Silently fail - not critical
+    }
+
+    // Determine status message
+    const isOnline =
+      devPresence === "online" ||
+      devPresence === "idle" ||
+      devPresence === "dnd";
+    const lastSeen = client.devTracking.lastSeen;
+
+    let devStatusMessage = "";
+    if (isOnline) {
+      devStatusMessage = `✅ **Dev is currently online!** If you join the support server, your question will be answered promptly.\n\n⏰ ${DEV_TIMEZONE_HINT}`;
+    } else if (lastSeen) {
+      const timeAgo = formatTimeAgo(lastSeen);
+      devStatusMessage = `⏸️ **Dev is currently offline.** Last seen: ${timeAgo}\n\n⏰ ${DEV_TIMEZONE_HINT}\n\n💬 Responses to support questions may be slower, but they will be gotten to!`;
+    } else {
+      devStatusMessage = `⏸️ **Dev is currently offline.**\n\n⏰ ${DEV_TIMEZONE_HINT}\n\n💬 Responses to support questions may be slower, but they will be gotten to!`;
+    }
+
     const embed = new EmbedBuilder()
       .setTitle("🆘 Nexus Bot Support")
       .setDescription("Need help? We're here for you!")
       .addFields(
+        {
+          name: "👨‍💻 Developer Status",
+          value: devStatusMessage,
+          inline: false,
+        },
         {
           name: "📚 Resources",
           value: [

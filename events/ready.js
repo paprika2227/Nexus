@@ -9,6 +9,12 @@ module.exports = {
   async execute(client) {
     const shardInfo = ShardManager.getShardInfo(client);
 
+    // Initialize dev tracking for support command
+    client.devTracking = {
+      lastSeen: null,
+      currentStatus: null,
+    };
+
     // Register slash commands
     await registerCommands(client);
 
