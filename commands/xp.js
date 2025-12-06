@@ -124,24 +124,28 @@ module.exports = {
     ),
 
   async execute(interaction, client) {
+    // Ensure client exists - use interaction.client as fallback
+    const actualClient = client || interaction.client;
     const subcommand = interaction.options.getSubcommand();
 
     if (subcommand === "rank") {
-      await this.handleRank(interaction, client);
+      await this.handleRank(interaction, actualClient);
     } else if (subcommand === "leaderboard") {
-      await this.handleLeaderboard(interaction, client);
+      await this.handleLeaderboard(interaction, actualClient);
     } else if (subcommand === "config") {
-      await this.handleConfig(interaction, client);
+      await this.handleConfig(interaction, actualClient);
+    } else if (subcommand === "channel") {
+      await this.handleChannel(interaction, actualClient);
     } else if (subcommand === "reward") {
-      await this.handleReward(interaction, client);
+      await this.handleReward(interaction, actualClient);
     } else if (subcommand === "rewards") {
-      await this.handleRewards(interaction, client);
+      await this.handleRewards(interaction, actualClient);
     } else if (subcommand === "add") {
-      await this.handleAdd(interaction, client || interaction.client);
+      await this.handleAdd(interaction, actualClient);
     } else if (subcommand === "remove") {
-      await this.handleRemove(interaction, client || interaction.client);
+      await this.handleRemove(interaction, actualClient);
     } else if (subcommand === "reset") {
-      await this.handleReset(interaction, client || interaction.client);
+      await this.handleReset(interaction, actualClient);
     }
   },
 
@@ -157,7 +161,7 @@ module.exports = {
     }
 
     // Create temporary instance for calculations if client.xpSystem not available
-    const xpSystem = client.xpSystem || new XPSystem(client);
+    const xpSystem = client?.xpSystem || new XPSystem(client || interaction.client);
     const level = xpSystem.calculateLevel(userData.xp);
     const nextLevelXP = xpSystem.xpForLevel(level);
     const progress = Math.floor((userData.xp / nextLevelXP) * 100);
