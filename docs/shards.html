@@ -244,7 +244,8 @@
     </div>
 
     <script>
-      const API_URL = "https://nexus-dashboard-e7fcb24a4742.herokuapp.com";
+      // Use ngrok URL (matches DASHBOARD_URL in .env)
+      const API_URL = "https://regular-puma-clearly.ngrok-free.app";
 
       async function checkGuildShard() {
         const guildId = document.getElementById("guildInput").value.trim();

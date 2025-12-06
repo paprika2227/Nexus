@@ -1192,6 +1192,11 @@ class DashboardServer {
       }
     });
 
+    // OPTIONS handler for CORS preflight
+    this.app.options("/api/shards", (req, res) => {
+      res.status(200).end();
+    });
+
     // Get shard-specific stats (public endpoint for users to check their shard)
     this.app.get("/api/shards", async (req, res) => {
       try {
