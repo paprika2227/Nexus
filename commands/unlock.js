@@ -36,39 +36,15 @@ module.exports = {
     await interaction.deferReply();
 
     try {
-      // Unlock all channels
-      const channels = interaction.guild.channels.cache.filter(
-        (c) =>
-          c.isTextBased() && c.permissionsFor(interaction.guild.roles.everyone)
-      );
-
-      let unlockedCount = 0;
-      for (const channel of channels.values()) {
-        try {
-          await channel.permissionOverwrites.edit(
-            interaction.guild.roles.everyone,
-            {
-              SendMessages: null, // Reset to default
-              AddReactions: null,
-              CreatePublicThreads: null,
-              CreatePrivateThreads: null,
-            }
-          );
-          unlockedCount++;
-        } catch (error) {
-          // Continue with other channels
-        }
-      }
-
-      // Remove from locked guilds
-      interaction.client.advancedAntiNuke.lockedGuilds.delete(
-        interaction.guild.id
+      // Use the proper unlock method from advancedAntiNuke
+      await interaction.client.advancedAntiNuke.unlockServer(
+        interaction.guild
       );
 
       const embed = new EmbedBuilder()
         .setTitle("✅ Server Unlocked")
         .setDescription(
-          `**${unlockedCount}** channels have been unlocked.\n\n` +
+          `All channels and permissions have been restored.\n\n` +
             `The server is now back to normal operation.`
         )
         .setColor(0x00ff00)

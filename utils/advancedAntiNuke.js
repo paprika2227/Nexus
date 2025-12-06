@@ -1366,16 +1366,109 @@ class AdvancedAntiNuke {
         `[Anti-Nuke] Lockdown activated: ${lockedCount} channels locked, ${deletedSpamChannels} spam channels deleted in ${guild.id}`
       );
 
-      // Auto-unlock after 5 minutes
+      // Auto-unlock after 5 minutes (actually restore permissions!)
       setTimeout(
-        () => {
-          this.lockedGuilds.delete(guild.id);
+        async () => {
+          await this.unlockServer(guild);
           logger.info(`[Anti-Nuke] Lockdown auto-released for ${guild.id}`);
         },
         5 * 60 * 1000
       );
     } catch (error) {
       logger.error(`[Anti-Nuke] Error during lockdown:`, error);
+    }
+  }
+
+  /**
+   * Unlock server and restore all permissions
+   * @param {Guild} guild - The guild to unlock
+   */
+  async unlockServer(guild) {
+    if (!this.lockedGuilds.has(guild.id)) {
+      return; // Already unlocked
+    }
+
+    try {
+      const botMember = await guild.members
+        .fetch(this.client.user.id)
+        .catch(() => null);
+      if (!botMember) {
+        // Still remove from locked to prevent permanent lock
+        this.lockedGuilds.delete(guild.id);
+        return;
+      }
+
+      // Restore channel permissions by removing overwrites (set to null resets to default)
+      const channels = guild.channels.cache.filter(
+        (c) =>
+          c.isTextBased() &&
+          c.permissionsFor(botMember)?.has("ManageChannels")
+      );
+
+      let unlockedCount = 0;
+      for (const channel of channels.values()) {
+        try {
+          // Explicitly allow permissions (matching how /lock sets them to false)
+          await channel.permissionOverwrites
+            .edit(guild.roles.everyone, {
+              SendMessages: true, // Explicitly allow (not null to ensure it works)
+              AddReactions: true,
+              CreatePublicThreads: true,
+              CreatePrivateThreads: true,
+            })
+            .catch(() => {
+              // Channel might not have overwrites, continue
+            });
+          unlockedCount++;
+        } catch (error) {
+          // Continue with other channels
+          logger.debug(
+            `[Anti-Nuke] Failed to unlock channel ${channel.id}:`,
+            error.message
+          );
+        }
+      }
+
+      // Restore @everyone role permissions (add back what we removed)
+      try {
+        if (botMember.permissions.has("ManageRoles")) {
+          const everyoneRole = guild.roles.everyone;
+          // Add back the permissions we removed during lockdown
+          const restoredPerms = everyoneRole.permissions.add([
+            "CreateInstantInvite",
+            "CreatePrivateThreads",
+            "CreatePublicThreads",
+            "ManageChannels",
+          ]);
+          await everyoneRole
+            .setPermissions(
+              restoredPerms,
+              "Anti-Nuke: Restore permissions after lockdown"
+            )
+            .catch((err) => {
+              logger.debug(
+                `[Anti-Nuke] Failed to restore @everyone permissions:`,
+                err.message
+              );
+            });
+        }
+      } catch (error) {
+        logger.error(
+          `[Anti-Nuke] Error restoring @everyone permissions:`,
+          error
+        );
+      }
+
+      // Remove from locked guilds
+      this.lockedGuilds.delete(guild.id);
+
+      logger.info(
+        `[Anti-Nuke] Server unlocked: ${unlockedCount} channels restored in ${guild.id}`
+      );
+    } catch (error) {
+      logger.error(`[Anti-Nuke] Error unlocking server:`, error);
+      // Still remove from locked guilds to prevent permanent lock
+      this.lockedGuilds.delete(guild.id);
     }
   }
 
