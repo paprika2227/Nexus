@@ -89,9 +89,9 @@
           <h3>🔧 DISCORD EMBED DEBUGGING & HTML-FIRST APPROACH</h3>
           <ul>
             <li>
-              ✅ <strong>Comprehensive Logging:</strong> Added detailed logging for
-              all CDN requests including user agent, IP, headers, and response type
-              to debug Discord embedding issues
+              ✅ <strong>Comprehensive Logging:</strong> Added detailed logging
+              for all CDN requests including user agent, IP, headers, and
+              response type to debug Discord embedding issues
             </li>
             <li>
               ✅ <strong>HTML by Default:</strong> Changed to serve HTML with OG
@@ -99,14 +99,15 @@
               images available via <code>?raw</code> parameter
             </li>
             <li>
-              ✅ <strong>Smart Image Detection:</strong> Direct images are served
-              when <code>?raw</code> is present, <code>Accept: image/*</code>
+              ✅ <strong>Smart Image Detection:</strong> Direct images are
+              served when <code>?raw</code> is present,
+              <code>Accept: image/*</code>
               header is sent, or for HEAD requests
             </li>
             <li>
               ✅ <strong>OG Image URL:</strong> <code>og:image</code> tag points
-              to <code>?raw</code> URL to ensure Discord fetches the actual image
-              file
+              to <code>?raw</code> URL to ensure Discord fetches the actual
+              image file
             </li>
           </ul>
         </div>
