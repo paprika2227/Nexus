@@ -84,8 +84,55 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.25.5 - December 6, 2025</h2>
+          <h2>Version 3.26.0 - December 6, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>📦 IMPLEMENTED DATABASE BACKUP SYSTEM</h3>
+          <ul>
+            <li>
+              ✅ <strong>Automated Backups:</strong> SQLite database is now
+              automatically backed up daily at 3 AM
+            </li>
+            <li>
+              ✅ <strong>Backup Rotation:</strong> Keeps last 7 days of backups,
+              automatically deletes old ones
+            </li>
+            <li>
+              ✅ <strong>Restore Capability:</strong> Can restore database from
+              any backup with safety backup creation
+            </li>
+            <li>
+              ✅ <strong>Initial Backup:</strong> Creates backup on bot startup
+              for immediate protection
+            </li>
+            <li>
+              📊 <strong>Backup Management:</strong> List, create, and restore
+              backups programmatically
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.25.6 - December 6, 2025</h2>
+          <h3>✨ ADDED VERIFICATION REMINDERS</h3>
+          <ul>
+            <li>
+              ✅ <strong>75-Server Reminder:</strong> Bot owner receives a DM
+              when the bot reaches 75 servers, with instructions to apply for
+              full Discord verification
+            </li>
+            <li>
+              ⚠️ <strong>95-Server Warning:</strong> URGENT DM sent at 95
+              servers warning about the 100-server limit
+            </li>
+            <li>
+              📊 <strong>Smart Notifications:</strong> Reminders include current
+              stats, time until limit, and direct links to apply
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.25.5 - December 6, 2025</h2>
           <h3>🐛 FIXED LOGGER BRACKET PARSING BUG</h3>
           <ul>
             <li>

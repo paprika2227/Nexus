@@ -2,6 +2,7 @@ const { ActivityType } = require("discord.js");
 const ShardManager = require("../utils/shardManager");
 const { registerCommands } = require("../utils/registerCommands");
 const logger = require("../utils/logger");
+const databaseBackup = require("../utils/databaseBackup");
 
 module.exports = {
   name: "clientReady",
@@ -366,6 +367,19 @@ module.exports = {
         } catch (error) {
           logger.error("[Bots on Discord] Failed to initialize:", error);
         }
+      }
+    }
+
+    // Start database backup schedule (only on shard 0 or non-sharded)
+    const shouldStartBackup = !shardInfo.isSharded || shardInfo.shardId === 0;
+    if (shouldStartBackup) {
+      try {
+        databaseBackup.startSchedule();
+        logger.info("Ready", "📦 Database backup system started");
+      } catch (error) {
+        logger.error("Ready", "Failed to start database backup", {
+          message: error?.message || String(error),
+        });
       }
     }
   },
