@@ -70,14 +70,24 @@ class DashboardServer {
     });
 
     // HTML wrapper route for Discord embeds (serves OG tags)
-    // When Discord fetches /assets/image.png?embed, it gets HTML with OG tags
+    // Detect Discord bot or ?embed parameter to serve HTML with OG tags
     this.app.get("/assets/:filename", (req, res, next) => {
-      // Only serve HTML wrapper if ?embed query param is present
-      // Otherwise, let static middleware handle the direct image request
-      if (req.query.embed !== undefined) {
+      const userAgent = req.headers["user-agent"] || "";
+      const isDiscordBot =
+        userAgent.includes("Discordbot") ||
+        userAgent.includes("facebookexternalhit") ||
+        userAgent.includes("Twitterbot") ||
+        userAgent.includes("Slackbot") ||
+        userAgent.includes("LinkedInBot") ||
+        userAgent.includes("WhatsApp") ||
+        userAgent.includes("TelegramBot");
+
+      // Serve HTML wrapper if Discord bot or ?embed param is present
+      if (isDiscordBot || req.query.embed !== undefined) {
         const filename = req.params.filename;
         const dashboardURL =
           process.env.DASHBOARD_URL || req.protocol + "://" + req.get("host");
+        // Use the original URL (without ?embed) for the og:image
         const imageURL = `${dashboardURL}/assets/${encodeURIComponent(filename)}`;
 
         // Serve HTML with Open Graph tags for Discord embeds
@@ -94,6 +104,7 @@ class DashboardServer {
   <meta property="og:image" content="${imageURL}">
   <meta property="og:url" content="${dashboardURL}/assets/${encodeURIComponent(filename)}">
   <meta property="og:site_name" content="Nexus CDN">
+  <meta property="og:description" content="Image hosted on Nexus CDN">
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
@@ -129,7 +140,7 @@ class DashboardServer {
         res.setHeader("Content-Type", "text/html; charset=utf-8");
         return res.send(html);
       }
-      // No ?embed param, continue to static file serving
+      // Not a bot and no ?embed param, continue to static file serving
       next();
     });
 
@@ -788,15 +799,14 @@ class DashboardServer {
             });
           }
 
-          // Generate URLs (both direct image and embed wrapper)
+          // Generate URL (Discord will auto-detect and get HTML wrapper via user agent)
           const dashboardURL =
             process.env.DASHBOARD_URL || req.protocol + "://" + req.get("host");
           // Filename is sanitized (spaces -> hyphens, dangerous chars removed), safe for URL
           // But still encode it to be safe for Discord and other platforms
           const encodedFilename = encodeURIComponent(req.file.filename);
-          const directURL = `${dashboardURL}/assets/${encodedFilename}`;
-          // Embed URL with ?embed parameter for Discord OG tags
-          const embedURL = `${dashboardURL}/assets/${encodedFilename}?embed`;
+          // Return clean URL - Discord bot will automatically get HTML wrapper
+          const fileURL = `${dashboardURL}/assets/${encodedFilename}`;
 
           logger.info(
             "CDN",
@@ -805,9 +815,7 @@ class DashboardServer {
 
           res.json({
             success: true,
-            url: embedURL, // Use embed URL for Discord compatibility
-            directUrl: directURL, // Direct image URL for other uses
-            embedUrl: embedURL, // Explicit embed URL
+            url: fileURL, // Clean URL - Discord bot auto-detects and gets HTML wrapper
             filename: req.file.filename,
             originalName: req.file.originalname,
             size: req.file.size,
