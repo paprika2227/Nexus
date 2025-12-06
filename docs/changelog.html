@@ -84,8 +84,32 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.24.5 - December 6, 2025</h2>
+          <h2>Version 3.24.6 - December 6, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔧 DISCORD EMBED FIX (Based on Research)</h3>
+          <ul>
+            <li>
+              ✅ <strong>Direct Image URLs for OG Tags:</strong> Fixed issue
+              where <code>og:image</code> was pointing to HTML instead of direct
+              image. Now uses <code>?raw</code> parameter to serve actual image
+              file
+            </li>
+            <li>
+              ✅ <strong>Proper Discord Compatibility:</strong> Discord requires
+              <code>og:image</code> to point to direct image URLs (not HTML
+              pages). This fix ensures Discord can fetch and embed images
+              correctly
+            </li>
+            <li>
+              ✅ <strong>Dual Serving:</strong> Regular URLs serve HTML with OG
+              tags, <code>?raw</code> parameter serves direct image file for
+              Discord's embed system
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.24.5 - December 6, 2025</h2>
           <h3>🔧 UX & EMBED IMPROVEMENTS</h3>
           <ul>
             <li>

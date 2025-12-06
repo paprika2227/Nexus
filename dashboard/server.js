@@ -70,23 +70,27 @@ class DashboardServer {
     });
 
     // HTML wrapper route for Discord embeds (serves OG tags)
-    // Serve HTML for all requests - Discord gets OG tags, browsers see the image
+    // Serve HTML for link previews, but og:image must point to direct image URL
     this.app.get("/assets/:filename", (req, res, next) => {
-      // Check if request wants direct image (Accept header contains image/*)
+      // Check if request wants direct image (Accept header contains image/* or ?raw param)
       const acceptHeader = req.headers.accept || "";
-      const wantsDirectImage = acceptHeader.includes("image/");
+      const wantsDirectImage =
+        acceptHeader.includes("image/") || req.query.raw !== undefined;
 
-      // If they explicitly want the image (like <img src> tags), serve it directly
-      if (wantsDirectImage && !req.query.embed) {
+      // If they explicitly want the image (like <img src> tags or ?raw), serve it directly
+      if (wantsDirectImage) {
         return next();
       }
 
-      // Otherwise, serve HTML wrapper with OG tags (for Discord, social media, etc.)
+      // Otherwise, serve HTML wrapper with OG tags (for Discord link previews, social media, etc.)
       const filename = req.params.filename;
       const dashboardURL =
         process.env.DASHBOARD_URL || req.protocol + "://" + req.get("host");
-      // Use the original URL for the og:image
-      const imageURL = `${dashboardURL}/assets/${encodeURIComponent(filename)}`;
+      // og:image MUST point to direct image URL (with ?raw to bypass HTML wrapper)
+      const directImageURL = `${dashboardURL}/assets/${encodeURIComponent(
+        filename
+      )}?raw`;
+      const pageURL = `${dashboardURL}/assets/${encodeURIComponent(filename)}`;
 
       // Serve HTML with Open Graph tags for Discord embeds
       const html = `<!DOCTYPE html>
@@ -99,15 +103,16 @@ class DashboardServer {
   <!-- Open Graph / Discord -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="${filename}">
-  <meta property="og:image" content="${imageURL}">
-  <meta property="og:url" content="${dashboardURL}/assets/${encodeURIComponent(filename)}">
+  <meta property="og:image" content="${directImageURL}">
+  <meta property="og:url" content="${pageURL}">
   <meta property="og:site_name" content="Nexus CDN">
   <meta property="og:description" content="Image hosted on Nexus CDN">
+  <meta property="og:image:type" content="image/png">
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${filename}">
-  <meta name="twitter:image" content="${imageURL}">
+  <meta name="twitter:image" content="${directImageURL}">
   
   <style>
     * {
@@ -136,7 +141,7 @@ class DashboardServer {
   </style>
 </head>
 <body>
-  <img src="${imageURL}" alt="${filename}" />
+  <img src="${directImageURL}" alt="${filename}" />
 </body>
 </html>`;
 
