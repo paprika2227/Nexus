@@ -48,47 +48,7 @@ module.exports = {
         }),
     ]);
 
-    // Add XP for leveling (1-5 random XP per message)
-    const Leveling = require("../utils/leveling");
-    const xpGain = Math.floor(Math.random() * 5) + 1;
-    const levelResult = await Leveling.addXP(
-      message.guild.id,
-      message.author.id,
-      xpGain
-    );
-
-    // Send level up message if leveled up
-    if (levelResult.leveledUp) {
-      const config = await db.getServerConfig(message.guild.id);
-      if (config && config.level_up_channel) {
-        const levelChannel = message.guild.channels.cache.get(
-          config.level_up_channel
-        );
-        if (levelChannel) {
-          levelChannel
-            .send({
-              embeds: [
-                Leveling.createLevelUpEmbed(
-                  message.author,
-                  levelResult.level,
-                  levelResult.xp
-                ),
-              ],
-            })
-            .then((sentMessage) => {
-              // Auto-delete after 5 seconds
-              setTimeout(() => {
-                sentMessage.delete().catch(() => {
-                  // Ignore delete errors (message may already be deleted)
-                });
-              }, 5000);
-            })
-            .catch((err) => {
-              // Ignore send errors
-            });
-        }
-      }
-    }
+    // XP is awarded via xpSystem.awardMessageXP() below (has cooldown protection)
 
     // Check for custom commands (OPTIMIZED: Cache custom commands in Redis)
     if (message.content.startsWith("!")) {
@@ -346,13 +306,13 @@ module.exports = {
       });
     }
 
-    // Award XP for message
-    if (client.xpSystem) {
-      try {
-        await client.xpSystem.awardMessageXP(message);
-      } catch (error) {
-        logger.debug("[XP] Failed to award XP:", error.message);
-      }
+    // Award XP for message (with cooldown protection to prevent spam)
+    const XPSystem = require("../utils/xpSystem");
+    const xpSystem = client.xpSystem || new XPSystem(client);
+    try {
+      await xpSystem.awardMessageXP(message);
+    } catch (error) {
+      logger.debug("[XP] Failed to award XP:", error.message);
     }
   },
 };

@@ -34,9 +34,10 @@ class XPSystem {
     const config = await db.getXPConfig(guildId);
     if (!config.enabled) return;
 
-    // Check cooldown
+    // Check cooldown (minimum 60 seconds to prevent spam)
+    const cooldownMs = Math.max(config.xp_cooldown || 60000, 60000); // Min 60s
     const lastGain = this.cooldowns.get(key);
-    if (lastGain && Date.now() - lastGain < config.xp_cooldown) {
+    if (lastGain && Date.now() - lastGain < cooldownMs) {
       return; // Still on cooldown
     }
 
