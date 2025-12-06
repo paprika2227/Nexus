@@ -409,7 +409,9 @@ module.exports = {
         const systemChannel = guild.systemChannel;
         if (
           systemChannel &&
-          systemChannel.permissionsFor(botMember).has(["ViewChannel", "SendMessages"])
+          systemChannel
+            .permissionsFor(botMember)
+            .has(["ViewChannel", "SendMessages"])
         ) {
           try {
             await systemChannel.send({ embeds: [warningEmbed] });

@@ -67,7 +67,8 @@ class DashboardServer {
         "http://localhost:5500",
         "http://127.0.0.1:5500",
         "null", // For local file:// protocol
-      ];
+        process.env.DASHBOARD_URL, // ngrok or other dashboard URL
+      ].filter(Boolean); // Remove undefined values
 
       if (
         allowedOrigins.includes(origin) ||

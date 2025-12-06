@@ -480,12 +480,15 @@ manager.on("shardCreate", (shard) => {
   });
 });
 
-manager.spawn().then(() => {
-  // Start shard health monitoring after all shards are spawned
-  const shardHealthMonitor = require("./utils/shardHealthMonitor");
-  shardHealthMonitor.start(manager);
-  console.log("✅ Shard health monitoring active");
-}).catch(console.error);
+manager
+  .spawn()
+  .then(() => {
+    // Start shard health monitoring after all shards are spawned
+    const shardHealthMonitor = require("./utils/shardHealthMonitor");
+    shardHealthMonitor.start(manager);
+    console.log("✅ Shard health monitoring active");
+  })
+  .catch(console.error);
 
 // Graceful shutdown with parallel shard termination (EXCEEDS WICK - faster shutdown)
 async function gracefulShutdown(signal) {

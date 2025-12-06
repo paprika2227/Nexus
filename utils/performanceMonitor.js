@@ -102,16 +102,18 @@ class PerformanceMonitor {
   // Get stats in format expected by performance command
   getStats() {
     const allMetrics = this.getAllMetrics();
-    
+
     // Find raid detection and ban/kick metrics
-    const raidMetrics = allMetrics.find((m) => 
-      m.operation.toLowerCase().includes("raid") || 
-      m.operation.toLowerCase().includes("detection")
+    const raidMetrics = allMetrics.find(
+      (m) =>
+        m.operation.toLowerCase().includes("raid") ||
+        m.operation.toLowerCase().includes("detection")
     );
-    
-    const banMetrics = allMetrics.find((m) => 
-      m.operation.toLowerCase().includes("ban") || 
-      m.operation.toLowerCase().includes("kick")
+
+    const banMetrics = allMetrics.find(
+      (m) =>
+        m.operation.toLowerCase().includes("ban") ||
+        m.operation.toLowerCase().includes("kick")
     );
 
     // Calculate P95 (simplified - using maxTime as approximation)
