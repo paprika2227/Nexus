@@ -22,16 +22,16 @@ module.exports = {
     }
 
     // Check if server is actually locked
-    if (
-      !interaction.client.advancedAntiNuke.lockedGuilds.has(
-        interaction.guild.id
-      )
-    ) {
-      return interaction.reply({
-        content: "✅ Server is not in lockdown mode!",
-        flags: MessageFlags.Ephemeral,
-      });
-    }
+    // if (
+    //   !interaction.client.advancedAntiNuke.lockedGuilds.has(
+    //     interaction.guild.id
+    //   )
+    // ) {
+    //   return interaction.reply({
+    //     content: "✅ Server is not in lockdown mode!",
+    //     flags: MessageFlags.Ephemeral,
+    //   });
+    // }
 
     await interaction.deferReply();
 
