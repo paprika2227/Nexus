@@ -78,6 +78,7 @@ async function registerCommands(client) {
     );
 
     // Count successes and failures
+    let rateLimitedCount = 0;
     results.forEach((result, index) => {
       if (result.status === "fulfilled" && result.value.success) {
         successCount++;
@@ -85,10 +86,26 @@ async function registerCommands(client) {
         failCount++;
         const guildName = guilds[index]?.name || "Unknown";
         const error = result.status === "fulfilled" ? result.value.error : result.reason;
-        logger.error(
-          `❌ Failed to register commands for ${guildName}:`,
-          error?.message || error
-        );
+        
+        // Check if it's a rate limit error
+        const isRateLimit = 
+          error?.code === 429 || 
+          error?.status === 429 || 
+          error?.message?.includes("rate limit") ||
+          error?.message?.includes("429");
+          
+        if (isRateLimit) {
+          rateLimitedCount++;
+          const retryAfter = error?.retryAfter || error?.retry_after || "unknown";
+          logger.warn(
+            `⚠️ Rate limited while registering commands for ${guildName} (retry after: ${retryAfter}s)`
+          );
+        } else {
+          logger.error(
+            `❌ Failed to register commands for ${guildName}:`,
+            error?.message || error
+          );
+        }
       }
     });
 
@@ -96,8 +113,16 @@ async function registerCommands(client) {
       "Commands",
       `Registered commands for ${successCount} servers${
         failCount > 0 ? `, ${failCount} failed` : ""
-      }`
+      }${rateLimitedCount > 0 ? ` (${rateLimitedCount} rate limited)` : ""}`
     );
+    
+    // Warn if rate limited
+    if (rateLimitedCount > 0) {
+      logger.warn(
+        "Commands",
+        `⚠️ ${rateLimitedCount} server(s) hit rate limits during registration. Commands will be registered automatically when limits reset.`
+      );
+    }
   } catch (error) {
     logger.error("❌ Error registering commands:", error);
     
