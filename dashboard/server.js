@@ -1234,35 +1234,42 @@ class DashboardServer {
       }
     });
 
-    // Get retention analytics (OWNER-ONLY - sensitive data)
-    this.app.get(
-      "/api/analytics/retention",
-      this.checkAuth,
-      async (req, res) => {
-        try {
-          // Only allow bot owner to view retention data
-          if (req.user.id !== process.env.OWNER_ID) {
-            return res
-              .status(403)
-              .json({ error: "Access denied - Owner only" });
-          }
-
-          const retentionTracker = require("../utils/retentionTracker");
-          const stats = await retentionTracker.getRetentionStats();
-          const churnRate = await retentionTracker.getChurnRate();
-          const topReasons = await retentionTracker.getTopChurnReasons(10);
-
-          res.json({
-            retentionStats: stats,
-            churnRate: churnRate,
-            topChurnReasons: topReasons,
-            totalServers: this.client.guilds.cache.size,
-          });
-        } catch (error) {
-          res.status(500).json({ error: error.message });
+    // Get retention analytics (ADMIN-ONLY - sensitive data)
+    this.app.get("/api/admin/retention", async (req, res) => {
+      try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          return res.status(401).json({ error: "Unauthorized" });
         }
+
+        const token = authHeader.replace("Bearer ", "");
+
+        // Validate admin token
+        if (!this.adminTokens || !this.adminTokens.has(token)) {
+          return res.status(401).json({ error: "Invalid or expired token" });
+        }
+
+        const tokenData = this.adminTokens.get(token);
+        if (Date.now() > tokenData.expires) {
+          this.adminTokens.delete(token);
+          return res.status(401).json({ error: "Token expired" });
+        }
+
+        const retentionTracker = require("../utils/retentionTracker");
+        const stats = await retentionTracker.getRetentionStats();
+        const churnRate = await retentionTracker.getChurnRate();
+        const topReasons = await retentionTracker.getTopChurnReasons(10);
+
+        res.json({
+          retentionStats: stats,
+          churnRate: churnRate,
+          topChurnReasons: topReasons,
+          totalServers: this.client.guilds.cache.size,
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
       }
-    );
+    });
 
     // Rate Limiting Middleware for Public API
     const checkAPIKey = async (req, res, next) => {

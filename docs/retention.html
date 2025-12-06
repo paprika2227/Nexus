@@ -308,7 +308,7 @@
       async function loadRetentionData() {
         try {
           const authToken = sessionStorage.getItem("adminToken");
-          const response = await fetch(`${API_URL}/api/analytics/retention`, {
+          const response = await fetch(`${API_URL}/api/admin/retention`, {
             headers: {
               Authorization: `Bearer ${authToken}`,
               "ngrok-skip-browser-warning": "true",
