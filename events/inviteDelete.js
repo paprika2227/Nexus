@@ -28,6 +28,11 @@ module.exports = {
         ]
       );
 
+      // Clean up invite tracking
+      db.db.run(
+        `DELETE FROM invite_tracking WHERE guild_id = ? AND invite_code = ?`,
+        [guild.id, invite.code]
+      );
     } catch (error) {
       logger.error("InviteDelete", "Error handling invite deletion", {
         message: error?.message || String(error),
