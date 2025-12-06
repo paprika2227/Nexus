@@ -143,7 +143,13 @@ class XPSystem {
 
     if (channel) {
       try {
-        await channel.send({ embeds: [embed] });
+        const sentMessage = await channel.send({ embeds: [embed] });
+        // Auto-delete after 5 seconds
+        setTimeout(() => {
+          sentMessage.delete().catch(() => {
+            // Ignore delete errors (message may already be deleted)
+          });
+        }, 5000);
       } catch (error) {
         logger.error(`[XP] Failed to send level up message:`, error);
       }

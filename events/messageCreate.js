@@ -65,15 +65,27 @@ module.exports = {
           config.level_up_channel
         );
         if (levelChannel) {
-          levelChannel.send({
-            embeds: [
-              Leveling.createLevelUpEmbed(
-                message.author,
-                levelResult.level,
-                levelResult.xp
-              ),
-            ],
-          });
+          levelChannel
+            .send({
+              embeds: [
+                Leveling.createLevelUpEmbed(
+                  message.author,
+                  levelResult.level,
+                  levelResult.xp
+                ),
+              ],
+            })
+            .then((sentMessage) => {
+              // Auto-delete after 5 seconds
+              setTimeout(() => {
+                sentMessage.delete().catch(() => {
+                  // Ignore delete errors (message may already be deleted)
+                });
+              }, 5000);
+            })
+            .catch((err) => {
+              // Ignore send errors
+            });
         }
       }
     }
