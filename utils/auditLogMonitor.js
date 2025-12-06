@@ -7,12 +7,13 @@ const ErrorHandler = require("./errorHandler");
 class AuditLogMonitor {
   constructor(client) {
     this.client = client;
-    this.monitoringGuilds = new Map(); // guildId -> {interval, lastCheck}
+    this.monitoringGuilds = new Map(); // guildId -> {interval, lastCheck, consecutiveErrors}
     this.suspiciousPatterns = new Map(); // guildId -> Map<userId, patternData>
     this.permissionTestCache = new Map(); // userId-guildId -> {changes: [], timestamps: []}
     this.coordinatedAttackCache = new Map(); // guildId -> {users: Set, actions: [], window}
     this.checkInterval = 30000; // Check every 30 seconds
     this.patternWindow = 60000; // 1 minute window for pattern detection
+    this.maxConsecutiveErrors = 5; // Stop monitoring after 5 consecutive errors
   }
 
   // Start monitoring a guild's audit logs
@@ -43,6 +44,7 @@ class AuditLogMonitor {
     this.monitoringGuilds.set(guild.id, {
       interval,
       lastCheck: Date.now(),
+      consecutiveErrors: 0,
     });
   }
 
@@ -82,21 +84,61 @@ class AuditLogMonitor {
       // Pattern 5: Cross-User Permission Changes
       await this.detectCrossUserPermissionChanges(guild, recentLogs);
 
-      // Update last check time
+      // Update last check time and reset error counter on success
       const monitoring = this.monitoringGuilds.get(guild.id);
       if (monitoring) {
         monitoring.lastCheck = Date.now();
+        monitoring.consecutiveErrors = 0; // Reset error counter on success
       }
     } catch (error) {
-      // Handle permission errors gracefully
-      if (error.code === 50013 || error.code === 403) {
+      const monitoring = this.monitoringGuilds.get(guild.id);
+      if (!monitoring) return; // Already stopped
+
+      // Increment error counter
+      monitoring.consecutiveErrors = (monitoring.consecutiveErrors || 0) + 1;
+
+      // Handle permission errors - only stop after multiple consecutive failures
+      const isPermissionError =
+        error.code === 50013 ||
+        error.code === 403 ||
+        error.message?.includes("Missing Access") ||
+        error.message?.includes("Missing Permissions");
+
+      if (isPermissionError) {
         logger.debug(
           "AuditLogMonitor",
-          `No audit log access for ${guild.name}`
+          `Permission error for ${guild.name} (${guild.id}): ${error.message || error.code} (${monitoring.consecutiveErrors}/${this.maxConsecutiveErrors})`
+        );
+
+        // Only stop after multiple consecutive permission errors
+        if (monitoring.consecutiveErrors >= this.maxConsecutiveErrors) {
+          logger.warn(
+            "AuditLogMonitor",
+            `Stopped monitoring ${guild.name} (${guild.id}) after ${monitoring.consecutiveErrors} consecutive permission errors`
+          );
+          this.stopMonitoring(guild.id);
+        }
+        // Otherwise, just skip this cycle and try again next time
+        return;
+      }
+
+      // For other errors, log but don't stop immediately
+      logger.error("AuditLogMonitor", "Error analyzing audit logs", {
+        message: error?.message || String(error),
+        stack: error?.stack,
+        name: error?.name,
+        guildId: guild.id,
+        guildName: guild.name,
+        consecutiveErrors: monitoring.consecutiveErrors,
+      });
+
+      // Only stop after many consecutive errors (not just permission errors)
+      if (monitoring.consecutiveErrors >= this.maxConsecutiveErrors * 2) {
+        logger.warn(
+          "AuditLogMonitor",
+          `Stopped monitoring ${guild.name} (${guild.id}) after ${monitoring.consecutiveErrors} consecutive errors`
         );
         this.stopMonitoring(guild.id);
-      } else {
-        throw error;
       }
     }
   }

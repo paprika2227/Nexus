@@ -84,8 +84,34 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.25.0 - December 6, 2025</h2>
+          <h2>Version 3.25.1 - December 6, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔧 FIXED AUDIT LOG MONITOR STOPPING ISSUE</h3>
+          <ul>
+            <li>
+              ✅ <strong>Error Retry Logic:</strong> Added consecutive error
+              counter - monitoring only stops after 5 consecutive permission
+              errors instead of stopping on first error
+            </li>
+            <li>
+              ✅ <strong>Better Error Handling:</strong> Permission errors now
+              skip the cycle and retry instead of immediately stopping
+              monitoring
+            </li>
+            <li>
+              ✅ <strong>Error Recovery:</strong> Error counter resets on
+              successful checks, allowing monitoring to recover from temporary
+              issues
+            </li>
+            <li>
+              ✅ <strong>Improved Logging:</strong> Added detailed logging
+              showing error count and why monitoring stops
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.25.0 - December 6, 2025</h2>
           <h3>🗑️ REMOVED CDN FUNCTIONALITY</h3>
           <ul>
             <li>
