@@ -21,6 +21,92 @@ module.exports = {
       .catch((err) => {
         logger.error("Growth tracker error:", err);
       });
+
+    // Check for verification milestones
+    const serverCount = client.guilds.cache.size;
+    const totalUsers = client.guilds.cache.reduce(
+      (acc, g) => acc + g.memberCount,
+      0
+    );
+
+    // 75 servers - Can apply for verification
+    if (serverCount === 75) {
+      try {
+        const owner = await client.users.fetch(process.env.OWNER_ID);
+        await owner.send({
+          embeds: [
+            {
+              title: "🎉 Verification Milestone Reached!",
+              description:
+                "**Nexus has reached 75 servers!**\n\nYou can now apply for full Discord Bot Verification to remove the 100-server limit.\n\n**Action Required:**\n1. Go to [Discord Developer Portal](https://discord.com/developers/applications)\n2. Select your Nexus bot\n3. Navigate to the **Bot** tab\n4. Scroll to **Privileged Gateway Intents**\n5. Click **Apply for Verification**\n6. Fill out the verification form\n\n**Important:** You must get verified before hitting 100 servers or your bot will stop being able to join new servers!",
+              color: 0x5865f2,
+              fields: [
+                {
+                  name: "📊 Current Stats",
+                  value: `**Servers:** ${serverCount}\n**Users:** ${totalUsers}\n**Version:** ${version}`,
+                  inline: false,
+                },
+                {
+                  name: "⏰ Time Until Limit",
+                  value: "25 servers remaining before 100-server cap",
+                  inline: false,
+                },
+              ],
+              timestamp: new Date().toISOString(),
+              footer: {
+                text: "Apply for verification as soon as possible!",
+              },
+            },
+          ],
+        });
+        logger.info(
+          "Verification",
+          `Sent 75-server verification reminder to owner`
+        );
+      } catch (error) {
+        logger.error("Verification", `Failed to send DM to owner: ${error}`);
+      }
+    }
+
+    // 95 servers - URGENT warning (5 away from limit)
+    if (serverCount === 95) {
+      try {
+        const owner = await client.users.fetch(process.env.OWNER_ID);
+        await owner.send({
+          embeds: [
+            {
+              title: "⚠️ URGENT: Verification Required!",
+              description:
+                "**Nexus has reached 95 servers!**\n\n🚨 **ONLY 5 SERVERS LEFT** before hitting the 100-server limit!\n\nIf you're not verified by 100 servers, your bot will **STOP** being able to join new servers.\n\n**Verify NOW:**\n[Discord Developer Portal](https://discord.com/developers/applications) → Your Bot → Bot Tab → Apply for Verification",
+              color: 0xed4245,
+              fields: [
+                {
+                  name: "📊 Current Stats",
+                  value: `**Servers:** ${serverCount}/100\n**Users:** ${totalUsers}\n**Version:** ${version}`,
+                  inline: false,
+                },
+                {
+                  name: "🚨 Action Required",
+                  value:
+                    "Apply for verification immediately or risk growth stopping!",
+                  inline: false,
+                },
+              ],
+              timestamp: new Date().toISOString(),
+              footer: {
+                text: "This is your final warning!",
+              },
+            },
+          ],
+        });
+        logger.warn(
+          "Verification",
+          `Sent URGENT 95-server verification warning to owner`
+        );
+      } catch (error) {
+        logger.error("Verification", `Failed to send DM to owner: ${error}`);
+      }
+    }
     try {
       // Check if we have a tracked source for this user (guild owner)
       const owner = await guild.fetchOwner().catch(() => null);
