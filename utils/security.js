@@ -207,7 +207,7 @@ class Security {
     }
 
     // Check 2FA requirement
-    if (!guild.members.me.permissions.has("ADMINISTRATOR")) {
+    if (!guild.members.me.permissions.has("Administrator")) {
       audit.recommendations.push("Enable 2FA requirement for moderators");
     }
 
