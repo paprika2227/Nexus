@@ -1256,6 +1256,9 @@ class DashboardServer {
         }
 
         const retentionTracker = require("../utils/retentionTracker");
+        // Initialize retentionTracker with client and db
+        retentionTracker.setClient(this.client, db);
+        
         const stats = await retentionTracker.getRetentionStats();
         const churnRate = await retentionTracker.getChurnRate();
         const topReasons = await retentionTracker.getTopChurnReasons(10);
