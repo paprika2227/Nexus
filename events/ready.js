@@ -386,7 +386,6 @@ module.exports = {
         // Initialize rate limit handler
         rateLimitHandler.initialize(client);
         logger.info("Ready", "⏱️  Rate limit protection enabled");
-
       } catch (error) {
         logger.error("Ready", "Failed to start database backup", {
           message: error?.message || String(error),
