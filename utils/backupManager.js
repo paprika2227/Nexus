@@ -23,6 +23,65 @@ class BackupManager {
   }
 
   /**
+   * Validate and sanitize backup ID to prevent path traversal attacks
+   * @param {string} backupId - Backup ID to validate
+   * @returns {string|null} - Sanitized backup ID or null if invalid
+   */
+  validateBackupId(backupId) {
+    if (!backupId || typeof backupId !== "string") {
+      return null;
+    }
+
+    // Remove any path traversal attempts and dangerous characters
+    const sanitized = backupId
+      .replace(/\.\./g, "") // Remove ..
+      .replace(/[\/\\]/g, "") // Remove slashes
+      .replace(/[^a-zA-Z0-9_-]/g, ""); // Only allow alphanumeric, underscore, hyphen
+
+    // Backup IDs should be in format: guildId_timestamp (e.g., 123456789_1234567890)
+    // Allow alphanumeric, underscore, hyphen only
+    if (!/^[a-zA-Z0-9_-]+$/.test(sanitized)) {
+      return null;
+    }
+
+    // Maximum reasonable length (guild ID is ~19 chars, timestamp is ~13, plus underscore = 33)
+    if (sanitized.length > 50) {
+      return null;
+    }
+
+    return sanitized;
+  }
+
+  /**
+   * Get safe file path for backup, ensuring it stays within backup directory
+   * @param {string} backupId - Backup ID
+   * @returns {string|null} - Safe file path or null if invalid
+   */
+  getBackupFilePath(backupId) {
+    const validated = this.validateBackupId(backupId);
+    if (!validated) {
+      return null;
+    }
+
+    const filename = `${validated}.json`;
+    const filepath = path.join(this.backupDir, filename);
+    
+    // Resolve to absolute path and verify it's within backup directory
+    const resolved = path.resolve(filepath);
+    const resolvedBackupDir = path.resolve(this.backupDir);
+    
+    // Ensure the resolved path starts with the backup directory (prevents traversal)
+    if (!resolved.startsWith(resolvedBackupDir)) {
+      console.error(
+        `[Backup Manager] Path traversal detected! Backup ID: ${backupId}, Resolved: ${resolved}`
+      );
+      return null;
+    }
+
+    return filepath;
+  }
+
+  /**
    * Create a complete backup of server configuration
    * @param {Guild} guild - Discord guild object
    * @returns {Promise<Object>} Backup data and metadata
@@ -192,12 +251,25 @@ class BackupManager {
    */
   async loadBackup(backupId) {
     try {
-      const filename = `${backupId}.json`;
-      const filepath = path.join(this.backupDir, filename);
+      const filepath = this.getBackupFilePath(backupId);
+      if (!filepath) {
+        console.error(
+          `[Backup Manager] Invalid backup ID: ${backupId} (path traversal attempt?)`
+        );
+        return null;
+      }
+
       const data = await fs.readFile(filepath, "utf8");
       return JSON.parse(data);
     } catch (error) {
-      console.error("[Backup Manager] Load backup error:", error);
+      // Don't log the full path in error to avoid leaking information
+      if (error.code === "ENOENT") {
+        console.error(
+          `[Backup Manager] Backup not found: ${backupId}`
+        );
+      } else {
+        console.error("[Backup Manager] Load backup error:", error.message);
+      }
       return null;
     }
   }
@@ -378,12 +450,22 @@ class BackupManager {
    */
   async deleteBackup(backupId) {
     try {
-      const filename = `${backupId}.json`;
-      const filepath = path.join(this.backupDir, filename);
+      const filepath = this.getBackupFilePath(backupId);
+      if (!filepath) {
+        return {
+          success: false,
+          error: "Invalid backup ID (path traversal attempt blocked)",
+        };
+      }
+
       await fs.unlink(filepath);
       return { success: true };
     } catch (error) {
-      console.error("[Backup Manager] Delete backup error:", error);
+      if (error.code === "ENOENT") {
+        console.error(`[Backup Manager] Backup not found: ${backupId}`);
+        return { success: false, error: "Backup not found" };
+      }
+      console.error("[Backup Manager] Delete backup error:", error.message);
       return { success: false, error: error.message };
     }
   }
