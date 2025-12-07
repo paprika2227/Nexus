@@ -112,6 +112,11 @@ module.exports = {
       logger.info("Ready", `👥 Watching ${totalUserCount} users`);
     }
 
+    // Initialize channel pins cache for pin/unpin tracking (if not already initialized)
+    if (!client.channelPins) {
+      client.channelPins = new Map();
+    }
+
     // List all guilds
     logger.info("Ready", `\n📋 Guilds (${client.guilds.cache.size}):`);
     const guilds = Array.from(client.guilds.cache.values()).sort(
@@ -246,17 +251,30 @@ module.exports = {
     if (client.auditLogMonitor) {
       client.guilds.cache.forEach((guild) => {
         try {
-          client.auditLogMonitor.startMonitoring(guild);
+          // Only start monitoring if guild exists and bot is in it
+          if (guild && client.guilds.cache.has(guild.id)) {
+            client.auditLogMonitor.startMonitoring(guild);
+          }
         } catch (error) {
           logger.debug(
             "Ready",
-            `Could not start audit log monitoring for ${guild.name}: ${error.message}`
+            `Could not start audit log monitoring for ${guild?.name || guild?.id || "unknown"}: ${error.message}`
           );
         }
       });
       logger.info(
         "Ready",
         `Started audit log monitoring for ${client.guilds.cache.size} servers`
+      );
+
+      // Set up periodic cleanup for stale guilds (every 5 minutes)
+      setInterval(
+        () => {
+          if (client.auditLogMonitor) {
+            client.auditLogMonitor.cleanupStaleGuilds();
+          }
+        },
+        5 * 60 * 1000
       );
     }
 

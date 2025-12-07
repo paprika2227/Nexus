@@ -472,6 +472,9 @@ function loadPage(page) {
     case "modlogs":
       loadModLogs();
       break;
+    case "message-logs":
+      loadMessageLogsPage();
+      break;
     case "security":
       loadSecurityLogs();
       break;
@@ -480,6 +483,12 @@ function loadPage(page) {
       break;
     case "anti-raid":
       loadAntiRaidPage();
+      break;
+    case "joingate":
+      loadJoinGatePage();
+      break;
+    case "verification":
+      loadVerificationPage();
       break;
     case "auto-mod":
       loadAutoModPage();
@@ -1041,16 +1050,16 @@ async function loadAntiRaidPage() {
         </label>
       </div>
 
-      <div class="setting-row">
-        <div class="setting-info">
-          <h3>Join Gate</h3>
-          <p>Advanced verification for new members (blocks bots, new accounts, suspicious usernames)</p>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" onchange="alert('Join Gate settings require setup command. Use /joingate in your server')">
-          <span class="slider"></span>
-        </label>
-      </div>
+    </div>
+    
+    <div style="margin-top:40px; padding-top:40px; border-top:2px solid #40444b;">
+      <h3 style="margin-bottom:20px;">🛡️ Join Gate</h3>
+      <p style="opacity:0.8; margin-bottom:20px;">Advanced verification system to filter new members before they can access your server.</p>
+      <a href="#joingate" onclick="loadPage('joingate'); document.querySelector('.nav-item[data-page=\"joingate\"]')?.click();" 
+         class="btn btn-primary" 
+         style="display:inline-block; padding:12px 24px; background:linear-gradient(135deg, #b794f6 0%, #9333ea 100%); border:none; border-radius:8px; color:white; text-decoration:none; cursor:pointer;">
+        Configure Join Gate →
+      </a>
     </div>
 
     <div class="stats-grid" style="margin-top:40px;">
@@ -1096,58 +1105,574 @@ async function loadAutoModPage() {
   const config = server.config || {};
 
   contentArea.innerHTML = `
-    <h2>Auto-Moderation</h2>
-    <p style="opacity:0.8; margin-bottom:30px;">Automated content filtering and spam protection.</p>
+    <div style="display:flex; gap:20px; margin-bottom:30px;">
+      <button class="tab-btn active" onclick="switchAutoModTab('nexus')" id="automod-tab-nexus">Nexus Auto-Mod</button>
+      <button class="tab-btn" onclick="switchAutoModTab('discord')" id="automod-tab-discord">Discord AutoMod ⚡</button>
+    </div>
 
-    <div class="settings-section">
-      <div class="setting-row">
-        <div class="setting-info">
-          <h3>Auto-Mod System</h3>
-          <p>Automatically detects and removes spam, inappropriate content, and rule violations</p>
+    <div id="automod-nexus-content">
+      <h2>Nexus Auto-Moderation</h2>
+      <p style="opacity:0.8; margin-bottom:30px;">Advanced AI-powered content filtering and spam protection.</p>
+
+      <div class="settings-section">
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Auto-Mod System</h3>
+            <p>Automatically detects and removes spam, inappropriate content, and rule violations</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${
+              config.auto_mod_enabled !== 0 ? "checked" : ""
+            } onchange="updateConfig('auto_mod_enabled', this.checked ? 1 : 0)">
+            <span class="slider"></span>
+          </label>
         </div>
-        <label class="toggle-switch">
-          <input type="checkbox" ${
-            config.auto_mod_enabled !== 0 ? "checked" : ""
-          } onchange="updateConfig('auto_mod_enabled', this.checked ? 1 : 0)">
-          <span class="slider"></span>
-        </label>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Heat System</h3>
+            <p>Track user behavior and assign "heat scores" for suspicious activity</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${
+              config.heat_system_enabled !== 0 ? "checked" : ""
+            } onchange="updateConfig('heat_system_enabled', this.checked ? 1 : 0)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Mod Log Channel</h3>
+            <p>Channel where moderation actions will be logged</p>
+          </div>
+          <input type="text" class="setting-input" placeholder="Channel ID" value="${
+            config.mod_log_channel || ""
+          }" onchange="updateConfig('mod_log_channel', this.value)">
+        </div>
       </div>
 
-      <div class="setting-row">
-        <div class="setting-info">
-          <h3>Heat System</h3>
-          <p>Track user behavior and assign "heat scores" for suspicious activity</p>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" ${
-            config.heat_system_enabled !== 0 ? "checked" : ""
-          } onchange="updateConfig('heat_system_enabled', this.checked ? 1 : 0)">
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-info">
-          <h3>Mod Log Channel</h3>
-          <p>Channel where moderation actions will be logged</p>
-        </div>
-        <input type="text" class="setting-input" placeholder="Channel ID" value="${
-          config.mod_log_channel || ""
-        }" onchange="updateConfig('mod_log_channel', this.value)">
+      <div class="info-box" style="margin-top:30px;">
+        <strong>🤖 Nexus Auto-Mod Features:</strong><br>
+        <ul style="margin-top:10px; margin-left:20px;">
+          <li>AI-powered spam detection</li>
+          <li>Link filtering and phishing protection</li>
+          <li>Bad word filtering</li>
+          <li>Mention spam protection</li>
+          <li>Behavioral analysis and heat scores</li>
+          <li>Advanced threat detection</li>
+        </ul>
       </div>
     </div>
 
-    <div class="info-box" style="margin-top:30px;">
-      <strong>🤖 Auto-Mod Features:</strong><br>
-      <ul style="margin-top:10px; margin-left:20px;">
-        <li>Spam detection and prevention</li>
-        <li>Link filtering and phishing protection</li>
-        <li>Bad word filtering</li>
-        <li>Mention spam protection</li>
-        <li>Behavioral analysis and heat scores</li>
-      </ul>
+    <div id="automod-discord-content" style="display:none;">
+      <h2>Discord AutoMod ⚡</h2>
+      <p style="opacity:0.8; margin-bottom:20px;">Manage Discord's native AutoModeration rules directly from the dashboard.</p>
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+          <p style="opacity:0.8;">Create, edit, and manage Discord AutoMod rules</p>
+        </div>
+        <button class="btn btn-primary" onclick="showCreateAutoModRuleModal()" style="padding:10px 20px;">
+          + Create Rule
+        </button>
+      </div>
+
+      <div id="discordAutoModRulesContainer">
+        <div class="loading">Loading Discord AutoMod rules...</div>
+      </div>
     </div>
   `;
+
+  // Load Discord AutoMod rules
+  loadDiscordAutoModRules();
+}
+
+function switchAutoModTab(tab) {
+  // Update button states
+  document
+    .getElementById("automod-tab-nexus")
+    .classList.toggle("active", tab === "nexus");
+  document
+    .getElementById("automod-tab-discord")
+    .classList.toggle("active", tab === "discord");
+
+  // Show/hide content
+  document.getElementById("automod-nexus-content").style.display =
+    tab === "nexus" ? "block" : "none";
+  document.getElementById("automod-discord-content").style.display =
+    tab === "discord" ? "block" : "none";
+
+  if (tab === "discord") {
+    loadDiscordAutoModRules();
+  }
+}
+
+async function loadDiscordAutoModRules() {
+  const container = document.getElementById("discordAutoModRulesContainer");
+  if (!container) return;
+
+  try {
+    const response = await fetch(`/api/server/${currentServer}/automod`);
+    if (!response.ok) {
+      if (response.status === 403) {
+        container.innerHTML = `
+          <div class="info-box" style="background:#f59e0b20; border-color:#f59e0b;">
+            <strong>⚠️ Discord AutoMod Unavailable</strong><br>
+            <p style="margin-top:10px;">Your server needs to have Community features enabled and the bot needs "Manage Server" permission to use Discord AutoMod.</p>
+          </div>
+        `;
+        return;
+      }
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const rules = await response.json();
+
+    if (rules.length === 0) {
+      container.innerHTML = `
+        <div class="info-box">
+          <strong>No Discord AutoMod rules yet</strong><br>
+          <p style="margin-top:10px;">Click "Create Rule" above to add your first Discord AutoMod rule. Discord AutoMod rules work alongside Nexus's custom automod system.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="rules-grid">
+        ${rules
+          .map(
+            (rule) => `
+          <div class="rule-card" style="background:#2c2f33; border:1px solid #40444b; border-radius:12px; padding:20px; margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:15px;">
+              <div>
+                <h3 style="margin:0 0 5px 0; color:#fff;">${rule.name}</h3>
+                <span class="action-badge" style="background:${rule.enabled ? "#10b981" : "#6b7280"}; color:white;">
+                  ${rule.enabled ? "✅ Enabled" : "❌ Disabled"}
+                </span>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button onclick="toggleDiscordAutoModRule('${rule.id}', ${!rule.enabled})" 
+                        class="btn btn-small" 
+                        style="padding:5px 15px; font-size:0.85rem;">
+                  ${rule.enabled ? "Disable" : "Enable"}
+                </button>
+                <button onclick="editDiscordAutoModRule('${rule.id}')" 
+                        class="btn btn-small" 
+                        style="padding:5px 15px; font-size:0.85rem; background:#5865f2;">
+                  Edit
+                </button>
+                <button onclick="deleteDiscordAutoModRule('${rule.id}')" 
+                        class="btn btn-small" 
+                        style="padding:5px 15px; font-size:0.85rem; background:#ef4444;">
+                  Delete
+                </button>
+              </div>
+            </div>
+            
+            <div style="margin-top:15px; padding-top:15px; border-top:1px solid #40444b;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.9em; opacity:0.8;">
+                <div><strong>Trigger:</strong> ${getTriggerTypeLabel(rule.triggerType)}</div>
+                <div><strong>Action:</strong> ${getActionTypeLabel(rule.actions[0]?.type)}</div>
+              </div>
+              ${
+                rule.triggerMetadata?.keywordFilter?.length > 0
+                  ? `
+                <div style="margin-top:10px;">
+                  <strong>Keywords:</strong> ${rule.triggerMetadata.keywordFilter.slice(0, 5).join(", ")}${rule.triggerMetadata.keywordFilter.length > 5 ? "..." : ""}
+                </div>
+              `
+                  : ""
+              }
+              ${
+                rule.exemptRoles?.length > 0 || rule.exemptChannels?.length > 0
+                  ? `
+                <div style="margin-top:10px; font-size:0.9em; opacity:0.8;">
+                  ${rule.exemptRoles?.length > 0 ? `<div>Exempt Roles: ${rule.exemptRoles.length}</div>` : ""}
+                  ${rule.exemptChannels?.length > 0 ? `<div>Exempt Channels: ${rule.exemptChannels.length}</div>` : ""}
+                </div>
+              `
+                  : ""
+              }
+            </div>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    `;
+  } catch (error) {
+    console.error("Failed to load Discord AutoMod rules:", error);
+    container.innerHTML = `
+      <div class="info-box" style="background:#ef444420; border-color:#ef4444;">
+        <strong>❌ Error loading rules</strong><br>
+        <p style="margin-top:10px;">${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+function getTriggerTypeLabel(type) {
+  const labels = {
+    1: "Keyword",
+    3: "Spam",
+    4: "Keyword Preset",
+    5: "Mention Spam",
+  };
+  return labels[type] || `Type ${type}`;
+}
+
+function getActionTypeLabel(type) {
+  const labels = {
+    1: "Block Message",
+    2: "Send Alert",
+    3: "Timeout",
+  };
+  return labels[type] || `Action ${type}`;
+}
+
+async function toggleDiscordAutoModRule(ruleId, enabled) {
+  try {
+    const response = await fetch(
+      `/api/server/${currentServer}/automod/${ruleId}/toggle`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      }
+    );
+
+    if (response.ok) {
+      loadDiscordAutoModRules();
+    } else {
+      alert("Failed to toggle rule");
+    }
+  } catch (error) {
+    console.error("Failed to toggle rule:", error);
+    alert("Error: " + error.message);
+  }
+}
+
+async function deleteDiscordAutoModRule(ruleId) {
+  if (!confirm("Are you sure you want to delete this AutoMod rule?")) return;
+
+  try {
+    const response = await fetch(
+      `/api/server/${currentServer}/automod/${ruleId}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (response.ok) {
+      loadDiscordAutoModRules();
+    } else {
+      alert("Failed to delete rule");
+    }
+  } catch (error) {
+    console.error("Failed to delete rule:", error);
+    alert("Error: " + error.message);
+  }
+}
+
+function editDiscordAutoModRule(ruleId) {
+  alert(
+    "Edit functionality coming soon! For now, delete and recreate the rule."
+  );
+  // TODO: Implement edit modal
+}
+
+function showCreateAutoModRuleModal() {
+  // TODO: Implement create rule modal
+  alert(
+    "Create rule modal coming soon! Use Discord AutoMod commands or Discord's server settings for now."
+  );
+}
+
+// Join Gate Configuration Page
+async function loadJoinGatePage() {
+  const contentArea = document.getElementById("contentArea");
+
+  try {
+    const response = await fetch(`/api/server/${currentServer}/joingate`);
+    const config = (await response.json()) || { enabled: false };
+
+    contentArea.innerHTML = `
+      <h2>Join Gate Configuration</h2>
+      <p style="opacity:0.8; margin-bottom:30px;">Filter new members before they can access your server. Block bots, new accounts, and suspicious users.</p>
+
+      <div class="settings-section">
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Enable Join Gate</h3>
+            <p>Turn on join gate filtering for new members</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${config.enabled ? "checked" : ""} 
+                   onchange="updateJoinGateConfig('enabled', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Target Unauthorized Bots</h3>
+            <p>Block bots added by members without permission</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${config.target_unauthorized_bots ? "checked" : ""} 
+                   onchange="updateJoinGateConfig('target_unauthorized_bots', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Target New Accounts</h3>
+            <p>Block accounts created recently (set minimum age below)</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${config.target_new_accounts ? "checked" : ""} 
+                   onchange="updateJoinGateConfig('target_new_accounts', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Minimum Account Age (Days)</h3>
+            <p>Minimum age in days for accounts (applies if "Target New Accounts" is enabled)</p>
+          </div>
+          <input type="number" class="setting-input" min="0" max="365" value="${config.min_account_age_days || 7}" 
+                 onchange="updateJoinGateConfig('min_account_age_days', parseInt(this.value))">
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Target No Avatar</h3>
+            <p>Block users without profile pictures</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${config.target_no_avatar ? "checked" : ""} 
+                   onchange="updateJoinGateConfig('target_no_avatar', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Target Unverified Bots</h3>
+            <p>Block Discord bots that aren't verified by Discord</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${config.target_unverified_bots ? "checked" : ""} 
+                   onchange="updateJoinGateConfig('target_unverified_bots', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Target Invite Usernames</h3>
+            <p>Block users with Discord invite links in their username/nickname</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${config.target_invite_usernames ? "checked" : ""} 
+                   onchange="updateJoinGateConfig('target_invite_usernames', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Target Suspicious Accounts</h3>
+            <p>Use AI threat detection to identify suspicious accounts</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${config.target_suspicious ? "checked" : ""} 
+                   onchange="updateJoinGateConfig('target_suspicious', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Suspicious Threshold</h3>
+            <p>Threat score threshold (0-100) for suspicious detection</p>
+          </div>
+          <input type="number" class="setting-input" min="0" max="100" value="${config.suspicious_threshold || 60}" 
+                 onchange="updateJoinGateConfig('suspicious_threshold', parseInt(this.value))">
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Default Action</h3>
+            <p>Action to take when a member is filtered</p>
+          </div>
+          <select class="setting-input" onchange="updateJoinGateConfig('action', this.value)">
+            <option value="kick" ${config.action === "kick" ? "selected" : ""}>Kick</option>
+            <option value="ban" ${config.action === "ban" ? "selected" : ""}>Ban</option>
+            <option value="timeout" ${config.action === "timeout" ? "selected" : ""}>Timeout</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="info-box" style="margin-top:30px;">
+        <strong>🛡️ Join Gate Protection:</strong><br>
+        <ul style="margin-top:10px; margin-left:20px;">
+          <li>Blocks unauthorized bots before they can access your server</li>
+          <li>Filters new accounts based on age requirements</li>
+          <li>Removes users with invite links in usernames</li>
+          <li>AI-powered suspicious account detection</li>
+          <li>Works alongside Nexus verification system</li>
+        </ul>
+      </div>
+    `;
+  } catch (error) {
+    console.error("Failed to load Join Gate config:", error);
+    contentArea.innerHTML = `
+      <h2>Join Gate Configuration</h2>
+      <p style="color:#ff4444;">Failed to load configuration: ${error.message}</p>
+    `;
+  }
+}
+
+async function updateJoinGateConfig(key, value) {
+  try {
+    // Get current config
+    const currentResponse = await fetch(
+      `/api/server/${currentServer}/joingate`
+    );
+    const current = (await currentResponse.json()) || {};
+
+    // Update specific key
+    const updates = { [key]: value };
+
+    // Save
+    await fetch(`/api/server/${currentServer}/joingate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...current, ...updates }),
+    });
+
+    // Reload page to show updated config
+    setTimeout(() => loadJoinGatePage(), 300);
+  } catch (error) {
+    console.error("Failed to update Join Gate config:", error);
+    alert("Failed to update setting: " + error.message);
+  }
+}
+
+// Verification Settings Page
+async function loadVerificationPage() {
+  const contentArea = document.getElementById("contentArea");
+
+  try {
+    const response = await fetch(`/api/server/${currentServer}`);
+    const server = await response.json();
+    const config = server.config || {};
+
+    contentArea.innerHTML = `
+      <h2>Verification System</h2>
+      <p style="opacity:0.8; margin-bottom:30px;">Configure how new members verify their accounts using web verification, captcha, or instant verification.</p>
+
+      <div class="settings-section">
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Enable Verification</h3>
+            <p>Require new members to verify before accessing the server</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${config.verification_enabled ? "checked" : ""} 
+                   onchange="updateConfig('verification_enabled', this.checked ? 1 : 0)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Verification Mode</h3>
+            <p>Choose how members verify (Web = Turnstile, Captcha = Math/Text, Instant = Button click)</p>
+          </div>
+          <select class="setting-input" onchange="updateConfig('verification_mode', this.value)">
+            <option value="instant" ${config.verification_mode === "instant" ? "selected" : ""}>Instant (Button Click)</option>
+            <option value="captcha" ${config.verification_mode === "captcha" ? "selected" : ""}>Captcha (Math/Text)</option>
+            <option value="web" ${config.verification_mode === "web" ? "selected" : ""}>Web (Cloudflare Turnstile) ⚡</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Verification Target</h3>
+            <p>Who needs to verify (Everyone or Suspicious accounts only)</p>
+          </div>
+          <select class="setting-input" onchange="updateConfig('verification_target', this.value)">
+            <option value="everyone" ${config.verification_target === "everyone" ? "selected" : ""}>Everyone</option>
+            <option value="suspicious" ${config.verification_target === "suspicious" ? "selected" : ""}>Suspicious Accounts Only</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Verification Role</h3>
+            <p>Role to give after successful verification (leave empty for no role)</p>
+          </div>
+          <input type="text" class="setting-input" placeholder="Role ID" value="${
+            config.verification_role || ""
+          }" onchange="updateConfig('verification_role', this.value)">
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Verification Channel</h3>
+            <p>Channel where verification messages are sent (leave empty for DM)</p>
+          </div>
+          <input type="text" class="setting-input" placeholder="Channel ID" value="${
+            config.verification_channel || ""
+          }" onchange="updateConfig('verification_channel', this.value)">
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Custom Verification Message</h3>
+            <p>Custom message to show in verification embed (leave empty for default)</p>
+          </div>
+          <textarea class="setting-input" placeholder="Custom message..." rows="3" onchange="updateConfig('verification_message', this.value)">${
+            config.verification_message || ""
+          }</textarea>
+        </div>
+      </div>
+
+      <div class="info-box" style="margin-top:30px;">
+        <strong>🌐 Web Verification (Turnstile):</strong><br>
+        <ul style="margin-top:10px; margin-left:20px;">
+          <li>Most secure option - Cloudflare Turnstile bot protection</li>
+          <li>Better user experience than traditional captchas</li>
+          <li>Automatically detects bots and suspicious activity</li>
+          <li>Requires Turnstile Site Key and Secret Key in environment variables</li>
+          <li>Set TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY to enable</li>
+        </ul>
+      </div>
+
+      <div class="info-box" style="margin-top:20px; background:#fff3cd20; border-color:#ffc107;">
+        <strong>⚙️ Configuration:</strong><br>
+        <p style="margin-top:10px;">For web verification to work, add these to your environment variables:</p>
+        <ul style="margin-top:10px; margin-left:20px;">
+          <li><code>TURNSTILE_SITE_KEY</code> - Your Cloudflare Turnstile site key</li>
+          <li><code>TURNSTILE_SECRET_KEY</code> - Your Cloudflare Turnstile secret key</li>
+          <li><code>DASHBOARD_URL</code> - Your dashboard URL (e.g., https://yourdomain.com)</li>
+        </ul>
+        <p style="margin-top:10px;">Get Turnstile keys from: <a href="https://dash.cloudflare.com/?to=/:account/turnstile" target="_blank" style="color:#667eea;">Cloudflare Dashboard</a></p>
+      </div>
+    `;
+  } catch (error) {
+    console.error("Failed to load verification config:", error);
+    contentArea.innerHTML = `
+      <h2>Verification System</h2>
+      <p style="color:#ff4444;">Failed to load configuration: ${error.message}</p>
+    `;
+  }
 }
 
 // Logging Settings Page
@@ -1562,6 +2087,193 @@ async function loadSecurityLogs() {
   }
 }
 
+// Load message logs page (deletes, edits, pins, unpins, purges)
+async function loadMessageLogsPage() {
+  const contentArea = document.getElementById("contentArea");
+
+  contentArea.innerHTML = `
+    <h2>Message Logs</h2>
+    <p style="opacity:0.8; margin-bottom:20px;">Track message deletions, edits, pins, unpins, and purges.</p>
+
+    <div class="filter-section" style="margin-bottom:20px;">
+      <div style="display:flex; gap:15px; flex-wrap:wrap;">
+        <select id="messageLogTypeFilter" class="filter-select" onchange="filterMessageLogs()">
+          <option value="">All Types</option>
+          <option value="message_delete">Deletions</option>
+          <option value="message_update">Edits</option>
+          <option value="message_pin">Pins</option>
+          <option value="message_unpin">Unpins</option>
+          <option value="message_purge">Purges</option>
+        </select>
+        <input type="text" id="messageLogSearch" class="filter-input" placeholder="Search by user ID or channel..." oninput="filterMessageLogs()">
+        <button onclick="clearMessageFilters()" class="filter-btn">Clear</button>
+        <button onclick="exportMessageLogs()" class="filter-btn">Export CSV</button>
+      </div>
+      <div style="margin-top:10px; opacity:0.8;">
+        <span id="messageLogCount">Loading...</span>
+      </div>
+    </div>
+
+    <div id="messageLogsContainer">
+      <div class="loading">Loading message logs...</div>
+    </div>
+  `;
+
+  try {
+    const response = await fetch(
+      `/api/server/${currentServer}/message-logs?limit=200`
+    );
+    const logs = await response.json();
+
+    window.allMessageLogs = logs;
+    filterMessageLogs();
+  } catch (error) {
+    console.error("Failed to load message logs:", error);
+    document.getElementById("messageLogsContainer").innerHTML =
+      '<p style="color:#ff4444;">Failed to load message logs</p>';
+  }
+}
+
+function filterMessageLogs() {
+  if (!window.allMessageLogs) return;
+
+  const type = document.getElementById("messageLogTypeFilter")?.value || "";
+  const search = (
+    document.getElementById("messageLogSearch")?.value || ""
+  ).toLowerCase();
+
+  let filtered = window.allMessageLogs;
+
+  if (type) {
+    filtered = filtered.filter((log) => log.log_type === type);
+  }
+
+  if (search) {
+    filtered = filtered.filter((log) => {
+      const meta = log.metadata || {};
+      return (
+        log.user_id?.toLowerCase().includes(search) ||
+        log.moderator_id?.toLowerCase().includes(search) ||
+        meta.channelId?.includes(search) ||
+        meta.channelName?.toLowerCase().includes(search) ||
+        meta.authorTag?.toLowerCase().includes(search) ||
+        log.details?.toLowerCase().includes(search)
+      );
+    });
+  }
+
+  displayMessageLogs(filtered);
+}
+
+function displayMessageLogs(logs) {
+  const container = document.getElementById("messageLogsContainer");
+  const countEl = document.getElementById("messageLogCount");
+
+  if (countEl) {
+    countEl.textContent = `Showing ${logs.length} log(s)`;
+  }
+
+  if (logs.length === 0) {
+    container.innerHTML = '<p style="opacity:0.7;">No message logs found.</p>';
+    return;
+  }
+
+  const typeIcons = {
+    message_delete: "🗑️",
+    message_update: "✏️",
+    message_pin: "📌",
+    message_unpin: "📌",
+    message_purge: "🧹",
+  };
+
+  const typeLabels = {
+    message_delete: "Deleted",
+    message_update: "Edited",
+    message_pin: "Pinned",
+    message_unpin: "Unpinned",
+    message_purge: "Purged",
+  };
+
+  container.innerHTML = `
+    <div class="logs-table">
+      <div class="logs-header">
+        <div>Date</div>
+        <div>Type</div>
+        <div>Channel</div>
+        <div>Author</div>
+        <div>Moderator</div>
+        <div>Content Preview</div>
+      </div>
+      ${logs
+        .map((log) => {
+          const meta = log.metadata || {};
+          const typeIcon = typeIcons[log.log_type] || "💬";
+          const typeLabel = typeLabels[log.log_type] || log.log_type;
+
+          let contentPreview = "";
+          if (log.log_type === "message_update") {
+            contentPreview = meta.oldContent
+              ? `<strong>Old:</strong> ${meta.oldContent.substring(0, 50)}...<br><strong>New:</strong> ${meta.newContent?.substring(0, 50) || ""}...`
+              : meta.newContent?.substring(0, 100) || "";
+          } else if (log.log_type === "message_purge") {
+            contentPreview = `Purged ${meta.amount || 0} message(s)`;
+          } else {
+            contentPreview =
+              meta.content?.substring(0, 100) ||
+              meta.oldContent?.substring(0, 100) ||
+              "N/A";
+          }
+
+          return `
+          <div class="log-row">
+            <div>${new Date(log.timestamp).toLocaleString()}</div>
+            <div><span class="action-badge action-${log.log_type}">${typeIcon} ${typeLabel}</span></div>
+            <div>#${meta.channelName || "unknown"} <code style="font-size:0.8em; opacity:0.7;">${meta.channelId || ""}</code></div>
+            <div><code>${meta.authorTag || log.user_id || "N/A"}</code></div>
+            <div><code>${log.moderator_id ? `<@${log.moderator_id}>` : "System"}</code></div>
+            <div style="max-width:300px; overflow:hidden; text-overflow:ellipsis;">${contentPreview}</div>
+          </div>
+        `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
+function clearMessageFilters() {
+  if (document.getElementById("messageLogTypeFilter")) {
+    document.getElementById("messageLogTypeFilter").value = "";
+  }
+  if (document.getElementById("messageLogSearch")) {
+    document.getElementById("messageLogSearch").value = "";
+  }
+  if (window.allMessageLogs) {
+    filterMessageLogs();
+  }
+}
+
+function exportMessageLogs() {
+  if (!window.allMessageLogs) return;
+
+  const filtered = window.allMessageLogs;
+  const csv = [
+    "Timestamp,Type,Channel,Author,Moderator,Content",
+    ...filtered.map((log) => {
+      const meta = log.metadata || {};
+      const content = meta.content || meta.oldContent || meta.newContent || "";
+      return `"${new Date(log.timestamp).toISOString()}","${log.log_type}","${meta.channelName || ""}","${meta.authorTag || log.user_id || ""}","${log.moderator_id || "System"}","${content.replace(/"/g, '""')}"`;
+    }),
+  ].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `message-logs-${currentServer}-${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // Auto-refresh for live updates
 function startAutoRefresh() {
   // Clear existing interval
@@ -1580,6 +2292,9 @@ function startAutoRefresh() {
         break;
       case "modlogs":
         loadModLogs();
+        break;
+      case "message-logs":
+        loadMessageLogsPage();
         break;
       case "security":
         loadSecurityLogs();

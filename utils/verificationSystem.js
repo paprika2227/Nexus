@@ -150,6 +150,8 @@ class VerificationSystem {
           verificationId,
           config
         );
+      case "web":
+        return await this.sendWebVerification(member, verificationId, config);
       default:
         return await this.sendInstantVerification(
           member,
@@ -226,6 +228,67 @@ class VerificationSystem {
       return { sent: false, reason: "Could not send verification message" };
     } catch (error) {
       logger.error(`[Verification] Error sending captcha verification:`, error);
+      return { sent: false, reason: error.message };
+    }
+  }
+
+  // Send web verification (Turnstile)
+  async sendWebVerification(member, verificationId, config) {
+    try {
+      const {
+        EmbedBuilder,
+        ActionRowBuilder,
+        ButtonBuilder,
+        ButtonStyle,
+      } = require("discord.js");
+
+      // Get dashboard URL from environment or use default
+      const dashboardUrl = process.env.DASHBOARD_URL || "http://localhost:3000";
+      const verifyUrl = `${dashboardUrl}/verify?id=${verificationId}&server=${member.guild.id}`;
+
+      const embed = new EmbedBuilder()
+        .setTitle("🌐 Web Verification Required")
+        .setDescription(
+          config.verification_message ||
+            "Please complete web verification to gain access to the server.\n\n" +
+              "Click the button below to open the verification page."
+        )
+        .setColor(0x5865f2)
+        .setFooter({
+          text: "Powered by Cloudflare Turnstile - Secure verification",
+        })
+        .setTimestamp();
+
+      const button = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel("Verify on Website")
+          .setStyle(ButtonStyle.Link)
+          .setURL(verifyUrl)
+          .setEmoji("🌐")
+      );
+
+      const dmChannel = await member.createDM().catch(() => null);
+      if (dmChannel) {
+        await dmChannel.send({ embeds: [embed], components: [button] });
+        return { sent: true, channel: "dm", url: verifyUrl };
+      } else {
+        const verificationChannel = config.verification_channel
+          ? member.guild.channels.cache.get(config.verification_channel)
+          : null;
+
+        if (verificationChannel) {
+          await verificationChannel.send({
+            content: `${member}, please verify:`,
+            embeds: [embed],
+            components: [button],
+          });
+          return { sent: true, channel: "guild", url: verifyUrl };
+        }
+      }
+
+      return { sent: false, reason: "Could not send verification message" };
+    } catch (error) {
+      logger.error(`[Verification] Error sending web verification:`, error);
       return { sent: false, reason: error.message };
     }
   }
@@ -318,6 +381,9 @@ class VerificationSystem {
         return { success: false, reason: "Incorrect answer" };
       }
     }
+
+    // For web verification, turnstileToken should be verified by the backend API route
+    // This method will be called after Turnstile verification is successful
 
     // Give role
     try {

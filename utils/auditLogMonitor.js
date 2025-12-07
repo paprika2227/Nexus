@@ -22,6 +22,15 @@ class AuditLogMonitor {
       return; // Already monitoring
     }
 
+    // Verify guild exists and bot is still in it
+    if (!guild || !this.client.guilds.cache.has(guild.id)) {
+      logger.debug(
+        "AuditLogMonitor",
+        `Cannot start monitoring - guild ${guild?.id || "unknown"} not accessible`
+      );
+      return;
+    }
+
     // Use debug level to avoid console spam - summary is logged in ready.js
     logger.debug(
       "AuditLogMonitor",
@@ -30,6 +39,15 @@ class AuditLogMonitor {
 
     const interval = setInterval(async () => {
       try {
+        // Verify guild still exists before each check
+        if (!this.client.guilds.cache.has(guild.id)) {
+          logger.debug(
+            "AuditLogMonitor",
+            `Guild ${guild.id} no longer accessible during interval, stopping`
+          );
+          this.stopMonitoring(guild.id);
+          return;
+        }
         await this.analyzeAuditLogs(guild);
       } catch (error) {
         logger.error("AuditLogMonitor", "Error analyzing audit logs", {
@@ -45,7 +63,21 @@ class AuditLogMonitor {
       interval,
       lastCheck: Date.now(),
       consecutiveErrors: 0,
+      guild: guild, // Store guild reference for cleanup
     });
+  }
+
+  // Clean up monitoring for guilds that no longer exist
+  cleanupStaleGuilds() {
+    for (const [guildId, monitoring] of this.monitoringGuilds.entries()) {
+      if (!this.client.guilds.cache.has(guildId)) {
+        logger.debug(
+          "AuditLogMonitor",
+          `Cleaning up stale monitoring for guild ${guildId}`
+        );
+        this.stopMonitoring(guildId);
+      }
+    }
   }
 
   // Stop monitoring a guild
@@ -61,6 +93,16 @@ class AuditLogMonitor {
   // Analyze audit logs for suspicious patterns
   async analyzeAuditLogs(guild) {
     try {
+      // Verify guild still exists and bot is still in it
+      if (!guild || !this.client.guilds.cache.has(guild.id)) {
+        logger.debug(
+          "AuditLogMonitor",
+          `Guild ${guild?.id || "unknown"} no longer accessible, stopping monitoring`
+        );
+        this.stopMonitoring(guild?.id);
+        return;
+      }
+
       // Fetch audit logs with retry logic for socket errors
       const auditLogs = await this.fetchAuditLogsWithRetry(guild);
       if (!auditLogs) return; // Skip this cycle if fetch failed
@@ -97,6 +139,22 @@ class AuditLogMonitor {
       // Increment error counter
       monitoring.consecutiveErrors = (monitoring.consecutiveErrors || 0) + 1;
 
+      // Handle "Unknown Guild" error - stop immediately
+      const isUnknownGuild =
+        error.code === 10004 ||
+        error.httpStatus === 404 ||
+        error.message?.includes("Unknown Guild") ||
+        error.message?.includes("guild not found");
+
+      if (isUnknownGuild) {
+        logger.debug(
+          "AuditLogMonitor",
+          `Guild ${guild.id} is unknown/left, stopping monitoring immediately`
+        );
+        this.stopMonitoring(guild.id);
+        return;
+      }
+
       // Handle permission errors - only stop after multiple consecutive failures
       const isPermissionError =
         error.code === 50013 ||
@@ -107,14 +165,14 @@ class AuditLogMonitor {
       if (isPermissionError) {
         logger.debug(
           "AuditLogMonitor",
-          `Permission error for ${guild.name} (${guild.id}): ${error.message || error.code} (${monitoring.consecutiveErrors}/${this.maxConsecutiveErrors})`
+          `Permission error for ${guild.name || guild.id} (${guild.id}): ${error.message || error.code} (${monitoring.consecutiveErrors}/${this.maxConsecutiveErrors})`
         );
 
         // Only stop after multiple consecutive permission errors
         if (monitoring.consecutiveErrors >= this.maxConsecutiveErrors) {
           logger.warn(
             "AuditLogMonitor",
-            `Stopped monitoring ${guild.name} (${guild.id}) after ${monitoring.consecutiveErrors} consecutive permission errors`
+            `Stopped monitoring ${guild.name || guild.id} (${guild.id}) after ${monitoring.consecutiveErrors} consecutive permission errors`
           );
           this.stopMonitoring(guild.id);
         }
@@ -149,6 +207,16 @@ class AuditLogMonitor {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        // Verify guild still exists before attempting to fetch
+        if (!this.client.guilds.cache.has(guild.id)) {
+          logger.debug(
+            "AuditLogMonitor",
+            `Guild ${guild.id} no longer in cache, stopping monitoring`
+          );
+          this.stopMonitoring(guild.id);
+          return null;
+        }
+
         const auditLogs = await guild.fetchAuditLogs({
           limit: 100,
           type: null, // Get all types
@@ -156,6 +224,22 @@ class AuditLogMonitor {
         return auditLogs;
       } catch (error) {
         lastError = error;
+
+        // Handle "Unknown Guild" error - stop immediately, no retry
+        const isUnknownGuild =
+          error.code === 10004 ||
+          error.httpStatus === 404 ||
+          error.message?.includes("Unknown Guild") ||
+          error.message?.includes("guild not found");
+
+        if (isUnknownGuild) {
+          logger.debug(
+            "AuditLogMonitor",
+            `Guild ${guild.id} is unknown/left, stopping monitoring`
+          );
+          this.stopMonitoring(guild.id);
+          return null;
+        }
 
         // Handle socket/network errors with retry
         const isSocketError =
@@ -174,7 +258,7 @@ class AuditLogMonitor {
             const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
             logger.debug(
               "AuditLogMonitor",
-              `Retry ${attempt}/${maxRetries} for ${guild.name} after ${delay}ms (${error.name || error.message})`
+              `Retry ${attempt}/${maxRetries} for ${guild.name || guild.id} after ${delay}ms (${error.name || error.message})`
             );
             await new Promise((resolve) => setTimeout(resolve, delay));
             continue;
@@ -182,7 +266,7 @@ class AuditLogMonitor {
             // Max retries reached, log and skip
             logger.debug(
               "AuditLogMonitor",
-              `Max retries reached for ${guild.name}, skipping this cycle`
+              `Max retries reached for ${guild.name || guild.id}, skipping this cycle`
             );
             return null;
           }

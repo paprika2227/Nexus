@@ -811,6 +811,290 @@ class DashboardServer {
       }
     );
 
+    // Get message logs (deletes, edits, pins, unpins, purges)
+    this.app.get(
+      "/api/server/:id/message-logs",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          const guildId = req.params.id;
+          const { type, limit = 100, offset = 0 } = req.query;
+
+          // Build query for message-related logs
+          let query = `
+            SELECT * FROM enhanced_logs 
+            WHERE guild_id = ? 
+            AND log_type IN ('message_delete', 'message_update', 'message_pin', 'message_unpin', 'message_purge')
+          `;
+          const params = [guildId];
+
+          if (type) {
+            query += ` AND log_type = ?`;
+            params.push(type);
+          }
+
+          query += ` ORDER BY timestamp DESC LIMIT ? OFFSET ?`;
+          params.push(parseInt(limit), parseInt(offset));
+
+          const logs = await new Promise((resolve, reject) => {
+            db.db.all(query, params, (err, rows) => {
+              if (err) reject(err);
+              else {
+                // Parse metadata JSON
+                const parsed = (rows || []).map((row) => ({
+                  ...row,
+                  metadata: row.metadata ? JSON.parse(row.metadata) : {},
+                }));
+                resolve(parsed);
+              }
+            });
+          });
+
+          res.json(logs);
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
+      }
+    );
+
+    // Discord AutoMod API endpoints
+    const DiscordAutoMod = require("../utils/discordAutoMod");
+
+    // Get all AutoMod rules
+    this.app.get(
+      "/api/server/:id/automod",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          const guild = this.client.guilds.cache.get(req.params.id);
+          if (!guild)
+            return res.status(404).json({ error: "Server not found" });
+
+          const rules = await DiscordAutoMod.getRules(guild);
+          res.json(
+            rules.map((rule) => DiscordAutoMod.formatRuleForDashboard(rule))
+          );
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
+      }
+    );
+
+    // Create AutoMod rule
+    this.app.post(
+      "/api/server/:id/automod",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          const guild = this.client.guilds.cache.get(req.params.id);
+          if (!guild)
+            return res.status(404).json({ error: "Server not found" });
+
+          const rule = await DiscordAutoMod.createRule(guild, req.body);
+          res.json(DiscordAutoMod.formatRuleForDashboard(rule));
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
+      }
+    );
+
+    // Edit AutoMod rule
+    this.app.put(
+      "/api/server/:id/automod/:ruleId",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          const guild = this.client.guilds.cache.get(req.params.id);
+          if (!guild)
+            return res.status(404).json({ error: "Server not found" });
+
+          const rule = await DiscordAutoMod.editRule(
+            guild,
+            req.params.ruleId,
+            req.body
+          );
+          res.json(DiscordAutoMod.formatRuleForDashboard(rule));
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
+      }
+    );
+
+    // Delete AutoMod rule
+    this.app.delete(
+      "/api/server/:id/automod/:ruleId",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          const guild = this.client.guilds.cache.get(req.params.id);
+          if (!guild)
+            return res.status(404).json({ error: "Server not found" });
+
+          await DiscordAutoMod.deleteRule(guild, req.params.ruleId);
+          res.json({ success: true });
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
+      }
+    );
+
+    // Toggle AutoMod rule
+    this.app.post(
+      "/api/server/:id/automod/:ruleId/toggle",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          const guild = this.client.guilds.cache.get(req.params.id);
+          if (!guild)
+            return res.status(404).json({ error: "Server not found" });
+
+          const { enabled } = req.body;
+          const rule = await DiscordAutoMod.toggleRule(
+            guild,
+            req.params.ruleId,
+            enabled
+          );
+          res.json(DiscordAutoMod.formatRuleForDashboard(rule));
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
+      }
+    );
+
+    // Join Gate API endpoints
+    const JoinGate = require("../utils/joinGate");
+
+    // Get Join Gate config
+    this.app.get(
+      "/api/server/:id/joingate",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          const config = await JoinGate.getConfig(req.params.id);
+          res.json(config || { enabled: false });
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
+      }
+    );
+
+    // Update Join Gate config
+    this.app.post(
+      "/api/server/:id/joingate",
+      this.checkAuth,
+      async (req, res) => {
+        try {
+          await JoinGate.setConfig(req.params.id, req.body);
+          const updated = await JoinGate.getConfig(req.params.id);
+          res.json(updated);
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
+      }
+    );
+
+    // Web Verification API endpoints (no auth required - public verification)
+    const VerificationSystem = require("../utils/verificationSystem");
+    const axios = require("axios");
+
+    // Get server info for verification page
+    this.app.get("/api/verify/server-info/:guildId", async (req, res) => {
+      try {
+        const guild = this.client.guilds.cache.get(req.params.guildId);
+        if (!guild) {
+          return res.json({ success: false, error: "Server not found" });
+        }
+
+        // Get Turnstile site key from config or environment
+        const turnstileSiteKey =
+          process.env.TURNSTILE_SITE_KEY ||
+          process.env.CLOUDFLARE_TURNSTILE_SITE_KEY ||
+          "";
+
+        res.json({
+          success: true,
+          name: guild.name,
+          description: guild.description || "Discord Server",
+          icon: guild.iconURL(),
+          turnstileSiteKey: turnstileSiteKey,
+        });
+      } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+
+    // Complete web verification with Turnstile token
+    this.app.post("/api/verify/complete", async (req, res) => {
+      try {
+        const { verificationId, turnstileToken } = req.body;
+
+        if (!verificationId || !turnstileToken) {
+          return res.json({
+            success: false,
+            reason: "Missing verification ID or token",
+          });
+        }
+
+        // Verify Turnstile token with Cloudflare
+        const turnstileSecret =
+          process.env.TURNSTILE_SECRET_KEY ||
+          process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
+
+        if (turnstileSecret) {
+          try {
+            const turnstileResponse = await axios.post(
+              "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+              new URLSearchParams({
+                secret: turnstileSecret,
+                response: turnstileToken,
+              }),
+              {
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+              }
+            );
+
+            if (!turnstileResponse.data.success) {
+              return res.json({
+                success: false,
+                reason: "Turnstile verification failed",
+              });
+            }
+          } catch (turnstileError) {
+            logger.error(
+              "Dashboard",
+              "Turnstile verification error:",
+              turnstileError
+            );
+            // Continue anyway if Turnstile verification fails (for dev/testing)
+          }
+        }
+
+        // Complete verification
+        if (!this.client.verificationSystem) {
+          this.client.verificationSystem = new VerificationSystem(this.client);
+        }
+
+        const result =
+          await this.client.verificationSystem.completeVerification(
+            verificationId
+          );
+
+        if (result.success) {
+          res.json({ success: true, member: result.member?.user?.tag });
+        } else {
+          res.json({ success: false, reason: result.reason });
+        }
+      } catch (error) {
+        logger.error("Dashboard", "Verification completion error:", error);
+        res.status(500).json({
+          success: false,
+          reason: error.message || "Internal server error",
+        });
+      }
+    });
+
     // Admin authentication
     this.app.post("/api/admin/auth", async (req, res) => {
       try {

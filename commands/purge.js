@@ -49,6 +49,34 @@ module.exports = {
     const result = await Moderation.purge(interaction.channel, amount, filter);
 
     if (result.success) {
+      // Log purge action
+      const EnhancedLogging = require("../utils/enhancedLogging");
+      await EnhancedLogging.log(
+        interaction.guild.id,
+        "message_purge",
+        "moderation",
+        {
+          userId: user?.id || null,
+          moderatorId: interaction.user.id,
+          action: "messages_purged",
+          details: `Purged ${result.deleted} message(s)${user ? ` from ${user.tag}` : ""} in #${interaction.channel.name}`,
+          metadata: {
+            channelId: interaction.channel.id,
+            channelName: interaction.channel.name,
+            amount: result.deleted,
+            targetUserId: user?.id || null,
+            targetUserTag: user?.tag || null,
+            moderatorId: interaction.user.id,
+            moderatorTag: interaction.user.tag,
+            purgedAt: new Date().toISOString(),
+          },
+          severity: "info",
+        }
+      ).catch((err) => {
+        // Log error but don't fail the command
+        logger.debug("Failed to log purge:", err.message);
+      });
+
       await interaction.reply({
         content: `✅ Deleted ${result.deleted} message(s)${
           user ? ` from ${user.tag}` : ""

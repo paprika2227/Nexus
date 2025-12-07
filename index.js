@@ -34,6 +34,9 @@ client.commands = new Collection();
 client.events = new Collection();
 client.cooldowns = new Collection();
 
+// Cache for channel pins (for pin/unpin detection)
+client.channelPins = new Map();
+
 // Initialize cache system (EXCEEDS WICK - better caching)
 const cache = require("./utils/cache");
 client.cache = cache;
