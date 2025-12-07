@@ -44,37 +44,6 @@ class CustomCommands {
    * Create a custom command
    */
   async createCommand(guildId, commandData) {
-    try {
-      const contentVerifier = require("./integrityGuard");
-
-      // Check text content
-      if (commandData.content) {
-        const check = contentVerifier.scanForPhishing(commandData.content);
-        if (check.isPhishing) {
-          throw new Error(
-            "Command content contains potentially harmful content"
-          );
-        }
-      }
-
-      // Check embed content
-      if (commandData.embedTitle || commandData.embedDescription) {
-        const embedCheck = contentVerifier.scanForPhishing(null, {
-          title: commandData.embedTitle,
-          description: commandData.embedDescription,
-        });
-        if (embedCheck.isPhishing) {
-          throw new Error("Embed content contains potentially harmful content");
-        }
-      }
-    } catch (e) {
-      // Re-throw if it's our validation error
-      if (e.message.includes("harmful content")) {
-        throw e;
-      }
-      // Otherwise fail silently - don't break command creation
-    }
-
     return new Promise((resolve, reject) => {
       db.db.run(
         `INSERT INTO custom_commands 

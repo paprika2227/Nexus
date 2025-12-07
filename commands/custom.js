@@ -106,31 +106,6 @@ module.exports = {
         });
       }
 
-      // Content Verification - Check for phishing in custom command content
-      const integrityGuard = require("../utils/integrityGuard");
-      try {
-        const phishingCheck = integrityGuard.scanForPhishing(response);
-        if (phishingCheck.isPhishing) {
-          return await interaction.editReply({
-            content:
-              "❌ Your command response contains potentially harmful content and was rejected for security reasons.",
-          });
-        }
-
-        // Check URLs in response
-        const urlRegex = /https?:\/\/[^\s]+/g;
-        const urls = response.match(urlRegex) || [];
-        for (const url of urls) {
-          const urlCheck = integrityGuard.analyzeUrl(url);
-          if (!urlCheck.isSafe) {
-            return await interaction.editReply({
-              content: `❌ Your command contains a suspicious URL and was rejected for security reasons.`,
-            });
-          }
-        }
-      } catch (error) {
-        // Continue if verification fails
-      }
 
       try {
         const result = await customCommands.createCommand(
@@ -202,20 +177,6 @@ module.exports = {
         });
       }
 
-      // Content Verification - Check for phishing in embed content
-      const integrityGuard = require("../utils/integrityGuard");
-      try {
-        const embedData = { title, description };
-        const phishingCheck = integrityGuard.scanForPhishing(null, embedData);
-        if (phishingCheck.isPhishing) {
-          return await interaction.editReply({
-            content:
-              "❌ Your embed content contains potentially harmful content and was rejected for security reasons.",
-          });
-        }
-      } catch (error) {
-        // Continue if verification fails
-      }
 
       try {
         await customCommands.createCommand(interaction.guild.id, {

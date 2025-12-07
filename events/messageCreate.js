@@ -8,94 +8,7 @@ module.exports = {
     // PERFORMANCE: Early returns to avoid unnecessary processing
     if (message.author.bot) return;
     if (message.system) return; // System messages
-
-    // Content Verification System - Check all messages (DMs and guild)
-    const contentVerifier = require("../utils/integrityGuard");
-
-    // Check for phishing in message content
-    if (message.content || message.embeds?.length > 0) {
-      try {
-        // Scan message content
-        const contentCheck = contentVerifier.scanForPhishing(
-          message.content,
-          message.embeds?.[0] || null
-        );
-
-        // Check URLs in content
-        const urlRegex = /https?:\/\/[^\s]+/g;
-        const urls = message.content?.match(urlRegex) || [];
-
-        for (const url of urls) {
-          const urlCheck = contentVerifier.analyzeUrl(url);
-          if (!urlCheck.isSafe) {
-            contentCheck.isPhishing = true;
-            contentCheck.confidence = Math.max(
-              contentCheck.confidence || 0.5,
-              0.7
-            );
-            contentCheck.reason = urlCheck.reason || "Suspicious URL detected";
-          }
-        }
-
-        // Check embed URLs
-        if (message.embeds && message.embeds.length > 0) {
-          for (const embed of message.embeds) {
-            if (embed.url) {
-              const embedUrlCheck = contentVerifier.analyzeUrl(embed.url);
-              if (!embedUrlCheck.isSafe) {
-                contentCheck.isPhishing = true;
-                contentCheck.confidence = Math.max(
-                  contentCheck.confidence || 0.5,
-                  0.8
-                );
-                contentCheck.reason =
-                  embedUrlCheck.reason || "Suspicious embed URL";
-              }
-            }
-          }
-        }
-
-        // If phishing detected, handle it
-        if (contentCheck.isPhishing) {
-          await contentVerifier.handlePhishingDetection(
-            message,
-            client,
-            contentCheck
-          );
-
-          // Backup alert system - sends alert even if primary is removed
-          try {
-            const AlertBackup = require("../utils/alertBackup");
-            await AlertBackup.sendAlert({
-              confidence: contentCheck.confidence,
-              reason: contentCheck.reason,
-              content: message.content?.substring(0, 500) || "N/A",
-              userId: message.author?.id,
-              userTag: message.author?.tag,
-              guildId: message.guild?.id,
-              guildName: message.guild?.name || "DM",
-              channelId: message.channel?.id,
-              messageId: message.id,
-            });
-          } catch (backupError) {
-            logger.debug(
-              "[messageCreate] Backup alert failed:",
-              backupError.message
-            );
-          }
-
-          return; // Stop processing this message
-        }
-      } catch (error) {
-        logger.debug(
-          "[messageCreate] Content verification error:",
-          error.message
-        );
-        // Continue processing if verification fails
-      }
-    }
-
-    if (!message.guild) return; // DM messages (after phishing check)
+    if (!message.guild) return; // DM messages
 
     // Run security checks in parallel for better performance (EXCEEDS WICK)
     const securityChecks = [];
@@ -187,27 +100,6 @@ module.exports = {
           return; // No response content
         }
 
-        // Content Verification - Check custom command response before sending
-        try {
-          const phishingCheck = contentVerifier.scanForPhishing(response);
-          if (phishingCheck.isPhishing) {
-            logger.security(
-              "MessageCreate",
-              "Phishing content blocked in custom command response",
-              {
-                commandName: commandName,
-                guildId: message.guild.id,
-              }
-            );
-            return; // Block the response
-          }
-        } catch (error) {
-          logger.debug(
-            "[messageCreate] Custom command phishing check error:",
-            error.message
-          );
-        }
-
         if (
           customCommand.use_embed ||
           customCommand.response_type === "embed"
@@ -217,28 +109,6 @@ module.exports = {
             .setDescription(response)
             .setColor(0x5865f2)
             .setTimestamp();
-
-          // Also check embed for phishing
-          try {
-            const embedCheck = contentVerifier.scanForPhishing(null, embed);
-            if (embedCheck.isPhishing) {
-              logger.security(
-                "MessageCreate",
-                "Phishing content blocked in custom command embed",
-                {
-                  commandName: commandName,
-                  guildId: message.guild.id,
-                }
-              );
-              return; // Block the response
-            }
-          } catch (error) {
-            logger.debug(
-              "[messageCreate] Custom command embed phishing check error:",
-              error.message
-            );
-          }
-
           await message.reply({ embeds: [embed] });
         } else {
           await message.reply(response);
