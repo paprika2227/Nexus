@@ -12,8 +12,7 @@ module.exports = {
   name: "clientReady",
   once: true,
   async execute(client) {
-    try {
-      const shardInfo = ShardManager.getShardInfo(client);
+    const shardInfo = ShardManager.getShardInfo(client);
 
     // Initialize dev tracking for support command
     client.devTracking = {
@@ -21,17 +20,20 @@ module.exports = {
       currentStatus: null,
     };
 
-    // Register slash commands
+    // Register slash commands with timeout protection
     try {
-      await registerCommands(client);
-      logger.info("Ready", "✅ Commands registered successfully");
-    } catch (error) {
-      logger.error("Ready", "❌ Failed to register commands:", {
-        message: error?.message || String(error),
-        stack: error?.stack,
-        name: error?.name,
+      const registrationPromise = registerCommands(client);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Command registration timeout after 2 minutes")), 120000)
+      );
+      
+      await Promise.race([registrationPromise, timeoutPromise]).catch((error) => {
+        logger.error("Ready", `Command registration failed or timed out: ${error.message}`);
+        // Continue anyway - bot should still work
       });
-      // Continue anyway - bot should still work
+    } catch (error) {
+      logger.error("Ready", "Critical error in command registration:", error);
+      // Continue anyway
     }
 
     // Post commands to Discord Bot List (only from shard 0 or non-sharded)
@@ -407,32 +409,11 @@ module.exports = {
         // Initialize rate limit handler
         rateLimitHandler.initialize(client);
         logger.info("Ready", "⏱️  Rate limit protection enabled");
-        
-        // Log initial rate limit status
-        const rateLimitStats = rateLimitHandler.getStats();
-        const isRateLimited = rateLimitHandler.isRateLimited();
-        if (isRateLimited.limited) {
-          const resetIn = Math.ceil(isRateLimited.resetIn / 1000);
-          logger.warn(
-            "Ready",
-            `⏳ RATE LIMITED on startup! ${isRateLimited.global ? "Global" : "Endpoint"} limit - Resets in ${resetIn}s`
-          );
-        } else {
-          logger.success("Ready", "✅ No rate limits active");
-        }
       } catch (error) {
         logger.error("Ready", "Failed to start database backup", {
           message: error?.message || String(error),
         });
       }
-    }
-    } catch (error) {
-      logger.error("Ready", "❌ Critical error in ready event:", {
-        message: error?.message || String(error),
-        stack: error?.stack,
-        name: error?.name,
-      });
-      // Don't rethrow - let bot continue running
     }
   },
 };
