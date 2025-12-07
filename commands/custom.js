@@ -251,18 +251,43 @@ module.exports = {
 
       const name = interaction.options.getString("name").toLowerCase();
 
-      const result = await customCommands.deleteCommand(
-        interaction.guild.id,
-        name
-      );
+      try {
+        // First check if command exists
+        const existing = await customCommands.getCommand(
+          interaction.guild.id,
+          name
+        );
 
-      if (result.deleted) {
-        await interaction.editReply({
-          content: `✅ Custom command \`/${name}\` deleted successfully.`,
+        if (!existing) {
+          return await interaction.editReply({
+            content: `❌ Command \`/${name}\` not found.`,
+          });
+        }
+
+        // Delete the command
+        const result = await customCommands.deleteCommand(
+          interaction.guild.id,
+          name
+        );
+
+        if (result.deleted) {
+          await interaction.editReply({
+            content: `✅ Custom command \`/${name}\` deleted successfully.`,
+          });
+        } else {
+          await interaction.editReply({
+            content: `❌ Failed to delete command \`/${name}\`. Please try again.`,
+          });
+        }
+      } catch (error) {
+        const logger = require("../utils/logger");
+        logger.error("Custom Command Delete", "Error deleting command", {
+          message: error?.message || String(error),
+          stack: error?.stack,
+          name: error?.name,
         });
-      } else {
         await interaction.editReply({
-          content: `❌ Command \`/${name}\` not found.`,
+          content: `❌ An error occurred while deleting the command: ${error.message}`,
         });
       }
     } else if (subcommand === "info") {

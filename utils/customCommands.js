@@ -115,13 +115,77 @@ class CustomCommands {
    * Delete a custom command
    */
   async deleteCommand(guildId, commandName) {
-    return new Promise((resolve, reject) => {
+    const normalizedName = commandName.toLowerCase().trim();
+    const logger = require("./logger");
+    
+    return new Promise(async (resolve, reject) => {
+      // First verify the command exists
+      try {
+        const existing = await this.getCommand(guildId, normalizedName);
+        if (!existing) {
+          logger.debug(
+            "Custom Commands",
+            `Command not found for deletion: ${normalizedName} in guild ${guildId}`
+          );
+          resolve({ deleted: false, reason: "not_found" });
+          return;
+        }
+      } catch (checkError) {
+        logger.error("Custom Commands", "Error checking if command exists", {
+          message: checkError?.message || String(checkError),
+        });
+        reject(checkError);
+        return;
+      }
+
       db.db.run(
         "DELETE FROM custom_commands WHERE guild_id = ? AND command_name = ?",
-        [guildId, commandName.toLowerCase()],
-        function (err) {
-          if (err) reject(err);
-          else resolve({ deleted: this.changes > 0 });
+        [guildId, normalizedName],
+        async function (err) {
+          if (err) {
+            logger.error("Custom Commands", "Error deleting command from database", {
+              message: err?.message || String(err),
+              guildId,
+              commandName: normalizedName,
+            });
+            reject(err);
+            return;
+          }
+          
+          const deleted = this.changes > 0;
+          
+          if (!deleted) {
+            logger.warn(
+              "Custom Commands",
+              `Delete query executed but no rows affected for ${normalizedName} in guild ${guildId}`
+            );
+            resolve({ deleted: false, reason: "no_changes" });
+            return;
+          }
+          
+          logger.info(
+            "Custom Commands",
+            `Successfully deleted command ${normalizedName} from guild ${guildId}`
+          );
+          
+          // Clear Redis cache if command was deleted
+          try {
+            const redisCache = require("./redisCache");
+            const cacheKey = `custom_cmd_${guildId}_${normalizedName}`;
+            await redisCache.del(cacheKey);
+            logger.debug(
+              "Custom Commands",
+              `Cleared cache for deleted command: ${cacheKey}`
+            );
+          } catch (cacheError) {
+            // Non-critical - log but don't fail
+            logger.debug(
+              "Custom Commands",
+              `Cache clear failed (non-critical): ${cacheError?.message || String(cacheError)}`
+            );
+          }
+          
+          resolve({ deleted: true });
         }
       );
     });
