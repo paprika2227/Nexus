@@ -26,3 +26,6 @@ logs/
 data/
 *.db
 assets/
+COMPETITORS.txt
+competitorMonitor.js
+competitorData.json

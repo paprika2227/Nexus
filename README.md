@@ -174,7 +174,7 @@ This project is licensed under the **MIT License** with additional branding rest
 
 **You can:**
 
-- ✅ Use commercially
+- ✅ Use commercially (code only - branding restrictions apply)
 - ✅ Modify and distribute the code
 - ✅ Self-host your own instance
 - ✅ Contribute improvements
