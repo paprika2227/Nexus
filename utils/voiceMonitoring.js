@@ -68,14 +68,14 @@ class VoiceMonitoring {
       // Use adaptive threshold based on server size
       const memberCount = guild.memberCount || 1;
       let adaptiveThreshold = config.raid_threshold || 75; // Default increased from 10 to 75
-      
+
       // Scale threshold based on server size for large events
       if (memberCount >= 5000) {
         adaptiveThreshold = Math.max(adaptiveThreshold, 150); // Very large servers: 150+
       } else if (memberCount >= 2000) {
         adaptiveThreshold = Math.max(adaptiveThreshold, 100); // Large servers: 100+
       }
-      
+
       if (filtered.length >= adaptiveThreshold) {
         await this.handleVoiceRaid(guild, filtered, config);
       }

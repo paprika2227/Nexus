@@ -20,7 +20,7 @@ module.exports = {
         // Track voice joins for raid detection
         const key = `${guild.id}`;
         const timeWindow = 15000; // 15 seconds (increased from 10 for large events)
-        
+
         if (!client.advancedAntiNuke.voiceRaids.has(key)) {
           client.advancedAntiNuke.voiceRaids.set(key, {
             joinCount: 0,
@@ -31,7 +31,7 @@ module.exports = {
         }
 
         const raidData = client.advancedAntiNuke.voiceRaids.get(key);
-        
+
         // Reset if time window has passed
         const timeSinceFirstJoin = Date.now() - raidData.firstJoin;
         if (timeSinceFirstJoin >= timeWindow) {
@@ -42,7 +42,7 @@ module.exports = {
           raidData.joinCount++;
           raidData.userIds.add(userId);
         }
-        
+
         raidData.lastJoin = Date.now();
 
         // Get adaptive threshold based on server size (allows large events)
