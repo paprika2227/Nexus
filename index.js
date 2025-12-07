@@ -67,15 +67,8 @@ const client = new Client({
       interval: 3600, // 1 hour in seconds
       filter: () => (user) => user.bot && user.id !== client.user?.id,
     },
-    // Sweep inactive threads every 30 minutes
-    threadMembers: {
-      interval: 1800, // 30 minutes in seconds
-      filter: () => (threadMember) => {
-        // Remove thread members from threads that are no longer active
-        // This helps reduce memory usage
-        return true; // Remove all (thread members are automatically re-cached when needed)
-      },
-    },
+    // Note: threadMembers sweeper might not be supported in this version
+    // Removed to prevent errors - thread members are cached per-guild and auto-cleaned
   },
   // WebSocket optimizations for lower ping
   ws: {
