@@ -60,21 +60,9 @@ async function registerCommands(client) {
     }
 
     // THEN: Register commands per-guild only (instant, no duplicates)
-    // Process ALL guilds in parallel for maximum speed
-    const guilds = Array.from(client.guilds.cache.values());
     let successCount = 0;
     let failCount = 0;
 
-<<<<<<< HEAD
-    // Process in smaller batches to avoid rate limits (10 at a time)
-    const batchSize = 10;
-    logger.info(
-      "Commands",
-      `Registering commands for ${guilds.length} servers in batches of ${batchSize}...`
-    );
-
-    let results = [];
-=======
     // Helper function to add timeout to promises
     const withTimeout = (promise, timeoutMs, guildName) => {
       return Promise.race([
@@ -104,60 +92,16 @@ async function registerCommands(client) {
     // Process in small batches to avoid rate limits and prevent hanging
     const batchSize = 5;
     const totalBatches = Math.ceil(guilds.length / batchSize);
->>>>>>> 49190f16bea2560c974e4dd1c5633a33edaeb9c8
 
     for (let i = 0; i < guilds.length; i += batchSize) {
       const batch = guilds.slice(i, i + batchSize);
       const batchNum = Math.floor(i / batchSize) + 1;
-<<<<<<< HEAD
-      const totalBatches = Math.ceil(guilds.length / batchSize);
-=======
->>>>>>> 49190f16bea2560c974e4dd1c5633a33edaeb9c8
 
       logger.info(
         "Commands",
         `Processing batch ${batchNum}/${totalBatches} (${batch.length} servers)...`
       );
 
-<<<<<<< HEAD
-      try {
-        const batchResults = await Promise.allSettled(
-          batch.map(async (guild) => {
-            try {
-              await rest.put(
-                Routes.applicationGuildCommands(client.user.id, guild.id),
-                { body: commands }
-              );
-              return { success: true, guild: guild.name };
-            } catch (error) {
-              return { success: false, guild: guild.name, error };
-            }
-          })
-        );
-        results.push(...batchResults);
-
-        // Small delay between batches to avoid rate limits
-        if (i + batchSize < guilds.length) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-      } catch (error) {
-        logger.error(
-          "Commands",
-          `Error in batch ${batchNum}:`,
-          error.message
-        );
-        // Add failed results for this batch
-        results.push(
-          ...batch.map((guild) => ({
-            status: "fulfilled",
-            value: {
-              success: false,
-              guild: guild.name,
-              error: { message: error.message || "Batch error" },
-            },
-          }))
-        );
-=======
       // Process batch in parallel with timeout protection
       const batchPromises = batch.map(async (guild) => {
         try {
@@ -203,108 +147,17 @@ async function registerCommands(client) {
       // Small delay between batches to avoid rate limits
       if (i + batchSize < guilds.length) {
         await new Promise((resolve) => setTimeout(resolve, 500));
->>>>>>> 49190f16bea2560c974e4dd1c5633a33edaeb9c8
       }
     }
 
-    // Count successes and failures
-    let rateLimitedCount = 0;
-    results.forEach((result, index) => {
-      if (result.status === "fulfilled" && result.value.success) {
-        successCount++;
-      } else {
-        failCount++;
-        const guildName = guilds[index]?.name || "Unknown";
-        const error =
-          result.status === "fulfilled" ? result.value.error : result.reason;
-
-        // Check if it's a rate limit error
-        const isRateLimit =
-          error?.code === 429 ||
-          error?.status === 429 ||
-          error?.message?.includes("rate limit") ||
-          error?.message?.includes("429");
-
-        if (isRateLimit) {
-          rateLimitedCount++;
-          const retryAfter =
-            error?.retryAfter || error?.retry_after || "unknown";
-          logger.warn(
-            `⚠️ Rate limited while registering commands for ${guildName} (retry after: ${retryAfter}s)`
-          );
-        } else {
-          logger.error(
-            `❌ Failed to register commands for ${guildName}:`,
-            error?.message || error
-          );
-        }
-      }
-    });
-
-    if (successCount === 0 && failCount === guilds.length) {
-      logger.error(
-        "Commands",
-        `❌ ALL ${guilds.length} servers failed! Check rate limits or API status.`
-      );
-    } else {
-      logger.success(
-        "Commands",
-        `Registered commands for ${successCount} servers${
-          failCount > 0 ? `, ${failCount} failed` : ""
-        }${rateLimitedCount > 0 ? ` (${rateLimitedCount} rate limited)` : ""}`
-      );
-    }
-
-    // Warn if rate limited
-    if (rateLimitedCount > 0) {
-      logger.warn(
-        "Commands",
-        `⚠️ ${rateLimitedCount} server(s) hit rate limits during registration. Commands will be registered automatically when limits reset.`
-      );
-    }
+    logger.success(
+      "Commands",
+      `Registered commands for ${successCount} servers${
+        failCount > 0 ? `, ${failCount} failed` : ""
+      }`
+    );
   } catch (error) {
     logger.error("❌ Error registering commands:", error);
-
-    // Check if it's a rate limit error
-    if (
-      error.code === 429 ||
-      error.status === 429 ||
-      error.message?.includes("rate limit")
-    ) {
-      const retryAfter = error.retryAfter || error.retry_after || 1;
-      logger.error(
-        "Commands",
-        `⚠️ RATE LIMITED during registration! Waiting ${retryAfter}s before retry...`
-      );
-      logger.error(
-        "Commands",
-        `📊 Rate limit headers: ${JSON.stringify(error.request?.response?.headers || {})}`
-      );
-    }
-  }
-
-  // Check rate limit status after registration
-  try {
-    const rateLimitHandler = require("./rateLimitHandler");
-    const rateLimitStats = rateLimitHandler.getStats();
-    const isRateLimited = rateLimitHandler.isRateLimited();
-
-    if (isRateLimited.limited) {
-      const resetIn = Math.ceil(isRateLimited.resetIn / 1000);
-      logger.warn(
-        "Commands",
-        `⏳ Currently rate limited! ${isRateLimited.global ? "Global" : "Endpoint"} limit - Resets in ${resetIn}s`
-      );
-    } else if (rateLimitStats.rateLimitHits > 0) {
-      logger.info(
-        "Commands",
-        `📊 Rate limit status: ${rateLimitStats.rateLimitHitRate} hit rate (${rateLimitStats.rateLimitHits} hits / ${rateLimitStats.totalRequests} requests)`
-      );
-    } else {
-      logger.success("Commands", "✅ No rate limits encountered");
-    }
-  } catch (err) {
-    // Rate limit handler might not be initialized yet
   }
 }
 
