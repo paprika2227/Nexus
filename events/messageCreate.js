@@ -79,10 +79,12 @@ module.exports = {
       }
 
       if (customCommand) {
-        let response = customCommand.response;
+        // Support both old (response) and new (response_content) schemas
+        let response = customCommand.response_content || customCommand.response;
 
         // Replace variables
-        response = response
+        if (response) {
+          response = response
           .replace(/{user}/g, `<@${message.author.id}>`)
           .replace(/{user\.tag}/g, message.author.tag)
           .replace(/{user\.id}/g, message.author.id)
@@ -92,8 +94,13 @@ module.exports = {
             message.member?.displayName || message.author.username
           )
           .replace(/{channel}/g, `<#${message.channel.id}>`);
+        }
 
-        if (customCommand.use_embed) {
+        if (!response) {
+          return; // No response content
+        }
+
+        if (customCommand.use_embed || customCommand.response_type === "embed") {
           const { EmbedBuilder } = require("discord.js");
           const embed = new EmbedBuilder()
             .setDescription(response)

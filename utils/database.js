@@ -1760,6 +1760,147 @@ class Database {
         }
       }
     );
+
+    // Migration: Add enhanced custom_commands columns for new schema
+    this.db.run(
+      `ALTER TABLE custom_commands ADD COLUMN description TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error(
+            "Error adding description column to custom_commands:",
+            err
+          );
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE custom_commands ADD COLUMN response_type TEXT DEFAULT 'text'`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error(
+            "Error adding response_type column to custom_commands:",
+            err
+          );
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE custom_commands ADD COLUMN response_content TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error(
+            "Error adding response_content column to custom_commands:",
+            err
+          );
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE custom_commands ADD COLUMN embed_title TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error(
+            "Error adding embed_title column to custom_commands:",
+            err
+          );
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE custom_commands ADD COLUMN embed_description TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error(
+            "Error adding embed_description column to custom_commands:",
+            err
+          );
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE custom_commands ADD COLUMN embed_color TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error(
+            "Error adding embed_color column to custom_commands:",
+            err
+          );
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE custom_commands ADD COLUMN embed_fields TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error(
+            "Error adding embed_fields column to custom_commands:",
+            err
+          );
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE custom_commands ADD COLUMN requires_role TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error(
+            "Error adding requires_role column to custom_commands:",
+            err
+          );
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE custom_commands ADD COLUMN allowed_channels TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error(
+            "Error adding allowed_channels column to custom_commands:",
+            err
+          );
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE custom_commands ADD COLUMN cooldown INTEGER DEFAULT 0`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error(
+            "Error adding cooldown column to custom_commands:",
+            err
+          );
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE custom_commands ADD COLUMN uses INTEGER DEFAULT 0`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          logger.error(
+            "Error adding uses column to custom_commands:",
+            err
+          );
+        }
+      }
+    );
+
+    // Migration: Copy existing response data to response_content for backwards compatibility
+    this.db.run(
+      `UPDATE custom_commands SET response_content = response WHERE response_content IS NULL AND response IS NOT NULL`,
+      (err) => {
+        if (err) {
+          logger.error(
+            "Error migrating response to response_content:",
+            err
+          );
+        } else {
+          logger.info(
+            "[Migration] Migrated old custom_commands.response to response_content"
+          );
+        }
+      }
+    );
+
     this.db.run(
       `ALTER TABLE server_config ADD COLUMN verification_channel TEXT`,
       (err) => {
