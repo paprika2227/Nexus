@@ -70,7 +70,11 @@ const client = new Client({
     // Sweep inactive threads every 30 minutes
     threadMembers: {
       interval: 1800, // 30 minutes in seconds
-      lifetime: 1800, // 30 minutes lifetime
+      filter: () => (threadMember) => {
+        // Remove thread members from threads that are no longer active
+        // This helps reduce memory usage
+        return true; // Remove all (thread members are automatically re-cached when needed)
+      },
     },
   },
   // WebSocket optimizations for lower ping
