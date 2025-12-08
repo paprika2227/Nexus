@@ -160,6 +160,153 @@ class RedisCache {
   isEnabled() {
     return this.enabled;
   }
+
+  // ========== ADVANCED CACHING FEATURES ==========
+
+  /**
+   * Bulk get multiple keys at once
+   */
+  async mget(keys) {
+    if (!this.enabled || !this.client) {
+      return keys.map(k => this.fallbackCache.get(k) || null);
+    }
+
+    try {
+      return await this.client.mGet(keys);
+    } catch (error) {
+      logger.debug("[Redis] MGET error, using fallback:", error.message);
+      return keys.map(k => this.fallbackCache.get(k) || null);
+    }
+  }
+
+  /**
+   * Bulk set multiple key-value pairs
+   */
+  async mset(keyValuePairs, ttl = 3600) {
+    if (!this.enabled || !this.client) {
+      Object.entries(keyValuePairs).forEach(([k, v]) => {
+        this.fallbackCache.set(k, v);
+      });
+      return true;
+    }
+
+    try {
+      const multi = this.client.multi();
+      Object.entries(keyValuePairs).forEach(([key, value]) => {
+        multi.set(key, JSON.stringify(value), { EX: ttl });
+      });
+      await multi.exec();
+      return true;
+    } catch (error) {
+      logger.debug("[Redis] MSET error:", error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Increment a numeric value
+   */
+  async incr(key, amount = 1) {
+    if (!this.enabled || !this.client) {
+      const current = parseInt(this.fallbackCache.get(key)) || 0;
+      const newValue = current + amount;
+      this.fallbackCache.set(key, newValue);
+      return newValue;
+    }
+
+    try {
+      return await this.client.incrBy(key, amount);
+    } catch (error) {
+      logger.debug("[Redis] INCR error:", error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Get keys matching a pattern
+   */
+  async keys(pattern) {
+    if (!this.enabled || !this.client) {
+      const keys = [];
+      for (const key of this.fallbackCache.keys()) {
+        if (key.includes(pattern.replace('*', ''))) {
+          keys.push(key);
+        }
+      }
+      return keys;
+    }
+
+    try {
+      return await this.client.keys(pattern);
+    } catch (error) {
+      logger.debug("[Redis] KEYS error:", error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Delete keys matching a pattern
+   */
+  async deletePattern(pattern) {
+    const keys = await this.keys(pattern);
+    if (keys.length === 0) return 0;
+
+    if (!this.enabled || !this.client) {
+      keys.forEach(k => this.fallbackCache.delete(k));
+      return keys.length;
+    }
+
+    try {
+      await this.client.del(keys);
+      return keys.length;
+    } catch (error) {
+      logger.debug("[Redis] DELETE PATTERN error:", error.message);
+      return 0;
+    }
+  }
+
+  /**
+   * Cache with automatic refresh
+   */
+  async cacheWithRefresh(key, fetchFunction, ttl = 3600, refreshInterval = 1800) {
+    const value = await this.getCached(key, fetchFunction, ttl);
+    
+    // Set up background refresh (refresh at 50% of TTL)
+    setTimeout(async () => {
+      try {
+        const fresh = await fetchFunction();
+        await this.set(key, fresh, ttl);
+      } catch (error) {
+        logger.debug("[Redis] Background refresh failed:", error.message);
+      }
+    }, refreshInterval * 1000);
+
+    return value;
+  }
+
+  /**
+   * Get cache statistics
+   */
+  async getStats() {
+    const stats = {
+      enabled: this.enabled,
+      fallbackSize: this.fallbackCache.size
+    };
+
+    if (this.enabled && this.client) {
+      try {
+        const info = await this.client.info();
+        stats.redisInfo = {
+          connected: true,
+          keysTotal: await this.client.dbSize()
+        };
+      } catch (error) {
+        stats.redisInfo = { connected: false, error: error.message };
+      }
+    }
+
+    return stats;
+  }
 }
 
 module.exports = new RedisCache();

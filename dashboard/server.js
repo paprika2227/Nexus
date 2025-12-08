@@ -1566,6 +1566,44 @@ class DashboardServer {
       }
     });
 
+    // Real-time SSE endpoint for live updates
+    this.app.get("/api/events/stream", this.checkAuth, (req, res) => {
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      // Send initial connection message
+      res.write(`data: ${JSON.stringify({ type: "connected", timestamp: Date.now() })}\n\n`);
+
+      // Store client for broadcasting
+      if (!this.sseClients) this.sseClients = new Set();
+      this.sseClients.add(res);
+
+      // Send heartbeat every 30 seconds
+      const heartbeat = setInterval(() => {
+        res.write(`data: ${JSON.stringify({ type: "heartbeat", timestamp: Date.now() })}\n\n`);
+      }, 30000);
+
+      // Clean up on close
+      req.on("close", () => {
+        clearInterval(heartbeat);
+        this.sseClients.delete(res);
+      });
+    });
+
+    // Broadcast event to all connected SSE clients
+    this.broadcastEvent = (event) => {
+      if (!this.sseClients) return;
+      const data = JSON.stringify(event);
+      this.sseClients.forEach(client => {
+        try {
+          client.write(`data: ${data}\n\n`);
+        } catch (error) {
+          this.sseClients.delete(client);
+        }
+      });
+    };
+
     this.app.get("/api/stats", async (req, res) => {
       try {
         // Basic bot stats
