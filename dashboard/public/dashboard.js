@@ -191,24 +191,9 @@ function showServerSelection(servers) {
 
 function selectServer(serverId) {
   if (!serverId) return;
-  currentServer = serverId;
 
-  // Show sidebar and load server data
-  document.querySelector(".sidebar").style.display = "";
-  document.getElementById("currentPage").textContent = "Overview";
-
-  // Reset to overview page
-  currentPage = "overview";
-  document
-    .querySelectorAll(".nav-item")
-    .forEach((i) => i.classList.remove("active"));
-  document.querySelector('[data-page="overview"]').classList.add("active");
-
-  // Load server data
-  loadServerData(serverId);
-
-  // Restart auto-refresh for new server
-  startAutoRefresh();
+  // Redirect to server-specific URL for persistence
+  window.location.href = `/${serverId}/dashboard`;
 }
 
 // Load server data
@@ -2308,9 +2293,47 @@ function startAutoRefresh() {
 
 // Navigation
 document.addEventListener("DOMContentLoaded", () => {
-  loadUser();
-  loadServers();
-  startAutoRefresh();
+  // Check if URL contains guild ID (e.g., /123456789/dashboard)
+  const pathParts = window.location.pathname.split("/").filter((p) => p);
+  const urlGuildId =
+    pathParts.length > 0 && pathParts[0].match(/^\d+$/) ? pathParts[0] : null;
+
+  if (urlGuildId) {
+    // URL has guild ID - load that server directly
+    currentServer = urlGuildId;
+    loadUser();
+
+    // Check if there's a hash in URL (e.g., /{guildId}/dashboard#anti-nuke)
+    const hash = window.location.hash.replace("#", "");
+    if (hash) {
+      // Load specific page from hash
+      currentPage = hash;
+      document
+        .querySelectorAll(".nav-item")
+        .forEach((i) => i.classList.remove("active"));
+      const navItem = document.querySelector(`[data-page="${hash}"]`);
+      if (navItem) {
+        navItem.classList.add("active");
+        document.getElementById("currentPage").textContent =
+          navItem.querySelector("span:last-child").textContent;
+        loadPage(hash);
+      } else {
+        loadServerData(urlGuildId);
+      }
+    } else {
+      // No hash - load overview
+      loadServerData(urlGuildId);
+    }
+
+    // Show sidebar since we have a server selected
+    document.querySelector(".sidebar").style.display = "";
+    startAutoRefresh();
+  } else {
+    // No guild ID in URL - show server selection
+    loadUser();
+    loadServers();
+    startAutoRefresh();
+  }
 
   // Nav item click handling
   document.querySelectorAll(".nav-item").forEach((item) => {
@@ -2365,9 +2388,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Workflows Management
-  window.loadWorkflows = async function() {
+  window.loadWorkflows = async function () {
     const contentArea = document.getElementById("contentArea");
-    
+
     contentArea.innerHTML = `
       <div class="content-header">
         <h1>⚙️ Automation Workflows</h1>
@@ -2383,31 +2406,35 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     try {
-      const response = await fetch(`/api/dashboard/workflows?guild=${currentGuild}`);
+      const response = await fetch(
+        `/api/dashboard/workflows?guild=${currentGuild}`
+      );
       const data = await response.json();
-      
+
       const workflowsList = document.getElementById("workflowsList");
-      
+
       if (data.workflows && data.workflows.length > 0) {
-        workflowsList.innerHTML = data.workflows.map(w => `
+        workflowsList.innerHTML = data.workflows
+          .map(
+            (w) => `
           <div class="setting-card" style="margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
               <div>
                 <h3>${w.name}</h3>
-                <p style="opacity: 0.7; margin: 5px 0;">${w.description || 'No description'}</p>
+                <p style="opacity: 0.7; margin: 5px 0;">${w.description || "No description"}</p>
               </div>
               <label class="toggle-switch">
-                <input type="checkbox" ${w.enabled ? 'checked' : ''} onchange="toggleWorkflow(${w.id}, this.checked)">
+                <input type="checkbox" ${w.enabled ? "checked" : ""} onchange="toggleWorkflow(${w.id}, this.checked)">
                 <span class="toggle-slider"></span>
               </label>
             </div>
             
             <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
               <div style="margin-bottom: 10px;">
-                <strong>Trigger:</strong> ${w.trigger_type || 'Not configured'}
+                <strong>Trigger:</strong> ${w.trigger_type || "Not configured"}
               </div>
               <div>
-                <strong>Actions:</strong> ${w.action_type || 'Not configured'}
+                <strong>Actions:</strong> ${w.action_type || "Not configured"}
               </div>
             </div>
             
@@ -2424,7 +2451,9 @@ document.addEventListener("DOMContentLoaded", () => {
               Triggered: ${w.trigger_count || 0} times
             </div>
           </div>
-        `).join('');
+        `
+          )
+          .join("");
       } else {
         workflowsList.innerHTML = `
           <div class="setting-card" style="text-align: center; padding: 40px;">
@@ -2442,10 +2471,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  window.showCreateWorkflowModal = function() {
-    const modal = document.createElement('div');
-    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999;';
-    
+  window.showCreateWorkflowModal = function () {
+    const modal = document.createElement("div");
+    modal.style.cssText =
+      "position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999;";
+
     modal.innerHTML = `
       <div style="background: #1e1e2e; padding: 30px; border-radius: 15px; max-width: 600px; width: 90%;">
         <h2>Create Workflow</h2>
@@ -2494,73 +2524,77 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       </div>
     `;
-    
+
     document.body.appendChild(modal);
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    modal.onclick = (e) => {
+      if (e.target === modal) modal.remove();
+    };
   };
 
-  window.createWorkflow = async function() {
-    const name = document.getElementById('workflowName').value;
-    const description = document.getElementById('workflowDesc').value;
-    const trigger = document.getElementById('workflowTrigger').value;
-    const action = document.getElementById('workflowAction').value;
-    
+  window.createWorkflow = async function () {
+    const name = document.getElementById("workflowName").value;
+    const description = document.getElementById("workflowDesc").value;
+    const trigger = document.getElementById("workflowTrigger").value;
+    const action = document.getElementById("workflowAction").value;
+
     if (!name || !trigger || !action) {
-      alert('Please fill in all required fields');
+      alert("Please fill in all required fields");
       return;
     }
-    
+
     try {
-      const response = await fetch('/api/dashboard/workflows', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/dashboard/workflows", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           guild: currentGuild,
           name,
           description,
           trigger_type: trigger,
           action_type: action,
-          enabled: true
-        })
+          enabled: true,
+        }),
       });
-      
+
       if (response.ok) {
         document.querySelector('[style*="z-index: 9999"]').remove();
         loadWorkflows();
-        alert('✅ Workflow created successfully!');
+        alert("✅ Workflow created successfully!");
       } else {
-        alert('❌ Failed to create workflow');
+        alert("❌ Failed to create workflow");
       }
     } catch (error) {
       alert(`❌ Error: ${error.message}`);
     }
   };
 
-  window.toggleWorkflow = async function(id, enabled) {
+  window.toggleWorkflow = async function (id, enabled) {
     try {
       await fetch(`/api/dashboard/workflows/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled })
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
       });
     } catch (error) {
       alert(`❌ Error: ${error.message}`);
     }
   };
 
-  window.deleteWorkflow = async function(id) {
-    if (!confirm('Are you sure you want to delete this workflow?')) return;
-    
+  window.deleteWorkflow = async function (id) {
+    if (!confirm("Are you sure you want to delete this workflow?")) return;
+
     try {
-      await fetch(`/api/dashboard/workflows/${id}`, { method: 'DELETE' });
+      await fetch(`/api/dashboard/workflows/${id}`, { method: "DELETE" });
       loadWorkflows();
-      alert('✅ Workflow deleted');
+      alert("✅ Workflow deleted");
     } catch (error) {
       alert(`❌ Error: ${error.message}`);
     }
   };
 
-  window.editWorkflow = function(id) {
-    alert('Edit functionality coming soon! For now, delete and recreate the workflow.');
+  window.editWorkflow = function (id) {
+    alert(
+      "Edit functionality coming soon! For now, delete and recreate the workflow."
+    );
   };
 });

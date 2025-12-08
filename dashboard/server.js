@@ -304,7 +304,13 @@ class DashboardServer {
       });
     });
 
-    // Dashboard route
+    // Dashboard routes
+    // New: Server-specific dashboard with URL persistence
+    this.app.get("/:guildId/dashboard", this.checkAuth, (req, res) => {
+      res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+    });
+
+    // Legacy: Redirect to server selection (for backwards compatibility)
     this.app.get("/dashboard", this.checkAuth, (req, res) => {
       res.sendFile(path.join(__dirname, "public", "dashboard.html"));
     });
