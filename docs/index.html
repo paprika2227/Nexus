@@ -87,6 +87,7 @@
 
     <link rel="stylesheet" href="styles.css" />
     <script src="config.js"></script>
+    <script src="performance-monitor.js"></script>
     <script src="invite-tracker.js"></script>
 
     <!-- Preconnect to improve performance (will be set dynamically via config.js) -->
@@ -215,6 +216,7 @@
         backdrop-filter: blur(10px);
       "
       onclick="toggleDarkMode()"
+      aria-label="Toggle dark mode"
       title="Toggle Dark/Light Mode"
     >
       🌙
@@ -232,7 +234,13 @@
         <div class="nav-right">
           <!-- Dropdown Menu -->
           <div class="dropdown">
-            <button class="dropdown-toggle">Menu ▼</button>
+            <button
+              class="dropdown-toggle"
+              aria-label="Toggle navigation menu"
+              aria-expanded="false"
+            >
+              Menu ▼
+            </button>
             <div class="dropdown-menu">
               <div class="dropdown-category">
                 <div class="dropdown-category-header">🚀 Getting Started</div>
@@ -296,6 +304,7 @@
               )
             "
             class="btn-dashboard"
+            aria-label="Open Nexus Bot Dashboard in a new tab"
             >Dashboard</a
           >
           <a href="shards.html" class="btn-nav">Shard Status</a>
@@ -310,7 +319,10 @@
         <div class="hero-content">
           <img
             src="https://cdn.discordapp.com/avatars/1444739230679957646/logo.png"
-            alt="Nexus Logo"
+            alt="Nexus Bot Logo - Free Discord Security Bot"
+            loading="lazy"
+            width="150"
+            height="150"
             class="logo"
             onerror="this.style.display = 'none'"
           />
