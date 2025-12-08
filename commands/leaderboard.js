@@ -1,60 +1,114 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const Leveling = require("../utils/leveling");
-const ErrorMessages = require("../utils/errorMessages");
+const logger = require("../utils/logger");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("leaderboard")
-    .setDescription("View the level leaderboard")
-    .addIntegerOption((option) =>
+    .setDescription("View global security leaderboard")
+    .addStringOption((option) =>
       option
-        .setName("limit")
-        .setDescription("Number of users to show (1-20)")
-        .setMinValue(1)
-        .setMaxValue(20)
-        .setRequired(false)
+        .setName("type")
+        .setDescription("Leaderboard type")
+        .addChoices(
+          { name: "Global Rankings", value: "global" },
+          { name: "Your Server Stats", value: "server" },
+          { name: "Growth Leaders", value: "growth" }
+        )
     ),
 
   async execute(interaction) {
-    const limit = interaction.options.getInteger("limit") || 10;
-    const leaderboard = await Leveling.getLeaderboard(
-      interaction.guild.id,
-      limit
-    );
+    try {
+      await interaction.deferReply();
 
-    if (leaderboard.length === 0) {
-      return interaction.reply({
-        embeds: [
-          {
-            title: "🏆 Leaderboard",
-            description: "No users on the leaderboard yet!",
-            color: 0x0099ff,
-          },
-        ],
-      });
+      const type = interaction.options.getString("type") || "global";
+      const ServerComparison = require("../utils/serverComparison");
+      const comparison = new ServerComparison(interaction.client);
+
+      if (type === "server") {
+        // Show this server's ranking
+        const report = await comparison.generateComparisonReport(interaction.guild.id);
+
+        const embed = new EmbedBuilder()
+          .setTitle(`📊 ${interaction.guild.name}'s Security Stats`)
+          .setDescription(
+            `**Security Score:** ${report.ranking.yourScore}/100\n` +
+            `**Global Rank:** #${report.ranking.betterThan + 1} of ${report.ranking.totalServers}\n` +
+            `**Percentile:** Top ${100 - report.ranking.percentile}%\n` +
+            `**Badge:** ${report.badge.emoji} ${report.badge.name}`
+          )
+          .setColor(report.badge.color)
+          .addFields(
+            {
+              name: "📈 Score Breakdown",
+              value: Object.entries(report.breakdown)
+                .map(([key, value]) => `${this.formatKey(key)}: ${value}`)
+                .join('\n') || 'No data'
+            },
+            {
+              name: "💡 Top Recommendations",
+              value: report.recommendations
+                .slice(0, 3)
+                .map(r => `${r.priority === 'critical' ? '🔴' : '🟡'} ${r.action}`)
+                .join('\n') || 'All good!'
+            }
+          )
+          .setFooter({ text: "Use /dashboard to view full report" });
+
+        await interaction.editReply({ embeds: [embed] });
+      } else if (type === "growth") {
+        const GrowthAnalytics = require("../utils/growthAnalytics");
+        const growth = new GrowthAnalytics(interaction.client);
+
+        const stats = await growth.getGrowthStats(interaction.guild.id, 'week');
+
+        const embed = new EmbedBuilder()
+          .setTitle("📈 Growth Leaderboard")
+          .setDescription(
+            `**Your Server's Growth (7 days):**\n` +
+            `Joins: ${stats.joins}\n` +
+            `Leaves: ${stats.leaves}\n` +
+            `Net Growth: ${stats.netGrowth > 0 ? '+' : ''}${stats.netGrowth}\n` +
+            `Growth Rate: ${stats.growthRate.toFixed(1)}%`
+          )
+          .setColor(stats.netGrowth > 0 ? 0x4CAF50 : 0xF44336);
+
+        await interaction.editReply({ embeds: [embed] });
+      } else {
+        // Global leaderboard
+        const leaderboard = await comparison.getAnonymizedLeaderboard(10);
+
+        const embed = new EmbedBuilder()
+          .setTitle("🏆 Global Security Leaderboard")
+          .setDescription("Top 10 servers by security score (anonymized)")
+          .setColor(0x9333EA);
+
+        leaderboard.forEach((entry, index) => {
+          const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+          embed.addFields({
+            name: `${medal} ${entry.badge} ${entry.serverSize}`,
+            value: `Score: ${entry.score}/100`,
+            inline: true
+          });
+        });
+
+        embed.setFooter({ text: "Use /leaderboard type:server to see your rank!" });
+
+        await interaction.editReply({ embeds: [embed] });
+      }
+
+      logger.info("Command", `/leaderboard executed in ${interaction.guild.name}`);
+    } catch (error) {
+      logger.error("Command", "Leaderboard error", error);
+      const errorEmbed = new EmbedBuilder()
+        .setTitle("❌ Error")
+        .setDescription("Failed to load leaderboard. Please try again.")
+        .setColor(0xF44336);
+
+      await interaction.editReply({ embeds: [errorEmbed] });
     }
-
-    const topList = await Promise.all(
-      leaderboard.map(async (entry, index) => {
-        try {
-          const user = await interaction.client.users.fetch(entry.user_id);
-          return `${index + 1}. ${user.tag} - Level ${
-            entry.level
-          } (${entry.total_xp.toLocaleString()} XP)`;
-        } catch {
-          return `${index + 1}. Unknown User - Level ${
-            entry.level
-          } (${entry.total_xp.toLocaleString()} XP)`;
-        }
-      })
-    );
-
-    const embed = new EmbedBuilder()
-      .setTitle("🏆 Level Leaderboard")
-      .setDescription(topList.join("\n"))
-      .setColor(0xffd700)
-      .setTimestamp();
-
-    await interaction.reply({ embeds: [embed] });
   },
+
+  formatKey(key) {
+    return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+  }
 };

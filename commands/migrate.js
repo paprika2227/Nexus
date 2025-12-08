@@ -1,185 +1,89 @@
-/**
- * Migration Assistant Command
- * Help servers migrate from other security bots (especially Wick)
- */
-
-const {
-  SlashCommandBuilder,
-  EmbedBuilder,
-  PermissionFlagsBits,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-} = require("discord.js");
-const db = require("../utils/database");
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require("discord.js");
 const logger = require("../utils/logger");
-const ErrorMessages = require("../utils/errorMessages");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("migrate")
-    .setDescription("🔄 Migrate from other security bots to Nexus")
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName("from-wick")
-        .setDescription("Migrate from Wick to Nexus")
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName("guide")
-        .setDescription("Show migration guide and checklist")
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .setDescription("Migrate from Wick or other bots to Nexus")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addStringOption((option) =>
+      option
+        .setName("from")
+        .setDescription("Bot to migrate from")
+        .setRequired(true)
+        .addChoices(
+          { name: "Wick", value: "wick" },
+          { name: "Carl-bot", value: "carl" },
+          { name: "Dyno", value: "dyno" },
+          { name: "MEE6", value: "mee6" }
+        )
+    ),
 
   async execute(interaction) {
-    const subcommand = interaction.options.getSubcommand();
-
     try {
-      if (subcommand === "from-wick") {
-        await this.migrateFromWick(interaction);
-      } else if (subcommand === "guide") {
-        await this.showGuide(interaction);
+      await interaction.deferReply({ ephemeral: true });
+
+      const fromBot = interaction.options.getString("from");
+
+      if (fromBot === "wick") {
+        const WickMigration = require("../utils/wickMigration");
+        const migration = new WickMigration(interaction.client);
+
+        // Analyze current setup
+        const analysis = await migration.analyzeWickConfig(interaction.guild);
+
+        if (!analysis.hasWick) {
+          const embed = new EmbedBuilder()
+            .setTitle("ℹ️ Wick Not Found")
+            .setDescription("Wick bot is not in this server. Nothing to migrate!")
+            .setColor(0x2196F3);
+
+          return await interaction.editReply({ embeds: [embed] });
+        }
+
+        // Show migration preview
+        const comparisonData = migration.generateComparison();
+        const embed = new EmbedBuilder()
+          .setTitle("🔄 Wick Migration Ready")
+          .setDescription(
+            `**Found Wick in your server!**\n\n` +
+            `Ready to migrate and upgrade your security?\n\n` +
+            `**What we'll import:**\n` +
+            (analysis.detectedSettings.logChannels ? `✅ ${analysis.detectedSettings.logChannels.length} log channel(s)\n` : '') +
+            (analysis.detectedSettings.quarantineRoles ? `✅ ${analysis.detectedSettings.quarantineRoles.length} moderation role(s)\n` : '') +
+            `✅ All compatible settings`
+          )
+          .setColor(0x9333EA)
+          .addFields({
+            name: "🚀 Instant Upgrades You'll Get",
+            value: comparisonData.features
+              .filter(f => f.advantage === 'nexus')
+              .slice(0, 5)
+              .map(f => `✅ **${f.feature}:** ${f.wick} → ${f.nexus}`)
+              .join('\n')
+          })
+          .setFooter({ text: "Use the dashboard to complete migration: /dashboard" });
+
+        await interaction.editReply({ embeds: [embed] });
+
+      } else {
+        const embed = new EmbedBuilder()
+          .setTitle("🔜 Migration Coming Soon")
+          .setDescription(`Migration from ${fromBot} is being developed!\n\nFor now, use manual setup: \`/quicksetup\``)
+          .setColor(0xFF9800);
+
+        await interaction.editReply({ embeds: [embed] });
       }
+
+      logger.info("Command", `/migrate executed in ${interaction.guild.name}`);
     } catch (error) {
-      logger.error("Migrate Command Error:", error);
+      logger.error("Command", "Migration error", error);
+      const errorEmbed = new EmbedBuilder()
+        .setTitle("❌ Error")
+        .setDescription("Migration failed. Please try manual setup with `/quicksetup`")
+        .setColor(0xF44336);
 
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply(ErrorMessages.genericError());
-      } else if (interaction.deferred) {
-        await interaction.editReply(ErrorMessages.genericError());
-      }
+      await interaction.editReply({ embeds: [errorEmbed] });
     }
-  },
-
-  async migrateFromWick(interaction) {
-    await interaction.deferReply({ ephemeral: true });
-
-    const embed = new EmbedBuilder()
-      .setTitle("🔄 Migrating from Wick to Nexus")
-      .setDescription(
-        "**Good choice!** Here's your step-by-step migration plan:\n\n" +
-          "Don't worry - you can keep Wick running while testing Nexus."
-      )
-      .setColor(0x667eea)
-      .addFields(
-        {
-          name: "✅ Step 1: Configure Nexus",
-          value:
-            "Run `/setup preset` and choose your server type.\n" +
-            "This will configure Nexus similar to Wick's defaults.",
-          inline: false,
-        },
-        {
-          name: "🔍 Step 2: Get Recommendations",
-          value:
-            "Run `/recommend analyze` to get AI-powered suggestions.\n" +
-            "This will optimize your setup beyond Wick's capabilities.",
-          inline: false,
-        },
-        {
-          name: "🛡️ Step 3: Enable Protection",
-          value:
-            "• Anti-Raid: `/antiraid enable`\n" +
-            "• Anti-Nuke: Enable via config\n" +
-            "• Join Gate: `/joingate enable`\n" +
-            "• Heat System: Auto-enabled",
-          inline: false,
-        },
-        {
-          name: "📊 Step 4: Compare Side-by-Side",
-          value:
-            "Run both bots for 1-2 weeks.\n" +
-            "Use `/health` to see security score.\n" +
-            "Use `/compare` to benchmark your config.",
-          inline: false,
-        },
-        {
-          name: "🎯 Step 5: Make the Switch",
-          value:
-            "Once confident, remove Wick and enjoy:\n" +
-            "• Better features\n" +
-            "• $0/month savings\n" +
-            "• AI-powered security",
-          inline: false,
-        }
-      )
-      .addFields({
-        name: "💡 Pro Tips",
-        value:
-          "• Use `/threatdashboard live` to see real-time security\n" +
-          "• `/backup create` before removing Wick (safety first!)\n" +
-          "• `/troubleshoot` if you hit any issues\n" +
-          "• Keep Wick for first week (backup plan)",
-        inline: false,
-      })
-      .setFooter({
-        text: "Need help? Run /support or join our Discord",
-      })
-      .setTimestamp();
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setLabel("View Full Comparison")
-        .setStyle(ButtonStyle.Link)
-        .setURL("https://azzraya.github.io/Nexus/comparison.html"),
-      new ButtonBuilder()
-        .setLabel("Migration Guide")
-        .setStyle(ButtonStyle.Link)
-        .setURL("https://azzraya.github.io/Nexus/docs.html")
-    );
-
-    await interaction.editReply({ embeds: [embed], components: [row] });
-
-    // Log migration attempt
-    await new Promise((resolve) => {
-      db.db.run(
-        "INSERT INTO migration_log (guild_id, from_bot, timestamp) VALUES (?, ?, ?)",
-        [interaction.guild.id, "wick", Date.now()],
-        () => resolve()
-      );
-    }).catch(() => {});
-
-    logger.info(
-      `[Migration] ${interaction.guild.name} starting Wick migration`
-    );
-  },
-
-  async showGuide(interaction) {
-    const embed = new EmbedBuilder()
-      .setTitle("📋 Migration Checklist")
-      .setDescription("Complete guide to switching security bots")
-      .setColor(0x667eea)
-      .addFields(
-        {
-          name: "✅ Before You Start",
-          value:
-            "• [ ] Read comparison: Nexus vs Wick\n" +
-            "• [ ] Backup your current setup\n" +
-            "• [ ] Note your current bot's config\n" +
-            "• [ ] Plan a test period (1-2 weeks)",
-          inline: false,
-        },
-        {
-          name: "🔧 During Migration",
-          value:
-            "• [ ] Configure Nexus with `/setup preset`\n" +
-            "• [ ] Enable security features\n" +
-            "• [ ] Test with `/health check`\n" +
-            "• [ ] Run both bots simultaneously",
-          inline: false,
-        },
-        {
-          name: "✅ After Migration",
-          value:
-            "• [ ] Verify all features working\n" +
-            "• [ ] Train your mod team\n" +
-            "• [ ] Remove old bot\n" +
-            "• [ ] Enjoy free security! 🎉",
-          inline: false,
-        }
-      )
-      .setTimestamp();
-
-    await interaction.reply({ embeds: [embed], ephemeral: true });
-  },
+  }
 };

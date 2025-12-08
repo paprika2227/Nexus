@@ -79,6 +79,22 @@ client.advancedAntiNuke = new AdvancedAntiNuke(client);
 const AutoBackup = require("./utils/autoBackup");
 client.autoBackup = new AutoBackup(client);
 
+// New Advanced Systems
+const HoneypotSystem = require("./utils/honeypot");
+client.honeypot = new HoneypotSystem(client);
+
+const BehavioralFingerprint = require("./utils/behavioralFingerprint");
+client.behavioralFP = new BehavioralFingerprint(client);
+
+const ReferralSystem = require("./utils/referralSystem");
+client.referrals = new ReferralSystem(client);
+
+const GrowthAnalytics = require("./utils/growthAnalytics");
+client.growthAnalytics = new GrowthAnalytics(client);
+
+const SetupWizard = require("./utils/setupWizard");
+client.setupWizard = new SetupWizard(client);
+
 // Real-Time Audit Log Monitor (EXCEEDS WICK - continuous audit log analysis)
 const AuditLogMonitor = require("./utils/auditLogMonitor");
 client.auditLogMonitor = new AuditLogMonitor(client);

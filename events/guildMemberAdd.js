@@ -8,6 +8,18 @@ const performanceMonitor = require("../utils/performanceMonitor");
 module.exports = {
   name: "guildMemberAdd",
   async execute(member, client) {
+    // Track growth analytics
+    if (client.growthAnalytics) {
+      client.growthAnalytics.trackJoin(member.guild.id, member.user.id, 'invite');
+    }
+
+    // Track behavioral patterns
+    if (client.behavioralFP) {
+      client.behavioralFP.trackBehavior(member.user.id, member.guild.id, 'join', {
+        accountAge: Date.now() - member.user.createdTimestamp
+      });
+    }
+
     // Start performance tracking
     const perfId = `member_join_${member.id}_${Date.now()}`;
     performanceMonitor.start(perfId, "member_join_full", {

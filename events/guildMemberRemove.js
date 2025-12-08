@@ -4,6 +4,11 @@ const ErrorHandler = require("../utils/errorHandler");
 module.exports = {
   name: "guildMemberRemove",
   async execute(member, client) {
+    // Track growth analytics
+    if (client.growthAnalytics) {
+      client.growthAnalytics.trackLeave(member.guild.id, member.user.id, 'left');
+    }
+
     // Advanced anti-nuke monitoring (check if it was a kick)
     if (client.advancedAntiNuke) {
       try {
