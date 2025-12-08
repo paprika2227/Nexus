@@ -4,7 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Shard & Cluster Status - Nexus Bot</title>
-    <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/avatars/1444739230679957646/32f2d77d44c2f3989fecd858be53f396.webp?size=256" />
+    <link
+      rel="icon"
+      type="image/webp"
+      href="https://cdn.discordapp.com/avatars/1444739230679957646/32f2d77d44c2f3989fecd858be53f396.webp?size=256"
+    />
     <link rel="stylesheet" href="styles.css" />
     <style>
       .status-container {
@@ -200,11 +204,18 @@
       }
     </style>
   </head>
-  <body style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
+  <body
+    style="
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    "
+  >
     <div class="status-container">
       <div class="status-header">
         <h1>⚡ Shard & Cluster Status</h1>
-        <p style="opacity: 0.9; font-size: 1.1rem;">Real-time status of all bot shards and clusters</p>
+        <p style="opacity: 0.9; font-size: 1.1rem">
+          Real-time status of all bot shards and clusters
+        </p>
       </div>
 
       <div class="status-card">
@@ -235,9 +246,9 @@
         </div>
       </div>
 
-      <div id="clustersSection" style="display: none;">
+      <div id="clustersSection" style="display: none">
         <div class="status-card">
-          <h2 style="margin-bottom: 20px; color: #667eea;">🔄 Clusters</h2>
+          <h2 style="margin-bottom: 20px; color: #667eea">🔄 Clusters</h2>
           <div class="clusters-grid" id="clustersGrid">
             <div class="loading">Loading clusters...</div>
           </div>
@@ -245,18 +256,21 @@
       </div>
 
       <div class="status-card">
-        <h2 style="margin-bottom: 20px; color: #667eea;">⚡ Shards</h2>
+        <h2 style="margin-bottom: 20px; color: #667eea">⚡ Shards</h2>
         <div class="shards-grid" id="shardsGrid">
           <div class="loading">Loading shards...</div>
         </div>
       </div>
     </div>
 
-    <button class="refresh-btn" onclick="loadStatus()" id="refreshBtn">🔄 Refresh</button>
+    <button class="refresh-btn" onclick="loadStatus()" id="refreshBtn">
+      🔄 Refresh
+    </button>
 
     <script src="config.js"></script>
     <script>
-      const API_BASE = window.NEXUS_API_URL || "https://regular-puma-clearly.ngrok-free.app";
+      const API_BASE =
+        window.NEXUS_API_URL || "https://regular-puma-clearly.ngrok-free.app";
       let refreshInterval = null;
 
       function getStatusBadge(status) {
@@ -271,7 +285,10 @@
           7: { text: "IDENTIFYING", class: "status-connecting" },
           8: { text: "RESUMING", class: "status-connecting" },
         };
-        const statusInfo = statusMap[status] || { text: "UNKNOWN", class: "status-disconnected" };
+        const statusInfo = statusMap[status] || {
+          text: "UNKNOWN",
+          class: "status-disconnected",
+        };
         return `<span class="status-badge ${statusInfo.class}">${statusInfo.text}</span>`;
       }
 
@@ -299,10 +316,17 @@
           const data = response;
 
           // Update summary stats
-          document.getElementById("totalShards").textContent = data.shards?.length || 0;
-          document.getElementById("totalClusters").textContent = data.clusters?.totalClusters || (data.usingClusters ? "N/A" : "N/A");
-          document.getElementById("totalGuilds").textContent = (data.totalGuilds || 0).toLocaleString();
-          document.getElementById("totalUsers").textContent = (data.totalUsers || 0).toLocaleString();
+          document.getElementById("totalShards").textContent =
+            data.shards?.length || 0;
+          document.getElementById("totalClusters").textContent =
+            data.clusters?.totalClusters ||
+            (data.usingClusters ? "N/A" : "N/A");
+          document.getElementById("totalGuilds").textContent = (
+            data.totalGuilds || 0
+          ).toLocaleString();
+          document.getElementById("totalUsers").textContent = (
+            data.totalUsers || 0
+          ).toLocaleString();
 
           // Display clusters if available
           if (data.clusters && data.clusters.clusters) {
@@ -375,18 +399,23 @@
                   <span>Uptime:</span>
                   <span>${formatUptime(shard.uptime || 0)}</span>
                 </div>
-                ${shard.memory ? `
+                ${
+                  shard.memory
+                    ? `
                 <div class="shard-stat">
                   <span>Memory:</span>
                   <span>${formatMemory(shard.memory.heapUsed || 0)}</span>
                 </div>
-                ` : ""}
+                `
+                    : ""
+                }
               </div>
             `
               )
               .join("");
           } else {
-            shardsGrid.innerHTML = '<div class="error">No shard data available</div>';
+            shardsGrid.innerHTML =
+              '<div class="error">No shard data available</div>';
           }
         } catch (error) {
           console.error("Failed to load status:", error);
