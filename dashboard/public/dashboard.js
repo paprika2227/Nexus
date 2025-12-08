@@ -2406,6 +2406,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch(
         `/api/dashboard/workflows?guild=${currentServer}`
       );
+
+      // Auto-redirect on auth errors
+      if (
+        !response.ok &&
+        (response.status === 401 || response.status === 403)
+      ) {
+        console.log("Unauthorized access, redirecting to login...");
+        window.location.href = "/auth/discord";
+        return;
+      }
+
       const data = await response.json();
 
       const workflowsList = document.getElementById("workflowsList");
