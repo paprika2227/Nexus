@@ -200,6 +200,9 @@ function selectServer(serverId) {
 async function loadServerData(serverId) {
   try {
     const response = await fetch(`/api/server/${serverId}`);
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}`);
+    }
     const server = await response.json();
 
     // Update current server display in sidebar
@@ -208,6 +211,22 @@ async function loadServerData(serverId) {
     loadOverview(server);
   } catch (error) {
     console.error("Failed to load server data:", error);
+    // Show error in content area but keep sidebar visible
+    const contentArea = document.getElementById("contentArea");
+    contentArea.innerHTML = `
+      <div class="content-section">
+        <h2>⚠️ Error Loading Server</h2>
+        <p>Failed to load server data. This could mean:</p>
+        <ul>
+          <li>The bot is not in this server</li>
+          <li>You don't have permission to manage this server</li>
+          <li>The server ID is invalid</li>
+        </ul>
+        <button class="btn" onclick="window.location.href='/dashboard'">
+          ← Back to Server Selection
+        </button>
+      </div>
+    `;
   }
 }
 
@@ -2303,7 +2322,12 @@ document.addEventListener("DOMContentLoaded", () => {
     currentServer = urlGuildId;
 
     // Show sidebar since we have a server selected
-    document.querySelector(".sidebar").style.display = "";
+    const sidebar = document.querySelector(".sidebar");
+    sidebar.style.display = "";
+
+    // On mobile, sidebar needs to be visible (not hidden off-screen)
+    // But don't auto-open it - let the user click the menu button
+    // We'll just ensure it's ready to be toggled
 
     loadUser();
 
