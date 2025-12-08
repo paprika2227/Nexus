@@ -2301,32 +2301,33 @@ document.addEventListener("DOMContentLoaded", () => {
   if (urlGuildId) {
     // URL has guild ID - load that server directly
     currentServer = urlGuildId;
-    loadUser();
-
-    // Check if there's a hash in URL (e.g., /{guildId}/dashboard#anti-nuke)
-    const hash = window.location.hash.replace("#", "");
-    if (hash) {
-      // Load specific page from hash
-      currentPage = hash;
-      document
-        .querySelectorAll(".nav-item")
-        .forEach((i) => i.classList.remove("active"));
-      const navItem = document.querySelector(`[data-page="${hash}"]`);
-      if (navItem) {
-        navItem.classList.add("active");
-        document.getElementById("currentPage").textContent =
-          navItem.querySelector("span:last-child").textContent;
-        loadPage(hash);
-      } else {
-        loadServerData(urlGuildId);
-      }
-    } else {
-      // No hash - load overview
-      loadServerData(urlGuildId);
-    }
 
     // Show sidebar since we have a server selected
     document.querySelector(".sidebar").style.display = "";
+
+    loadUser();
+
+    // Always load server data first to populate sidebar
+    loadServerData(urlGuildId).then(() => {
+      // Check if there's a hash in URL (e.g., /{guildId}/dashboard#anti-nuke)
+      const hash = window.location.hash.replace("#", "");
+      if (hash && hash !== "overview") {
+        // Load specific page from hash
+        currentPage = hash;
+        document
+          .querySelectorAll(".nav-item")
+          .forEach((i) => i.classList.remove("active"));
+        const navItem = document.querySelector(`[data-page="${hash}"]`);
+        if (navItem) {
+          navItem.classList.add("active");
+          document.getElementById("currentPage").textContent =
+            navItem.querySelector("span:last-child").textContent;
+          loadPage(hash);
+        }
+      }
+      // If no hash or hash is "overview", loadServerData already loaded the overview
+    });
+
     startAutoRefresh();
   } else {
     // No guild ID in URL - show server selection
