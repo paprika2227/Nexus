@@ -616,13 +616,20 @@ class AdvancedAntiNuke {
       return;
     }
 
-    // Check if user is owner - STILL ACT but log differently
+    // Check if user is owner - SKIP all actions (owner cannot be banned/kicked)
     const isOwner = member.id === guild.ownerId;
+    if (isOwner) {
+      logger.warn(
+        `[Anti-Nuke] ⚠️ THREAT DETECTED from SERVER OWNER ${userId} (${threatType}) in ${guild.id} - SKIPPING ACTION (owner cannot be banned/kicked)`
+      );
+      return; // Exit early - cannot take action against server owner
+    }
+
     const isAdmin = member.permissions.has("Administrator");
 
     logger.warn(
       `[Anti-Nuke] 🚨 CRITICAL THREAT: ${threatType} by ${userId} (${
-        isOwner ? "OWNER" : isAdmin ? "ADMIN" : "USER"
+        isAdmin ? "ADMIN" : "USER"
       }) in ${guild.id}`
     );
 
@@ -1004,6 +1011,14 @@ class AdvancedAntiNuke {
 
       let removed = false;
 
+      // Skip if user is server owner (cannot ban/kick owner)
+      if (member.id === guild.ownerId) {
+        logger.warn(
+          `[Anti-Nuke] Skipping ban/kick attempt on server owner ${userId} in ${guild.id}`
+        );
+        return;
+      }
+
       if (hasBanPerms) {
         // Ban the user IMMEDIATELY
         try {
@@ -1050,8 +1065,8 @@ class AdvancedAntiNuke {
         );
       }
 
-      // If still not removed, try timeout as last resort
-      if (!removed) {
+      // If still not removed, try timeout as last resort (skip server owner)
+      if (!removed && member.id !== guild.ownerId) {
         const hasTimeoutPerms =
           botMemberCheck?.permissions.has("ModerateMembers");
         if (hasTimeoutPerms) {
@@ -1996,10 +2011,10 @@ class AdvancedAntiNuke {
     // If user sends more than 3 messages in 2 seconds = spam
     const timeSinceFirst = Date.now() - msgData.firstMessage;
     if (timeSinceFirst < 2000 && msgData.count > 3) {
-      // User is spamming - timeout them
+      // User is spamming - timeout them (skip server owner)
       try {
         const member = await channel.guild.members.fetch(userId);
-        if (member && !member.permissions.has("Administrator")) {
+        if (member && member.id !== channel.guild.ownerId && !member.permissions.has("Administrator")) {
           await member.timeout(
             10 * 60 * 1000,
             "Anti-Nuke: Message spam detected"
