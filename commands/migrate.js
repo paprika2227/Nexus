@@ -8,20 +8,8 @@ const logger = require("../utils/logger");
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("migrate")
-    .setDescription("Migrate from Wick or other bots to Nexus")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-    .addStringOption((option) =>
-      option
-        .setName("from")
-        .setDescription("Bot to migrate from")
-        .setRequired(true)
-        .addChoices(
-          { name: "Wick", value: "wick" },
-          { name: "Carl-bot", value: "carl" },
-          { name: "Dyno", value: "dyno" },
-          { name: "MEE6", value: "mee6" }
-        )
-    ),
+    .setDescription("Migrate from Wick to Nexus")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
     try {
@@ -30,63 +18,53 @@ module.exports = {
       const fromBot = interaction.options.getString("from");
 
       if (fromBot === "wick") {
-        const WickMigration = require("../utils/wickMigration");
-        const migration = new WickMigration(interaction.client);
+      const WickMigration = require("../utils/wickMigration");
+      const migration = new WickMigration(interaction.client);
 
-        // Analyze current setup
-        const analysis = await migration.analyzeWickConfig(interaction.guild);
+      // Analyze current setup
+      const analysis = await migration.analyzeWickConfig(interaction.guild);
 
-        if (!analysis.hasWick) {
-          const embed = new EmbedBuilder()
-            .setTitle("ℹ️ Wick Not Found")
-            .setDescription(
-              "Wick bot is not in this server. Nothing to migrate!"
-            )
-            .setColor(0x2196f3);
-
-          return await interaction.editReply({ embeds: [embed] });
-        }
-
-        // Show migration preview
-        const comparisonData = migration.generateComparison();
+      if (!analysis.hasWick) {
         const embed = new EmbedBuilder()
-          .setTitle("🔄 Wick Migration Ready")
+          .setTitle("ℹ️ Wick Not Found")
           .setDescription(
-            `**Found Wick in your server!**\n\n` +
-              `Ready to migrate and upgrade your security?\n\n` +
-              `**What we'll import:**\n` +
-              (analysis.detectedSettings.logChannels
-                ? `✅ ${analysis.detectedSettings.logChannels.length} log channel(s)\n`
-                : "") +
-              (analysis.detectedSettings.quarantineRoles
-                ? `✅ ${analysis.detectedSettings.quarantineRoles.length} moderation role(s)\n`
-                : "") +
-              `✅ All compatible settings`
+            "Wick bot is not in this server. Nothing to migrate!"
           )
-          .setColor(0x9333ea)
-          .addFields({
-            name: "🚀 Instant Upgrades You'll Get",
-            value: comparisonData.features
-              .filter((f) => f.advantage === "nexus")
-              .slice(0, 5)
-              .map((f) => `✅ **${f.feature}:** ${f.wick} → ${f.nexus}`)
-              .join("\n"),
-          })
-          .setFooter({
-            text: "Use the dashboard to complete migration: /dashboard",
-          });
+          .setColor(0x2196f3);
 
-        await interaction.editReply({ embeds: [embed] });
-      } else {
-        const embed = new EmbedBuilder()
-          .setTitle("🔜 Migration Coming Soon")
-          .setDescription(
-            `Migration from ${fromBot} is being developed!\n\nFor now, use manual setup: \`/quicksetup\``
-          )
-          .setColor(0xff9800);
-
-        await interaction.editReply({ embeds: [embed] });
+        return await interaction.editReply({ embeds: [embed] });
       }
+
+      // Show migration preview
+      const comparisonData = migration.generateComparison();
+      const embed = new EmbedBuilder()
+        .setTitle("🔄 Wick Migration Ready")
+        .setDescription(
+          `**Found Wick in your server!**\n\n` +
+            `Ready to migrate and upgrade your security?\n\n` +
+            `**What we'll import:**\n` +
+            (analysis.detectedSettings.logChannels
+              ? `✅ ${analysis.detectedSettings.logChannels.length} log channel(s)\n`
+              : "") +
+            (analysis.detectedSettings.quarantineRoles
+              ? `✅ ${analysis.detectedSettings.quarantineRoles.length} moderation role(s)\n`
+              : "") +
+            `✅ All compatible settings`
+        )
+        .setColor(0x9333ea)
+        .addFields({
+          name: "🚀 Instant Upgrades You'll Get",
+          value: comparisonData.features
+            .filter((f) => f.advantage === "nexus")
+            .slice(0, 5)
+            .map((f) => `✅ **${f.feature}:** ${f.wick} → ${f.nexus}`)
+            .join("\n"),
+        })
+        .setFooter({
+          text: "Use the dashboard to complete migration: /dashboard",
+        });
+
+      await interaction.editReply({ embeds: [embed] });
 
       logger.info("Command", `/migrate executed in ${interaction.guild.name}`);
     } catch (error) {
