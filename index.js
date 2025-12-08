@@ -95,6 +95,15 @@ client.growthAnalytics = new GrowthAnalytics(client);
 const SetupWizard = require("./utils/setupWizard");
 client.setupWizard = new SetupWizard(client);
 
+const CommandAnalytics = require("./utils/commandAnalytics");
+client.commandAnalytics = new CommandAnalytics(client);
+
+const SecurityChallenges = require("./utils/securityChallenges");
+client.securityChallenges = new SecurityChallenges(client);
+
+const UserProfiles = require("./utils/userProfiles");
+client.userProfiles = new UserProfiles(client);
+
 // Real-Time Audit Log Monitor (EXCEEDS WICK - continuous audit log analysis)
 const AuditLogMonitor = require("./utils/auditLogMonitor");
 client.auditLogMonitor = new AuditLogMonitor(client);

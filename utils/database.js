@@ -2288,6 +2288,91 @@ class Database {
         created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
       )
     `);
+
+    // User Profiles & Reputation
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS user_profiles (
+        user_id TEXT PRIMARY KEY,
+        reputation INTEGER DEFAULT 100,
+        badges TEXT,
+        total_servers INTEGER DEFAULT 0,
+        threats_detected INTEGER DEFAULT 0,
+        contributions INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL
+      )
+    `);
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS reputation_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        change_amount INTEGER NOT NULL,
+        reason TEXT,
+        timestamp INTEGER NOT NULL
+      )
+    `);
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS contribution_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        contribution_type TEXT NOT NULL,
+        timestamp INTEGER NOT NULL
+      )
+    `);
+
+    // Security Challenges
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS challenge_progress (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        challenge_id TEXT NOT NULL,
+        progress INTEGER DEFAULT 0,
+        week_number INTEGER NOT NULL,
+        UNIQUE(guild_id, user_id, challenge_id, week_number)
+      )
+    `);
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS challenge_completions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        challenge_id TEXT NOT NULL,
+        completed_at INTEGER NOT NULL,
+        points_earned INTEGER NOT NULL
+      )
+    `);
+
+    // Threat Reports
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS threat_reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id TEXT NOT NULL,
+        report_data TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    `);
+
+    // Command Analytics
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS command_analytics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        command_name TEXT NOT NULL,
+        success INTEGER DEFAULT 1,
+        execution_time INTEGER DEFAULT 0,
+        timestamp INTEGER NOT NULL
+      )
+    `);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_command_analytics_guild 
+                 ON command_analytics(guild_id, timestamp)`);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_command_analytics_command 
+                 ON command_analytics(command_name, timestamp)`);
   }
 
   // Server config methods

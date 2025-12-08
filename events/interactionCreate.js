@@ -88,10 +88,33 @@ module.exports = {
           await command.execute(interaction);
 
           // Record successful execution
-          performanceMonitor.end(perfTimer, true);
+          const executionTime = performanceMonitor.end(perfTimer, true);
+          
+          // Track command analytics
+          if (client.commandAnalytics) {
+            client.commandAnalytics.trackCommand(
+              interaction.guild.id,
+              interaction.user.id,
+              interaction.commandName,
+              true,
+              executionTime
+            );
+          }
         } catch (cmdError) {
           // Record failed execution
-          performanceMonitor.end(perfTimer, false, cmdError);
+          const executionTime = performanceMonitor.end(perfTimer, false, cmdError);
+          
+          // Track failed command
+          if (client.commandAnalytics) {
+            client.commandAnalytics.trackCommand(
+              interaction.guild.id,
+              interaction.user.id,
+              interaction.commandName,
+              false,
+              executionTime
+            );
+          }
+          
           throw cmdError; // Re-throw to be caught by outer catch
         }
 
