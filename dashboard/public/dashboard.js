@@ -7,6 +7,14 @@ let refreshInterval = null;
 async function loadUser() {
   try {
     const response = await fetch("/api/user");
+
+    // Auto-redirect on auth errors
+    if (!response.ok && (response.status === 401 || response.status === 403)) {
+      console.log("Unauthorized access, redirecting to login...");
+      window.location.href = "/auth/discord";
+      return;
+    }
+
     userData = await response.json();
 
     document.getElementById("userName").textContent = userData.username;
@@ -21,6 +29,14 @@ async function loadUser() {
 async function loadServers() {
   try {
     const response = await fetch("/api/servers");
+
+    // Auto-redirect on auth errors
+    if (!response.ok && (response.status === 401 || response.status === 403)) {
+      console.log("Unauthorized access, redirecting to login...");
+      window.location.href = "/auth/discord";
+      return;
+    }
+
     const servers = await response.json();
 
     if (servers.length === 0) {
@@ -201,6 +217,12 @@ async function loadServerData(serverId) {
   try {
     const response = await fetch(`/api/server/${serverId}`);
     if (!response.ok) {
+      // Auto-redirect on auth errors
+      if (response.status === 401 || response.status === 403) {
+        console.log("Unauthorized access, redirecting to login...");
+        window.location.href = "/auth/discord";
+        return;
+      }
       throw new Error(`Server returned ${response.status}`);
     }
     const server = await response.json();
