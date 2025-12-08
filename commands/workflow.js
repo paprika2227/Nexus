@@ -65,14 +65,14 @@ module.exports = {
 
       await interaction.reply({
         content:
-          "⚙️ **Workflow Reference Created**\n\nTo configure triggers and actions, use the web dashboard. This command creates a workflow entry only.",
+          "⚠️ **Workflow Feature Not Fully Implemented**\n\nThe workflow builder UI is not yet available. This feature is planned for a future update.",
         flags: MessageFlags.Ephemeral,
       });
 
       const embed = new EmbedBuilder()
-        .setTitle("⚙️ Workflow Created")
+        .setTitle("⚙️ Workflow Reference")
         .setDescription(
-          `**Name:** ${name}\n**Description:** ${description}\n\n**Next Step:** Visit the web dashboard to configure triggers and actions for this workflow.\n\n**Dashboard:** Use \`/dashboard\` to get the link.`
+          `**Name:** ${name}\n**Description:** ${description}\n\n**Status:** Backend functionality exists, but the configuration interface is not yet implemented.\n\n**Coming Soon:** Full workflow builder with triggers and actions.`
         )
         .addFields({
           name: "Available Triggers",
