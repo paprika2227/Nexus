@@ -2198,6 +2198,78 @@ class Database {
       )
     `);
 
+    // Member Growth Tracking
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS member_growth (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        source TEXT,
+        timestamp INTEGER NOT NULL
+      )
+    `);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_member_growth_guild 
+                 ON member_growth(guild_id, timestamp)`);
+
+    // User Referrals
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS user_referrals (
+        user_id TEXT PRIMARY KEY,
+        referral_code TEXT UNIQUE NOT NULL,
+        total_referrals INTEGER DEFAULT 0,
+        current_tier TEXT DEFAULT 'none',
+        created_at INTEGER NOT NULL
+      )
+    `);
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS referral_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        referrer_id TEXT NOT NULL,
+        guild_id TEXT NOT NULL,
+        referral_code TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    `);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_referral_history_referrer 
+                 ON referral_history(referrer_id)`);
+
+    // Migration Reports
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS migration_reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id TEXT NOT NULL,
+        from_bot TEXT NOT NULL,
+        report_data TEXT,
+        created_at INTEGER NOT NULL
+      )
+    `);
+
+    // Server Health Scores (for leaderboard)
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS server_health_scores (
+        guild_id TEXT PRIMARY KEY,
+        security_score INTEGER DEFAULT 0,
+        last_calculated INTEGER,
+        rank INTEGER,
+        percentile INTEGER
+      )
+    `);
+
+    // Honeypot Configuration
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS honeypot_config (
+        guild_id TEXT PRIMARY KEY,
+        enabled INTEGER DEFAULT 0,
+        channel_ids TEXT,
+        suspicion_threshold INTEGER DEFAULT 50,
+        auto_action TEXT DEFAULT 'quarantine'
+      )
+    `);
+
     // Enhanced Polls
     this.db.run(`
       CREATE TABLE IF NOT EXISTS polls (

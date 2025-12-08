@@ -534,6 +534,18 @@ function loadPage(page) {
     case "workflows":
       loadWorkflows();
       break;
+    case "analytics":
+      loadAdvancedAnalytics();
+      break;
+    case "leaderboard":
+      loadLeaderboard();
+      break;
+    case "comparison":
+      loadServerComparison();
+      break;
+    case "migration":
+      loadMigrationTool();
+      break;
     default:
       alert(`${page} page coming soon!`);
   }
@@ -2454,6 +2466,271 @@ function startAutoRefresh() {
     }
   }, 30000); // 30 seconds
 }
+
+// ========== ADVANCED ANALYTICS PAGE ==========
+async function loadAdvancedAnalytics() {
+  const contentArea = document.getElementById("contentArea");
+  
+  contentArea.innerHTML = `
+    <h2>📊 Advanced Analytics</h2>
+    <div class="analytics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
+      <div class="stat-card">
+        <h3>🔮 Raid Prediction</h3>
+        <div id="raidPrediction">Loading...</div>
+      </div>
+      <div class="stat-card">
+        <h3>📈 Growth Forecast</h3>
+        <div id="growthForecast">Loading...</div>
+      </div>
+      <div class="stat-card">
+        <h3>🎯 Security Score</h3>
+        <div id="securityScore">Loading...</div>
+      </div>
+    </div>
+    <div style="margin-top: 30px;">
+      <canvas id="threatHeatmap"></canvas>
+    </div>
+  `;
+
+  // Fetch analytics data
+  try {
+    const response = await fetch(`/api/analytics/advanced?guild=${currentServer}`);
+    const data = await response.json();
+    
+    document.getElementById("raidPrediction").innerHTML = `
+      <div style="font-size: 2rem; font-weight: bold; color: ${data.raidLikelihood > 70 ? '#f44336' : '#4CAF50'};">
+        ${data.raidLikelihood}%
+      </div>
+      <p>Likelihood in next 48h</p>
+    `;
+    
+    document.getElementById("growthForecast").innerHTML = `
+      <div style="font-size: 2rem; font-weight: bold; color: #2196F3;">
+        +${data.forecastedGrowth}
+      </div>
+      <p>Expected members (30 days)</p>
+    `;
+    
+    document.getElementById("securityScore").innerHTML = `
+      <div style="font-size: 2rem; font-weight: bold; color: #9333EA;">
+        ${data.securityScore}/100
+      </div>
+      <p>${data.badge}</p>
+    `;
+  } catch (error) {
+    contentArea.innerHTML += `<p style="color: var(--danger);">❌ Failed to load analytics</p>`;
+  }
+}
+
+// ========== LEADERBOARD PAGE ==========
+async function loadLeaderboard() {
+  const contentArea = document.getElementById("contentArea");
+  
+  contentArea.innerHTML = `
+    <h2>🏆 Global Security Leaderboard</h2>
+    <p style="opacity: 0.8; margin-bottom: 20px;">Top servers by security score (anonymized)</p>
+    
+    <div class="leaderboard-container" id="leaderboardContainer">
+      <div style="text-align: center; padding: 40px;">
+        <div class="spinner"></div>
+        <p>Loading leaderboard...</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    const response = await fetch(`/api/leaderboard/global`);
+    const data = await response.json();
+    
+    let html = '<div class="leaderboard-list">';
+    data.leaderboard.forEach((entry, index) => {
+      const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+      html += `
+        <div class="leaderboard-entry" style="
+          display: flex; justify-content: space-between; align-items: center;
+          padding: 15px; margin-bottom: 10px; background: var(--bg-card);
+          border-radius: 8px; border-left: 4px solid ${index < 3 ? '#FFD700' : 'var(--border-color)'};
+        ">
+          <div>
+            <span style="font-size: 1.5rem; margin-right: 15px;">${medal}</span>
+            <span>${entry.badge} ${entry.serverSize}</span>
+          </div>
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent-primary);">
+            ${entry.score}
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    
+    // Show current server's rank if available
+    if (data.yourRank) {
+      html += `
+        <div style="margin-top: 30px; padding: 20px; background: var(--accent-primary); border-radius: 12px;">
+          <h3>Your Server's Rank</h3>
+          <div style="font-size: 2rem; font-weight: bold;">
+            #${data.yourRank.rank} of ${data.yourRank.total}
+          </div>
+          <p>Top ${data.yourRank.percentile}%</p>
+        </div>
+      `;
+    }
+    
+    document.getElementById("leaderboardContainer").innerHTML = html;
+  } catch (error) {
+    document.getElementById("leaderboardContainer").innerHTML = 
+      `<p style="color: var(--danger);">❌ Failed to load leaderboard</p>`;
+  }
+}
+
+// ========== SERVER COMPARISON PAGE ==========
+async function loadServerComparison() {
+  const contentArea = document.getElementById("contentArea");
+  
+  contentArea.innerHTML = `
+    <h2>📊 Server Comparison</h2>
+    <p style="opacity: 0.8; margin-bottom: 20px;">See how your security compares to other servers</p>
+    
+    <div id="comparisonData">
+      <div style="text-align: center; padding: 40px;">
+        <div class="spinner"></div>
+        <p>Analyzing your server...</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    const response = await fetch(`/api/comparison?guild=${currentServer}`);
+    const data = await response.json();
+    
+    document.getElementById("comparisonData").innerHTML = `
+      <div class="comparison-header" style="text-align: center; padding: 40px; background: var(--bg-card); border-radius: 12px; margin-bottom: 30px;">
+        <div style="font-size: 4rem; margin-bottom: 10px;">${data.badge.emoji}</div>
+        <h2>${data.badge.name}</h2>
+        <div style="font-size: 3rem; font-weight: bold; color: var(--accent-primary); margin: 20px 0;">
+          ${data.score}/100
+        </div>
+        <p style="font-size: 1.2rem;">
+          Better than ${data.percentile}% of servers
+        </p>
+      </div>
+
+      <h3 style="margin-bottom: 20px;">📈 Score Breakdown</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+        ${Object.entries(data.breakdown).map(([key, value]) => `
+          <div style="padding: 15px; background: var(--bg-card); border-radius: 8px;">
+            <div style="font-size: 1.5rem; font-weight: bold;">${value}</div>
+            <p style="opacity: 0.8;">${this.formatKey(key)}</p>
+          </div>
+        `).join('')}
+      </div>
+
+      <h3 style="margin-bottom: 20px;">💡 Recommendations</h3>
+      ${data.recommendations.map(rec => `
+        <div style="padding: 15px; margin-bottom: 10px; background: var(--bg-card); border-radius: 8px; border-left: 4px solid ${rec.priority === 'high' ? 'var(--danger)' : 'var(--info)'};">
+          <strong>${rec.title}</strong>
+          <p style="opacity: 0.8; margin-top: 5px;">${rec.description}</p>
+          <span style="color: var(--success);">${rec.impact}</span>
+        </div>
+      `).join('')}
+    `;
+  } catch (error) {
+    document.getElementById("comparisonData").innerHTML = 
+      `<p style="color: var(--danger);">❌ Failed to load comparison data</p>`;
+  }
+}
+
+// ========== WICK MIGRATION TOOL PAGE ==========
+async function loadMigrationTool() {
+  const contentArea = document.getElementById("contentArea");
+  
+  contentArea.innerHTML = `
+    <h2>🔄 Migrate from Wick</h2>
+    <p style="opacity: 0.8; margin-bottom: 20px;">Automatically import your Wick settings and upgrade to Nexus</p>
+    
+    <div id="migrationStatus">
+      <div style="text-align: center; padding: 40px;">
+        <div class="spinner"></div>
+        <p>Checking for Wick...</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    const response = await fetch(`/api/migration/analyze?guild=${currentServer}`);
+    const data = await response.json();
+    
+    if (data.hasWick) {
+      document.getElementById("migrationStatus").innerHTML = `
+        <div style="padding: 30px; background: var(--bg-card); border-radius: 12px; margin-bottom: 20px;">
+          <h3>✅ Wick Detected!</h3>
+          <p style="margin: 15px 0;">We found Wick in your server. Ready to upgrade?</p>
+          
+          <h4 style="margin-top: 20px;">🔍 What We Found:</h4>
+          <ul style="margin: 10px 0 20px 20px;">
+            ${data.detectedSettings.logChannels ? `<li>${data.detectedSettings.logChannels.length} log channel(s)</li>` : ''}
+            ${data.detectedSettings.quarantineRoles ? `<li>${data.detectedSettings.quarantineRoles.length} quarantine role(s)</li>` : ''}
+          </ul>
+
+          <button onclick="startMigration()" class="btn-primary" style="width: 100%; padding: 15px; margin-top: 20px;">
+            🚀 Start Migration
+          </button>
+        </div>
+
+        <h3>📊 Why Switch to Nexus?</h3>
+        <div style="margin-top: 15px;">
+          ${data.comparison.map(item => `
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 15px; margin-bottom: 10px; background: var(--bg-card); border-radius: 8px;">
+              <div><strong>${item.feature}</strong></div>
+              <div style="opacity: 0.7;">Wick: ${item.wick}</div>
+              <div style="color: var(--success);">Nexus: ${item.nexus}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      document.getElementById("migrationStatus").innerHTML = `
+        <div style="text-align: center; padding: 60px; background: var(--bg-card); border-radius: 12px;">
+          <div style="font-size: 3rem; margin-bottom: 20px;">ℹ️</div>
+          <h3>Wick Not Detected</h3>
+          <p style="opacity: 0.8; margin-top: 10px;">
+            Wick bot is not in this server. You're already using the best protection!
+          </p>
+        </div>
+      `;
+    }
+  } catch (error) {
+    document.getElementById("migrationStatus").innerHTML = 
+      `<p style="color: var(--danger);">❌ Failed to check for Wick</p>`;
+  }
+}
+
+window.startMigration = async function() {
+  if (!confirm("Start migration from Wick to Nexus? This will import settings and enable advanced features.")) return;
+  
+  try {
+    const response = await fetch(`/api/migration/execute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ guild_id: currentServer })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      alert(`✅ Migration complete!\n\n${result.migratedSettings.join('\n')}\n\n${result.improvements.join('\n')}`);
+      loadMigrationTool();
+    } else {
+      alert(`❌ Migration failed: ${result.errors.join(', ')}`);
+    }
+  } catch (error) {
+    alert(`❌ Migration error: ${error.message}`);
+  }
+};
+
+window.formatKey = function(key) {
+  return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+};
 
 // Navigation
 document.addEventListener("DOMContentLoaded", () => {

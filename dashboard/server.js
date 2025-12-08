@@ -6306,6 +6306,108 @@ class DashboardServer {
       }
     );
 
+    // ========== ADVANCED ANALYTICS API ==========
+    this.app.get("/api/analytics/advanced", this.checkAuth, async (req, res) => {
+      try {
+        const { guild } = req.query;
+        const PredictiveAnalytics = require("../utils/predictiveAnalytics");
+        const ServerComparison = require("../utils/serverComparison");
+        const GrowthAnalytics = require("../utils/growthAnalytics");
+
+        const predictive = new PredictiveAnalytics(this.client);
+        const comparison = new ServerComparison(this.client);
+        const growth = new GrowthAnalytics(this.client);
+
+        const [raidPrediction, securityScore, growthForecast] = await Promise.all([
+          predictive.predictRaidLikelihood(guild, 48),
+          comparison.calculateSecurityScore(guild),
+          growth.forecastGrowth(guild, 30)
+        ]);
+
+        res.json({
+          raidLikelihood: raidPrediction.likelihood,
+          securityScore: securityScore.score,
+          badge: comparison.getBadge(securityScore.score).name,
+          forecastedGrowth: growthForecast.forecast[29]?.predicted || 0
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // ========== LEADERBOARD API ==========
+    this.app.get("/api/leaderboard/global", async (req, res) => {
+      try {
+        const ServerComparison = require("../utils/serverComparison");
+        const comparison = new ServerComparison(this.client);
+
+        const leaderboard = await comparison.getAnonymizedLeaderboard(100);
+
+        res.json({
+          leaderboard,
+          timestamp: Date.now()
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // ========== SERVER COMPARISON API ==========
+    this.app.get("/api/comparison", this.checkAuth, async (req, res) => {
+      try {
+        const { guild } = req.query;
+        const ServerComparison = require("../utils/serverComparison");
+        const comparison = new ServerComparison(this.client);
+
+        const report = await comparison.generateComparisonReport(guild);
+
+        res.json(report);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // ========== WICK MIGRATION API ==========
+    this.app.get("/api/migration/analyze", this.checkAuth, async (req, res) => {
+      try {
+        const { guild } = req.query;
+        const guildObj = this.client.guilds.cache.get(guild);
+        if (!guildObj) return res.status(404).json({ error: "Server not found" });
+
+        const WickMigration = require("../utils/wickMigration");
+        const migration = new WickMigration(this.client);
+
+        const analysis = await migration.analyzeWickConfig(guildObj);
+        const comparisonData = migration.generateComparison();
+
+        res.json({
+          hasWick: analysis.hasWick,
+          detectedSettings: analysis.detectedSettings,
+          recommendations: analysis.recommendations,
+          comparison: comparisonData.features
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    this.app.post("/api/migration/execute", this.checkAuth, async (req, res) => {
+      try {
+        const { guild_id } = req.body;
+        const guild = this.client.guilds.cache.get(guild_id);
+        if (!guild) return res.status(404).json({ error: "Server not found" });
+
+        const WickMigration = require("../utils/wickMigration");
+        const migration = new WickMigration(this.client);
+
+        const result = await migration.migrate(guild);
+
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     logger.info("API", "🔥 API v2 active (v1 deprecated)");
   }
 
