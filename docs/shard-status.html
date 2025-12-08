@@ -212,6 +212,25 @@
         box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
       }
 
+      .shard-item.flashing,
+      .cluster-item.flashing {
+        animation: flash 0.5s ease-in-out infinite;
+        border-color: #667eea;
+        box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+        z-index: 100;
+      }
+
+      @keyframes flash {
+        0%, 100% {
+          background: rgba(102, 126, 234, 0.4);
+          transform: scale(1);
+        }
+        50% {
+          background: rgba(102, 126, 234, 0.7);
+          transform: scale(1.05);
+        }
+      }
+
       .tooltip {
         position: absolute;
         background: #161b22;
@@ -716,29 +735,84 @@
         }
       });
 
+      let flashInterval = null;
+      let currentHighlightedShard = null;
+
+      function flashShard(shardId) {
+        // Clear any existing flash
+        if (flashInterval) {
+          clearInterval(flashInterval);
+        }
+        if (currentHighlightedShard) {
+          currentHighlightedShard.classList.remove("flashing");
+        }
+
+        // Find the shard element
+        const shardElement = document.querySelector(
+          `.shard-item[data-shard-id="${shardId}"]`
+        );
+        if (!shardElement) return;
+
+        currentHighlightedShard = shardElement;
+        shardElement.classList.add("flashing");
+        shardElement.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // Flash for 5 seconds, then stop
+        setTimeout(() => {
+          if (flashInterval) {
+            clearInterval(flashInterval);
+            flashInterval = null;
+          }
+          if (currentHighlightedShard) {
+            currentHighlightedShard.classList.remove("flashing");
+            currentHighlightedShard = null;
+          }
+        }, 5000);
+      }
+
       // Server search functionality
-      document.getElementById("serverSearch").addEventListener("input", (e) => {
+      document.getElementById("serverSearch").addEventListener("input", async (e) => {
         const searchId = e.target.value.trim();
+        
+        // Reset all highlights
+        document.querySelectorAll(".shard-item, .cluster-item").forEach((item) => {
+          item.style.border = "";
+          item.style.boxShadow = "";
+          item.style.background = "";
+          item.classList.remove("flashing");
+        });
+
         if (!searchId) {
-          // Reset all shards
-          document.querySelectorAll(".shard-item, .cluster-item").forEach((item) => {
-            item.style.border = "";
-            item.style.boxShadow = "";
-          });
+          if (flashInterval) {
+            clearInterval(flashInterval);
+            flashInterval = null;
+          }
+          currentHighlightedShard = null;
           return;
         }
 
-        // Highlight matching shard/cluster
+        // Check if it's a numeric ID (likely a guild ID)
+        if (/^\d+$/.test(searchId) && searchId.length > 10) {
+          // This looks like a guild ID, fetch shard info
+          try {
+            const response = await window.apiCall(`/api/shards?guild=${searchId}`);
+            if (response.yourGuild && response.yourGuild.shardId !== undefined) {
+              const shardId = response.yourGuild.shardId;
+              flashShard(shardId);
+              return;
+            }
+          } catch (error) {
+            console.error("Failed to fetch guild shard:", error);
+          }
+        }
+
+        // Otherwise, highlight matching shard/cluster by ID
         document.querySelectorAll(".shard-item, .cluster-item").forEach((item) => {
           if (item.textContent === searchId) {
             item.style.border = "2px solid #667eea";
             item.style.boxShadow = "0 0 15px rgba(102, 126, 234, 0.7)";
             item.style.background = "rgba(102, 126, 234, 0.3)";
             item.scrollIntoView({ behavior: "smooth", block: "center" });
-          } else {
-            item.style.border = "";
-            item.style.boxShadow = "";
-            item.style.background = "";
           }
         });
       });
