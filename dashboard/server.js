@@ -1957,10 +1957,10 @@ class DashboardServer {
     res.status(401).json({ error: "Unauthorized" });
   }
 
-  // Middleware for HTML pages - redirects to Discord login
+  // Middleware for HTML pages - redirects to home page
   checkAuthPage(req, res, next) {
     if (req.isAuthenticated()) return next();
-    res.redirect("/login");
+    res.redirect("/");
   }
 
   // ===== PUBLIC API v1 Routes =====
