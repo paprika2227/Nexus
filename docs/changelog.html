@@ -84,8 +84,27 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 3.41.0 - December 7, 2025</h2>
+          <h2>Version 3.42.0 - December 8, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🐛 BUG FIXES & IMPROVEMENTS</h3>
+          <ul>
+            <li>
+              🔧 <strong>ChannelPinsUpdate Fix:</strong> Fixed "Cannot read
+              properties of undefined (reading 'set')" error by properly
+              initializing channelPins Map cache with defensive checks
+            </li>
+            <li>
+              🛡️ <strong>Anti-Nuke Owner Protection:</strong> Anti-nuke system
+              now ignores server owner for all actions (ban/kick/timeout) to
+              prevent errors. Owner cannot be banned/kicked by Discord API
+              limitations, so system now logs threats but skips action attempts
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 3.41.0 - December 7, 2025</h2>
+          <span class="version-badge">Previous</span>
           <h3>🌐 WEBSITE PERFORMANCE & OPTIMIZATION</h3>
           <ul>
             <li>

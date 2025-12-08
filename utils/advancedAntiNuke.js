@@ -2014,7 +2014,11 @@ class AdvancedAntiNuke {
       // User is spamming - timeout them (skip server owner)
       try {
         const member = await channel.guild.members.fetch(userId);
-        if (member && member.id !== channel.guild.ownerId && !member.permissions.has("Administrator")) {
+        if (
+          member &&
+          member.id !== channel.guild.ownerId &&
+          !member.permissions.has("Administrator")
+        ) {
           await member.timeout(
             10 * 60 * 1000,
             "Anti-Nuke: Message spam detected"
