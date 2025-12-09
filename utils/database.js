@@ -4943,7 +4943,7 @@ class Database {
   addGuildToNetwork(networkId, guildId, addedBy) {
     return new Promise((resolve, reject) => {
       this.db.run(
-        `INSERT INTO network_guilds (network_id, guild_id, added_by) VALUES (?, ?, ?)`,
+        `INSERT OR IGNORE INTO network_guilds (network_id, guild_id, added_by) VALUES (?, ?, ?)`,
         [networkId, guildId, addedBy],
         (err) => {
           if (err) reject(err);
