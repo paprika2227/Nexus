@@ -131,13 +131,23 @@ class GatewayManager extends EventEmitter {
     try {
       const shard = this.client.ws.shards.get(shardId);
       if (shard) {
-        // Get the gateway URL (wss://gateway.discord.gg)
-        gateway.gatewayUrl = shard.gateway?.url || shard.connection?.gateway || null;
-        // Resume URL is more specific
+        // Try multiple ways to get gateway URL (Discord.js v14)
+        gateway.gatewayUrl = 
+          shard.connection?.url || 
+          shard.connection?.gateway || 
+          shard.gateway?.url || 
+          shard.gatewayURL ||
+          (shard.connection ? `wss://gateway.discord.gg` : null);
+        
+        // Resume URL
         gateway.resumeUrl = shard.resumeURL || gateway.resumeUrl;
+        
+        // Debug log to see what we got
+        logger.info("GatewayManager", `[DEBUG] Shard ${shardId} gateway URL: ${gateway.gatewayUrl || 'NOT FOUND'}`);
+        logger.info("GatewayManager", `[DEBUG] Shard ${shardId} connection exists: ${!!shard.connection}`);
       }
     } catch (err) {
-      // Ignore if we can't get gateway info
+      logger.warn("GatewayManager", `[DEBUG] Error getting gateway URL: ${err.message}`);
     }
 
     logger.success("GatewayManager", `Shard ${shardId} gateway ready${gateway.gatewayUrl ? ` - ${gateway.gatewayUrl}` : ''}`);
