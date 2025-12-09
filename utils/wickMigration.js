@@ -9,7 +9,7 @@ const logger = require("./logger");
 class WickMigration {
   constructor(client) {
     this.client = client;
-    this.wickBotId = "537609283356016660"; // Wick's official bot ID
+    this.wickBotId = "536991182035746816"; // Wick's official bot ID
   }
 
   /**
