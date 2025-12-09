@@ -84,8 +84,112 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 4.1.0 - December 9, 2025</h2>
+          <h2>Version 4.1.1 - December 9, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🐛 BUG FIXES & STABILITY</h3>
+          <p>
+            Critical bug fixes for database schema conflicts, dashboard errors,
+            and system stability improvements.
+          </p>
+
+          <h4>🗄️ Database Fixes</h4>
+          <ul>
+            <li>
+              <strong>Schema Conflict Resolution:</strong> Removed duplicate
+              webhook and polls table definitions that caused crashes
+            </li>
+            <li>
+              <strong>Webhook Tables:</strong> Fixed webhook_id column missing
+              error by removing old webhook_subscriptions schema
+            </li>
+            <li>
+              <strong>Polls Tables:</strong> Eliminated 3 duplicate polls table
+              definitions with conflicting schemas
+            </li>
+            <li>
+              <strong>Index Ordering:</strong> Fixed premature index creation
+              errors (indexes created before tables existed)
+            </li>
+            <li>
+              <strong>Migration Errors:</strong> Suppressed harmless migration
+              warnings on fresh databases
+            </li>
+            <li>
+              <strong>Database Restore Script:</strong> Added fix-restored-db.js
+              for easy backup restoration
+            </li>
+          </ul>
+
+          <h4>🎨 Dashboard Fixes</h4>
+          <ul>
+            <li>
+              <strong>CSP Policy:</strong> Added cdn.jsdelivr.net and
+              cdn.discordapp.com to Content Security Policy
+            </li>
+            <li>
+              <strong>Service Worker:</strong> Fixed service worker caching
+              issues with external resources
+            </li>
+            <li>
+              <strong>API Errors:</strong> Added safety checks to prevent
+              /api/server/undefined/ errors
+            </li>
+            <li>
+              <strong>Manifest:</strong> Removed missing PWA icon references
+              (404 errors)
+            </li>
+            <li>
+              <strong>Performance:</strong> Server comparison now samples max 50
+              servers instead of all (prevents timeout)
+            </li>
+          </ul>
+
+          <h4>📸 Snapshot System Fix</h4>
+          <ul>
+            <li>
+              <strong>Auto-Recovery Default:</strong> Snapshots now run for ALL
+              guilds by default
+            </li>
+            <li>
+              <strong>Logic Change:</strong> Changed from opt-in to opt-out
+              (only skip if explicitly disabled)
+            </li>
+            <li>
+              <strong>Impact:</strong> Fixes 0/0 snapshot issue on restored
+              databases
+            </li>
+          </ul>
+
+          <h4>🗑️ Removals</h4>
+          <ul>
+            <li>
+              <strong>Premium System:</strong> Removed incomplete premium/supporter
+              tier system (per user request)
+            </li>
+            <li>
+              <strong>Commands:</strong> Reduced from 99 to 98 commands (within
+              Discord limits)
+            </li>
+          </ul>
+
+          <h4>📊 Technical Details</h4>
+          <ul>
+            <li>Fixed: SQLITE_ERROR: no such column: webhook_id</li>
+            <li>Fixed: SQLITE_ERROR: no such column: active</li>
+            <li>Fixed: SQLITE_ERROR: no such table: user_xp</li>
+            <li>Fixed: CSP violations for external CDN resources</li>
+            <li>Fixed: Service worker cache errors</li>
+            <li>Fixed: Snapshot scheduler 0 success/0 failed issue</li>
+          </ul>
+
+          <p>
+            <strong>Server Count:</strong> 48 servers (+4 from last update) | 896
+            users
+          </p>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 4.1.0 - December 9, 2025</h2>
           <h3>🚀 MAJOR FEATURE RELEASE</h3>
           <p>
             Massive expansion with 10 new systems covering infrastructure,
