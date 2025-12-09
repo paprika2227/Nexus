@@ -44,14 +44,17 @@ class RateLimitHandler {
   handleRateLimit(info) {
     this.stats.rateLimitHits++;
 
+    // Discord.js v14 uses timeToReset instead of timeout
+    const timeToReset = info.timeToReset || info.timeout || 5000;
+
     if (info.global) {
       this.stats.globalRateLimits++;
       this.globalRateLimit = true;
-      this.globalResetTime = Date.now() + info.timeout;
+      this.globalResetTime = Date.now() + timeToReset;
 
       logger.warn(
         "RateLimitHandler",
-        `⚠️ Global rate limit hit! Waiting ${info.timeout}ms`
+        `⚠️ Global rate limit hit! Waiting ${timeToReset}ms`
       );
 
       // Clear global rate limit after timeout
@@ -59,25 +62,25 @@ class RateLimitHandler {
         this.globalRateLimit = false;
         this.globalResetTime = null;
         logger.info("RateLimitHandler", "Global rate limit cleared");
-      }, info.timeout);
+      }, timeToReset);
     } else {
       // Track endpoint-specific rate limits
       const endpoint = info.route || info.method || "unknown";
       this.rateLimits.set(endpoint, {
         limit: info.limit,
         remaining: 0,
-        reset: Date.now() + info.timeout,
+        reset: Date.now() + timeToReset,
       });
 
       logger.warn(
         "RateLimitHandler",
-        `Rate limit hit on endpoint: ${endpoint} (${info.timeout}ms)`
+        `Rate limit hit on endpoint: ${endpoint} (${timeToReset}ms)`
       );
 
       // Clear endpoint rate limit after timeout
       setTimeout(() => {
         this.rateLimits.delete(endpoint);
-      }, info.timeout);
+      }, timeToReset);
     }
   }
 
