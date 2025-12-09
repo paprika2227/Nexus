@@ -825,24 +825,7 @@ class Database {
 
     // Scheduled actions - OLD TABLE REMOVED (now using enhanced version at line 390)
 
-    // Polls
-    this.db.run(`
-            CREATE TABLE IF NOT EXISTS polls (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                guild_id TEXT,
-                channel_id TEXT,
-                message_id TEXT,
-                creator_id TEXT,
-                question TEXT,
-                options TEXT,
-                votes TEXT,
-                ends_at INTEGER,
-                allow_multiple INTEGER DEFAULT 0,
-                anonymous INTEGER DEFAULT 0,
-                created_at INTEGER,
-                ended INTEGER DEFAULT 0
-            )
-        `);
+    // Polls - OLD TABLE REMOVED (duplicate, new version defined later with correct schema)
 
     // Suggestions
     this.db.run(`
@@ -1561,62 +1544,9 @@ class Database {
           );
       }
     );
-    this.db.run(
-      `CREATE INDEX IF NOT EXISTS idx_polls_guild_active ON polls(guild_id, active)`,
-      (err) => {
-        if (err)
-          logger.error("Error creating index idx_polls_guild_active:", err);
-      }
-    );
-
-    // Indexes for XP system (performance optimization)
-    this.db.run(
-      `CREATE INDEX IF NOT EXISTS idx_user_xp_guild_user ON user_xp(guild_id, user_id)`,
-      (err) => {
-        if (err)
-          logger.error("Error creating index idx_user_xp_guild_user:", err);
-      }
-    );
-    this.db.run(
-      `CREATE INDEX IF NOT EXISTS idx_user_xp_guild_xp ON user_xp(guild_id, xp DESC)`,
-      (err) => {
-        if (err)
-          logger.error("Error creating index idx_user_xp_guild_xp:", err);
-      }
-    );
-
-    // Indexes for achievements
-    this.db.run(
-      `CREATE INDEX IF NOT EXISTS idx_user_achievements_guild_user ON user_achievements(guild_id, user_id)`,
-      (err) => {
-        if (err)
-          logger.error(
-            "Error creating index idx_user_achievements_guild_user:",
-            err
-          );
-      }
-    );
-
-    // Indexes for server events
-    this.db.run(
-      `CREATE INDEX IF NOT EXISTS idx_server_events_guild_time ON server_events(guild_id, start_time)`,
-      (err) => {
-        if (err)
-          logger.error(
-            "Error creating index idx_server_events_guild_time:",
-            err
-          );
-      }
-    );
-
-    // Indexes for event RSVPs
-    this.db.run(
-      `CREATE INDEX IF NOT EXISTS idx_event_rsvp_event ON event_rsvp(event_id)`,
-      (err) => {
-        if (err)
-          logger.error("Error creating index idx_event_rsvp_event:", err);
-      }
-    );
+    // Premature indexes REMOVED - these tables are defined later in the file
+    // Indexes should be created AFTER their corresponding tables
+    // The new table definitions include their own indexes where needed
   }
 
   runMigrations() {
