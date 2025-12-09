@@ -2401,31 +2401,6 @@ class Database {
       )
     `);
 
-    // Premium/Supporter Tier System (cosmetic perks only)
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS premium_users (
-        user_id TEXT PRIMARY KEY,
-        tier TEXT NOT NULL,
-        custom_badge TEXT,
-        custom_color TEXT,
-        supporter_since INTEGER NOT NULL,
-        expires_at INTEGER,
-        perks TEXT
-      )
-    `);
-
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS premium_guilds (
-        guild_id TEXT PRIMARY KEY,
-        tier TEXT NOT NULL,
-        custom_branding TEXT,
-        white_label_config TEXT,
-        supporter_since INTEGER NOT NULL,
-        expires_at INTEGER,
-        perks TEXT
-      )
-    `);
-
     // Server Audit History
     this.db.run(`
       CREATE TABLE IF NOT EXISTS audit_history (

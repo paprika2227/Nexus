@@ -108,10 +108,6 @@ client.userProfiles = new UserProfiles(client);
 const ErrorBoundary = require("./utils/errorBoundary");
 client.errorBoundary = new ErrorBoundary(client);
 
-// Premium/Supporter System (cosmetic perks only!)
-const PremiumSystem = require("./utils/premiumSystem");
-client.premiumSystem = new PremiumSystem(client);
-
 // Integration Ecosystem (Webhooks/Zapier/IFTTT)
 const IntegrationSystem = require("./utils/integrations");
 client.integrations = new IntegrationSystem(client);
