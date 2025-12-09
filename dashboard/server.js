@@ -10,6 +10,8 @@ const compression = require("compression");
 // Ensure logger is loaded first to prevent initialization errors
 const logger = require("../utils/logger");
 const db = require("../utils/database");
+const config = require("../utils/config");
+const ApiAuth = require("../utils/apiAuth");
 
 class DashboardServer {
   constructor(client) {
@@ -62,8 +64,10 @@ class DashboardServer {
       res.setHeader(
         "Content-Security-Policy",
         "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://cdn.jsdelivr.net https://cdn.discordapp.com " +
-          (process.env.DASHBOARD_URL || "") +
-          " https://azzraya.github.io;"
+          (config.DASHBOARD_URL || "") +
+          " " +
+          config.GITHUB_PAGES_URL +
+          ";"
       );
 
       // Cache static assets for 1 day
@@ -104,24 +108,19 @@ class DashboardServer {
       "::ffff:127.0.0.1", // IPv4 mapped to IPv6
     ];
 
-    // CORS for GitHub Pages and localhost
+    // CORS for authorized origins only
     this.app.use((req, res, next) => {
       const origin = req.headers.origin;
-      const allowedOrigins = [
-        "https://azzraya.github.io",
-        "http://localhost:5500",
-        "http://127.0.0.1:5500",
-        "null", // For local file:// protocol
-        process.env.DASHBOARD_URL, // ngrok or other dashboard URL
-      ].filter(Boolean); // Remove undefined values
 
-      if (
-        allowedOrigins.includes(origin) ||
-        (origin && origin.startsWith("http://localhost"))
-      ) {
+      // Check if origin is allowed (uses config.js)
+      if (origin && config.isAllowedOrigin(origin)) {
+        res.header("Access-Control-Allow-Origin", origin);
+      } else if (origin && origin.startsWith("http://localhost")) {
+        // Allow localhost for development
         res.header("Access-Control-Allow-Origin", origin);
       } else {
-        res.header("Access-Control-Allow-Origin", "https://azzraya.github.io");
+        // Default to official site
+        res.header("Access-Control-Allow-Origin", config.GITHUB_PAGES_URL);
       }
 
       res.header(
@@ -355,13 +354,16 @@ class DashboardServer {
       req.logout(() => res.redirect("/"));
     });
 
-    // Health check endpoints (for UptimeRobot, etc.)
+    // Health check endpoints (public - for UptimeRobot)
     this.app.get("/health", this.client.healthCheck.expressEndpoint());
     this.app.get("/ping", this.client.healthCheck.pingEndpoint());
 
-    // Prometheus metrics endpoint
-    this.app.get("/metrics", (req, res) => {
+    // Prometheus metrics endpoint (optionally secured)
+    this.app.get("/metrics", ApiAuth.optionalApiKey, (req, res) => {
       try {
+        if (!config.ENABLE_METRICS) {
+          return res.status(404).send("Metrics disabled");
+        }
         const metrics = this.client.metrics.getPrometheusMetrics();
         res.setHeader("Content-Type", "text/plain; version=0.0.4");
         res.send(metrics);
@@ -371,7 +373,7 @@ class DashboardServer {
       }
     });
 
-    // Human-readable stats endpoint
+    // Human-readable stats endpoint (public but rate-limited)
     this.app.get("/api/stats/infrastructure", (req, res) => {
       try {
         const stats = this.client.metrics.getStats();
