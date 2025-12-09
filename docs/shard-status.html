@@ -707,6 +707,16 @@
             `
                 : ""
             }
+            ${
+              data.gatewayUrl
+                ? `
+              <div class="tooltip-row">
+                <span class="tooltip-label">Gateway:</span>
+                <span class="tooltip-value" style="font-size: 0.8em;">${data.gatewayUrl.replace('wss://', '').replace('.discord.gg', '')}</span>
+              </div>
+            `
+                : ""
+            }
           </div>
           <div class="tooltip-arrow"></div>
         `;
@@ -843,6 +853,8 @@
                   shard.gatewayQuality = gatewayShard.connectionQuality;
                   shard.sessionId = gatewayShard.sessionId;
                   shard.resumes = gatewayShard.resumes;
+                  shard.gatewayUrl = gatewayShard.gatewayUrl;
+                  shard.resumeUrl = gatewayShard.resumeUrl;
                 }
               });
             }

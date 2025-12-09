@@ -49,9 +49,16 @@ module.exports = {
         .map((shard) => {
           let gatewayInfo = "";
           if (gatewayStats && gatewayStats.shards) {
-            const gwShard = gatewayStats.shards.find(g => g.shardId === shard.id);
+            const gwShard = gatewayStats.shards.find(
+              (g) => g.shardId === shard.id
+            );
             if (gwShard) {
               gatewayInfo = ` | 🌐 ${gwShard.connectionQuality}% quality`;
+              // Add gateway server name if available
+              if (gwShard.gatewayUrl) {
+                const serverName = gwShard.gatewayUrl.replace('wss://', '').replace('.discord.gg', '').split('.')[0];
+                gatewayInfo += ` | 🔗 ${serverName}`;
+              }
             }
           }
           return `**Shard ${shard.id}:** ${shard.guilds} guilds, ${shard.users} users, ${shard.ping}ms ping${gatewayInfo}`;
@@ -83,9 +90,9 @@ module.exports = {
           `**Identifies:** ${g.totalIdentifies}`,
           `**Resumes:** ${g.totalResumes}`,
           `**Reconnects:** ${g.totalReconnects}`,
-          `**Health:** ${g.healthyShards}/${g.totalShards} healthy`
+          `**Health:** ${g.healthyShards}/${g.totalShards} healthy`,
         ].join("\n"),
-        inline: false
+        inline: false,
       });
     }
 

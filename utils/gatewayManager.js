@@ -34,6 +34,7 @@ class GatewayManager extends EventEmitter {
       status: "initializing",
       sessionId: null,
       resumeUrl: null,
+      gatewayUrl: null, // Main gateway URL
       lastHeartbeat: null,
       lastHeartbeatAck: null,
       heartbeatLatency: null,
@@ -126,7 +127,20 @@ class GatewayManager extends EventEmitter {
     gateway.status = "ready";
     gateway.lastConnect = Date.now();
 
-    logger.success("GatewayManager", `Shard ${shardId} gateway ready`);
+    // Capture gateway URL from WebSocket
+    try {
+      const shard = this.client.ws.shards.get(shardId);
+      if (shard) {
+        // Get the gateway URL (wss://gateway.discord.gg)
+        gateway.gatewayUrl = shard.gateway?.url || shard.connection?.gateway || null;
+        // Resume URL is more specific
+        gateway.resumeUrl = shard.resumeURL || gateway.resumeUrl;
+      }
+    } catch (err) {
+      // Ignore if we can't get gateway info
+    }
+
+    logger.success("GatewayManager", `Shard ${shardId} gateway ready${gateway.gatewayUrl ? ` - ${gateway.gatewayUrl}` : ''}`);
     this.emit("ready", { shardId });
   }
 
@@ -246,13 +260,28 @@ class GatewayManager extends EventEmitter {
   /**
    * Update session info
    */
-  updateSessionInfo(shardId, sessionId, resumeUrl, sequence) {
+  updateSessionInfo(shardId, sessionId, resumeUrl, sequence, gatewayUrl) {
     const gateway = this.shardGateways.get(shardId);
     if (!gateway) return;
 
     if (sessionId) gateway.sessionId = sessionId;
     if (resumeUrl) gateway.resumeUrl = resumeUrl;
+    if (gatewayUrl) gateway.gatewayUrl = gatewayUrl;
     if (sequence !== undefined) gateway.sequence = sequence;
+  }
+
+  /**
+   * Extract gateway server name from URL (like Dyno does)
+   * e.g., wss://gateway-us-east1-b.discord.gg -> "gateway-us-east1-b"
+   */
+  getGatewayServerName(url) {
+    if (!url) return null;
+    try {
+      const match = url.match(/wss?:\/\/([^.]+)\.discord\.gg/);
+      return match ? match[1] : url.replace(/wss?:\/\//, '').replace('.discord.gg', '');
+    } catch {
+      return null;
+    }
   }
 
   /**
