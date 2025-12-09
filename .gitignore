@@ -29,3 +29,7 @@ assets/
 COMPETITORS.txt
 competitorMonitor.js
 competitorData.json
+generate-docs.js
+jest.config.js
+jest.setup.js
+jest.config.js
