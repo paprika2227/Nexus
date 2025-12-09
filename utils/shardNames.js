@@ -5,40 +5,40 @@
 
 // Greek Gods Theme for Shards
 const SHARD_NAMES = [
-  "⚡ Zeus",      // King of gods
-  "🌊 Poseidon",  // God of sea
-  "⚔️ Ares",      // God of war
-  "🏹 Artemis",   // Goddess of hunt
-  "☀️ Apollo",    // God of sun
-  "🛡️ Athena",    // Goddess of wisdom
-  "🔱 Hades",     // God of underworld
+  "⚡ Zeus", // King of gods
+  "🌊 Poseidon", // God of sea
+  "⚔️ Ares", // God of war
+  "🏹 Artemis", // Goddess of hunt
+  "☀️ Apollo", // God of sun
+  "🛡️ Athena", // Goddess of wisdom
+  "🔱 Hades", // God of underworld
   "💘 Aphrodite", // Goddess of love
-  "⚒️ Hephaestus",// God of forge
-  "🍇 Dionysus",  // God of wine
-  "📨 Hermes",    // Messenger god
-  "🌾 Demeter",   // Goddess of harvest
-  "🔥 Hestia",    // Goddess of hearth
-  "🌙 Selene",    // Goddess of moon
-  "🌟 Helios",    // God of sun
-  "⭐ Aether",    // God of light
-  "🌑 Nyx",       // Goddess of night
-  "⚡ Kronos",    // Titan of time
-  "🏔️ Atlas",     // Titan who holds sky
-  "🌊 Oceanus",   // Titan of ocean
+  "⚒️ Hephaestus", // God of forge
+  "🍇 Dionysus", // God of wine
+  "📨 Hermes", // Messenger god
+  "🌾 Demeter", // Goddess of harvest
+  "🔥 Hestia", // Goddess of hearth
+  "🌙 Selene", // Goddess of moon
+  "🌟 Helios", // God of sun
+  "⭐ Aether", // God of light
+  "🌑 Nyx", // Goddess of night
+  "⚡ Kronos", // Titan of time
+  "🏔️ Atlas", // Titan who holds sky
+  "🌊 Oceanus", // Titan of ocean
 ];
 
 // Mythical Creatures Theme for Clusters
 const CLUSTER_NAMES = [
-  "🐉 Dragon",     // Ultimate power
-  "🦅 Phoenix",    // Rebirth
-  "🦁 Sphinx",     // Wisdom
-  "🦄 Unicorn",    // Purity
-  "🐺 Cerberus",   // Guardian
-  "🦂 Hydra",      // Regeneration
-  "🦇 Basilisk",   // Deadly
-  "🐍 Leviathan",  // Sea monster
-  "🦉 Griffin",    // Nobility
-  "🐲 Wyvern",     // Aerial might
+  "🐉 Dragon", // Ultimate power
+  "🦅 Phoenix", // Rebirth
+  "🦁 Sphinx", // Wisdom
+  "🦄 Unicorn", // Purity
+  "🐺 Cerberus", // Guardian
+  "🦂 Hydra", // Regeneration
+  "🦇 Basilisk", // Deadly
+  "🐍 Leviathan", // Sea monster
+  "🦉 Griffin", // Nobility
+  "🐲 Wyvern", // Aerial might
 ];
 
 /**

@@ -29,6 +29,9 @@ Nexus Bot ("we", "our", "us") is committed to protecting your privacy. This Priv
 - **Role and permission data** (stored in recovery snapshots for restoration purposes)
 - **Whitelist data** (user IDs exempt from anti-nuke monitoring)
 - **Predictive threat patterns** (behavioral patterns and confidence scores for threat prediction)
+- **XP and leveling data** (user experience points, levels, message activity for leveling systems)
+- **Vote history** (bot voting records, vote streaks, timestamps)
+- **Achievement data** (unlocked achievements, progress tracking, timestamps)
 
 ### Technical Information
 
@@ -37,6 +40,7 @@ Nexus Bot ("we", "our", "us") is committed to protecting your privacy. This Priv
 - Error logs
 - API usage data
 - Event processing times
+- **Gateway/Shard monitoring data** (shard connection status, latency, session IDs, gateway URLs, heartbeat tracking, reconnection events, connection quality metrics)
 
 ### Dashboard Authentication Information
 
@@ -101,6 +105,10 @@ When you log in to the Nexus Bot dashboard, we collect:
 - **Security logs with threat types**: 90 days (includes threat classification and actions taken)
 - **Whitelist data**: Retained while bot is in server, deleted 30 days after bot removal
 - **Predictive threat patterns**: 90 days (anonymized after 30 days)
+- **Gateway/shard monitoring data**: 30 days (connection logs, latency metrics, session data)
+- **XP and leveling data**: Retained while bot is in server, deleted 30 days after bot removal
+- **Vote history**: 1 year (for streak tracking and rewards)
+- **Achievement data**: Retained while bot is in server, deleted 30 days after bot removal
 
 ## Auto-Recovery System
 
@@ -277,6 +285,10 @@ Data will be provided in JSON format including:
 - **Recovery snapshots** (if requested)
 - **Performance metrics** (if requested)
 - **Security logs** (if requested)
+- **Gateway/shard monitoring data** (if requested)
+- **XP and leveling data** (if applicable)
+- **Vote history** (if applicable)
+- **Achievement data** (if applicable)
 
 ## International Data Transfers
 
@@ -416,6 +428,7 @@ We may update this Privacy Policy from time to time. We will:
 
 ## Version History
 
+- **December 5, 2025** - Added XP/leveling system, vote rewards, and achievement tracking documentation
 - **December 5, 2025** - Added OAuth dashboard authentication tracking documentation
 - **December 5, 2025** - Added message edit/delete event logging documentation, API v2 deprecation notice
 - **December 1, 2025** - Added enhanced recovery features (webhooks, emojis, stickers, server settings), whitelist system, predictive threat detection documentation

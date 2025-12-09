@@ -18,6 +18,10 @@ Nexus Bot is a Discord security and moderation bot that provides:
 - Analytics and reporting
 - Performance monitoring
 - AI-powered recommendations
+- **XP and leveling system** (user experience points and progression tracking)
+- **Vote rewards** (rewards for voting for the bot on bot lists)
+- **Achievement system** (unlockable achievements for users and servers)
+- **Enterprise-grade infrastructure monitoring** (gateway/shard health, connection quality, latency tracking)
 
 ## Eligibility
 
@@ -183,6 +187,7 @@ Continued use of the Bot after changes constitutes acceptance.
 
 ## Version History
 
+- **December 5, 2025** - Added XP/leveling system, vote rewards, achievement system, and gateway/shard monitoring to service description
 - **December 1, 2025** - Added enhanced recovery features (webhooks, emojis, stickers, server settings), updated auto-recovery disclaimers
 - **December 1, 2025** - Added auto-recovery snapshots, server lockdown, AI and automated decision-making sections
 - **December 1, 2025** - Initial comprehensive terms of service with GDPR, CCPA, and Discord ToS compliance

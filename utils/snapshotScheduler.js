@@ -99,7 +99,7 @@ class SnapshotScheduler {
             // Only skip if explicitly disabled (auto_recovery_enabled = 0)
             const config = await db.getServerConfig(guild.id);
             const isDisabled = config && config.auto_recovery_enabled === 0;
-            
+
             if (!isDisabled) {
               await AutoRecovery.createSnapshot(
                 guild,

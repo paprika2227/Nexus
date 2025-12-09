@@ -26,6 +26,9 @@ This document explains how Nexus Bot handles, stores, and protects data.
 - **Role and permission data** (stored in recovery snapshots for restoration purposes)
 - **Whitelist data** (user IDs exempt from anti-nuke monitoring)
 - **Predictive threat patterns** (behavioral patterns and confidence scores for threat prediction)
+- **XP and leveling data** (user experience points, levels, message activity for leveling systems)
+- **Vote history** (bot voting records, vote streaks, timestamps)
+- **Achievement data** (unlocked achievements, progress tracking, timestamps)
 
 **Technical Data:**
 
@@ -33,6 +36,7 @@ This document explains how Nexus Bot handles, stores, and protects data.
 - Bot performance metrics (command execution times, database query performance, memory usage)
 - Error logs (for debugging)
 - Event processing times
+- **Gateway/Shard monitoring data** (shard connection status, latency, session IDs, gateway URLs, heartbeat tracking, reconnection events, connection quality metrics)
 
 ### What We DON'T Collect
 
@@ -71,6 +75,10 @@ This document explains how Nexus Bot handles, stores, and protects data.
 - **Performance metrics**: 90 days (deleted 30 days after bot removal)
 - Threat intelligence: 30 days
 - **Security logs with threat types**: 90 days (includes threat classification and actions taken)
+- **Gateway/shard monitoring data**: 30 days (connection logs, latency metrics, session data)
+- **XP and leveling data**: Retained while bot is in server, deleted 30 days after bot removal
+- **Vote history**: 1 year (for streak tracking and rewards)
+- **Achievement data**: Retained while bot is in server, deleted 30 days after bot removal
 
 ## Data Usage
 
@@ -97,6 +105,13 @@ This document explains how Nexus Bot handles, stores, and protects data.
 - Improve performance
 - Add features
 - Generate statistics
+- Monitor gateway/shard health and connection quality
+
+### Gamification & Community
+
+- Track user XP and levels
+- Award achievements for milestones
+- Reward bot voting and engagement
 
 ## Data Sharing
 
@@ -313,6 +328,7 @@ Recovery snapshots contain complete server structure data:
 
 ## Version History
 
+- **December 5, 2025** - Added XP/leveling system, vote rewards, achievement tracking, and gateway/shard monitoring documentation
 - **December 1, 2025** - Added enhanced recovery features (webhooks, emojis, stickers, server settings), whitelist system, predictive threat detection, parallel processing optimizations
 - **December 1, 2025** - Added auto-recovery snapshots documentation, performance metrics, enhanced security logging, server lockdown features
 - **December 1, 2025** - Updated data sharing disclosure, added threat intelligence details, added AI processing information
@@ -320,4 +336,4 @@ Recovery snapshots contain complete server structure data:
 
 ---
 
-_Data Handling Policy - Last Updated: December 1, 2025_
+_Data Handling Policy - Last Updated: December 5, 2025_

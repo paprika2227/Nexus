@@ -131,7 +131,10 @@ class GatewayManager extends EventEmitter {
     // Just use the default Discord gateway URL
     gateway.gatewayUrl = `wss://gateway.discord.gg`;
 
-    logger.success("GatewayManager", `Shard ${shardId} gateway ready${gateway.gatewayUrl ? ` - ${gateway.gatewayUrl}` : ''}`);
+    logger.success(
+      "GatewayManager",
+      `Shard ${shardId} gateway ready${gateway.gatewayUrl ? ` - ${gateway.gatewayUrl}` : ""}`
+    );
     this.emit("ready", { shardId });
   }
 
@@ -269,7 +272,9 @@ class GatewayManager extends EventEmitter {
     if (!url) return null;
     try {
       const match = url.match(/wss?:\/\/([^.]+)\.discord\.gg/);
-      return match ? match[1] : url.replace(/wss?:\/\//, '').replace('.discord.gg', '');
+      return match
+        ? match[1]
+        : url.replace(/wss?:\/\//, "").replace(".discord.gg", "");
     } catch {
       return null;
     }
