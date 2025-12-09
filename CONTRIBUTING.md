@@ -87,7 +87,7 @@ npm run dev
 
 ```
 nexus-bot/
-├── commands/          # Slash commands
+├── commands/         # Slash commands
 ├── events/           # Discord event handlers
 ├── utils/            # Utility functions & systems
 ├── dashboard/        # Web dashboard
