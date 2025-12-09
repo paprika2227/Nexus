@@ -87,11 +87,18 @@
           <h2>Version 4.1.0 - December 9, 2025</h2>
           <span class="version-badge">Latest</span>
           <h3>🚀 MAJOR FEATURE RELEASE</h3>
-          <p>Massive expansion with 10 new systems covering infrastructure, community, premium, and developer tools!</p>
-          
+          <p>
+            Massive expansion with 10 new systems covering infrastructure,
+            community, premium, and developer tools!
+          </p>
+
           <h4>🛡️ Error & Reliability</h4>
           <ul>
-            <li><strong>Error Boundary System:</strong> Advanced error recovery with circuit breakers, automatic retries, and user-friendly error messages</li>
+            <li>
+              <strong>Error Boundary System:</strong> Advanced error recovery
+              with circuit breakers, automatic retries, and user-friendly error
+              messages
+            </li>
             <li>Real-time error monitoring and pattern detection</li>
             <li>Admin notifications for critical issues</li>
             <li>Error snapshots for debugging</li>
@@ -99,9 +106,14 @@
 
           <h4>🔍 Server Audit</h4>
           <ul>
-            <li><strong>/audit full:</strong> Comprehensive security audit with scoring</li>
+            <li>
+              <strong>/audit full:</strong> Comprehensive security audit with
+              scoring
+            </li>
             <li><strong>/audit quick:</strong> Fast security check</li>
-            <li><strong>/audit permissions:</strong> Role permission analysis</li>
+            <li>
+              <strong>/audit permissions:</strong> Role permission analysis
+            </li>
             <li><strong>/audit channels:</strong> Channel security review</li>
             <li>12-point security scoring system</li>
           </ul>
@@ -175,26 +187,40 @@
             <li>Jest testing framework</li>
             <li>Test coverage for Database, Heat System, Error Boundary</li>
             <li>70% coverage threshold</li>
-            <li>Scripts: npm test, npm run test:coverage, npm run test:watch</li>
+            <li>
+              Scripts: npm test, npm run test:coverage, npm run test:watch
+            </li>
           </ul>
 
           <h4>🗄️ Database Updates</h4>
           <ul>
             <li>New tables: error_logs, error_snapshots, audit_history</li>
             <li>Premium tables: premium_users, premium_guilds</li>
-            <li>Integration tables: webhooks, webhook_deliveries, integration_keys</li>
+            <li>
+              Integration tables: webhooks, webhook_deliveries, integration_keys
+            </li>
           </ul>
 
-          <p><strong>Impact:</strong> This release transforms Nexus from a security bot into a complete ecosystem with developer tools, community support, and premium cosmetics - all while keeping 100% of functionality free!</p>
+          <p>
+            <strong>Impact:</strong> This release transforms Nexus from a
+            security bot into a complete ecosystem with developer tools,
+            community support, and premium cosmetics - all while keeping 100% of
+            functionality free!
+          </p>
         </div>
 
         <div class="changelog-entry">
           <h2>Version 4.0.1 - December 9, 2025</h2>
           <h3>🐛 BUG FIXES</h3>
-          <p>Critical stability improvements for database operations and multi-server networking.</p>
+          <p>
+            Critical stability improvements for database operations and
+            multi-server networking.
+          </p>
           <ul>
             <li>
-              🔧 <strong>Database UNIQUE Constraint Protection:</strong> Added <code>OR IGNORE</code> to all INSERT statements that could trigger UNIQUE constraint violations
+              🔧 <strong>Database UNIQUE Constraint Protection:</strong> Added
+              <code>OR IGNORE</code> to all INSERT statements that could trigger
+              UNIQUE constraint violations
               <ul>
                 <li>Fixed network_guilds duplicate join crashes</li>
                 <li>Fixed reaction_roles duplicate role crashes</li>
@@ -204,14 +230,21 @@
               </ul>
             </li>
             <li>
-              🌐 <strong>Network Broadcast Fix:</strong> Fixed <code>/network broadcast</code> command crash when network doesn't exist or announcements are disabled
+              🌐 <strong>Network Broadcast Fix:</strong> Fixed
+              <code>/network broadcast</code> command crash when network doesn't
+              exist or announcements are disabled
               <ul>
-                <li>Now properly returns results object instead of undefined</li>
+                <li>
+                  Now properly returns results object instead of undefined
+                </li>
                 <li>Better error messages for disabled features</li>
               </ul>
             </li>
           </ul>
-          <p><strong>Impact:</strong> These fixes prevent all command crashes related to duplicate database entries and undefined return values.</p>
+          <p>
+            <strong>Impact:</strong> These fixes prevent all command crashes
+            related to duplicate database entries and undefined return values.
+          </p>
         </div>
 
         <div class="changelog-entry">

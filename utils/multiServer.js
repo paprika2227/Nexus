@@ -185,7 +185,11 @@ class MultiServerManagement {
   ) {
     const network = this.networks.get(networkId);
     if (!network || !network.config.sharedAnnouncements) {
-      return { success: 0, failed: 0, errors: ["Network not found or announcements disabled"] };
+      return {
+        success: 0,
+        failed: 0,
+        errors: ["Network not found or announcements disabled"],
+      };
     }
 
     const results = { success: 0, failed: 0, errors: [] };

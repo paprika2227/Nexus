@@ -2,24 +2,26 @@
  * Nexus Bot Embeddable Widget
  * Displays live bot statistics on any website
  */
-(function() {
-  'use strict';
+(function () {
+  "use strict";
 
-  const API_URL = document.currentScript.src.replace('/widget.js', '');
-  const theme = document.currentScript.getAttribute('data-theme') || 'light';
-  const layout = document.currentScript.getAttribute('data-layout') || 'compact';
-  const showButton = document.currentScript.getAttribute('data-show-button') !== 'false';
+  const API_URL = document.currentScript.src.replace("/widget.js", "");
+  const theme = document.currentScript.getAttribute("data-theme") || "light";
+  const layout =
+    document.currentScript.getAttribute("data-layout") || "compact";
+  const showButton =
+    document.currentScript.getAttribute("data-show-button") !== "false";
 
   // Inject CSS
-  const style = document.createElement('style');
+  const style = document.createElement("style");
   style.textContent = `
     .nexus-widget {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: ${theme === 'dark' ? '#2d2d2d' : 'white'};
-      color: ${theme === 'dark' ? '#f8f8f2' : '#333'};
+      background: ${theme === "dark" ? "#2d2d2d" : "white"};
+      color: ${theme === "dark" ? "#f8f8f2" : "#333"};
       border-radius: 12px;
       padding: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,${theme === 'dark' ? '0.3' : '0.1'});
+      box-shadow: 0 4px 12px rgba(0,0,0,${theme === "dark" ? "0.3" : "0.1"});
       max-width: 400px;
     }
     .nexus-widget-header {
@@ -40,7 +42,7 @@
     }
     .nexus-widget-status {
       font-size: 13px;
-      color: ${theme === 'dark' ? '#73d13d' : '#52c41a'};
+      color: ${theme === "dark" ? "#73d13d" : "#52c41a"};
     }
     .nexus-widget-stats {
       display: grid;
@@ -51,7 +53,7 @@
     .nexus-widget-stat {
       text-align: center;
       padding: 12px;
-      background: ${theme === 'dark' ? '#3a3a3a' : '#f8f9fa'};
+      background: ${theme === "dark" ? "#3a3a3a" : "#f8f9fa"};
       border-radius: 8px;
     }
     .nexus-widget-stat-value {
@@ -61,7 +63,7 @@
     }
     .nexus-widget-stat-label {
       font-size: 12px;
-      color: ${theme === 'dark' ? '#aaa' : '#666'};
+      color: ${theme === "dark" ? "#aaa" : "#666"};
       text-transform: uppercase;
       margin-top: 4px;
     }
@@ -99,11 +101,11 @@
         </div>
     `;
 
-    if (layout !== 'minimal') {
+    if (layout !== "minimal") {
       html += `
         <div class="nexus-widget-stats">
           <div class="nexus-widget-stat">
-            <div class="nexus-widget-stat-value">${stats.servers || '...'}</div>
+            <div class="nexus-widget-stat-value">${stats.servers || "..."}</div>
             <div class="nexus-widget-stat-label">Servers</div>
           </div>
           <div class="nexus-widget-stat">
@@ -114,11 +116,11 @@
       `;
     }
 
-    if (layout === 'full') {
+    if (layout === "full") {
       html += `
         <div class="nexus-widget-stats">
           <div class="nexus-widget-stat">
-            <div class="nexus-widget-stat-value">${stats.uptime || '99.9%'}</div>
+            <div class="nexus-widget-stat-value">${stats.uptime || "99.9%"}</div>
             <div class="nexus-widget-stat-label">Uptime</div>
           </div>
           <div class="nexus-widget-stat">
@@ -139,7 +141,7 @@
       `;
     }
 
-    html += '</div>';
+    html += "</div>";
     return html;
   }
 
@@ -148,14 +150,14 @@
     try {
       const response = await fetch(`${API_URL}/api/stats`);
       const stats = await response.json();
-      
-      const container = document.getElementById('nexus-widget');
+
+      const container = document.getElementById("nexus-widget");
       if (container) {
         container.innerHTML = createWidget(stats);
       }
     } catch (error) {
-      console.error('Nexus Widget: Failed to load stats', error);
-      const container = document.getElementById('nexus-widget');
+      console.error("Nexus Widget: Failed to load stats", error);
+      const container = document.getElementById("nexus-widget");
       if (container) {
         container.innerHTML = createWidget({});
       }
@@ -163,8 +165,8 @@
   }
 
   // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
   }

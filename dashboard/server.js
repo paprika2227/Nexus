@@ -6371,7 +6371,9 @@ class DashboardServer {
         // Check if bot is in the guild
         const guildObj = this.client.guilds.cache.get(guild);
         if (!guildObj) {
-          return res.status(404).json({ error: "Server not found or bot not in server" });
+          return res
+            .status(404)
+            .json({ error: "Server not found or bot not in server" });
         }
 
         const ServerComparison = require("../utils/serverComparison");
@@ -6382,7 +6384,9 @@ class DashboardServer {
         res.json(report);
       } catch (error) {
         logger.error(`[API] Comparison error:`, error);
-        res.status(500).json({ error: error.message || "Failed to generate comparison" });
+        res
+          .status(500)
+          .json({ error: error.message || "Failed to generate comparison" });
       }
     });
 

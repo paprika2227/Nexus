@@ -103,7 +103,10 @@ class ServerComparison {
           const { score } = await this.calculateSecurityScore(id);
           return score;
         } catch (error) {
-          logger.error(`[ServerComparison] Error calculating score for ${id}:`, error);
+          logger.error(
+            `[ServerComparison] Error calculating score for ${id}:`,
+            error
+          );
           return 0;
         }
       })
@@ -149,9 +152,7 @@ class ServerComparison {
    */
   async getAverageScores() {
     // Sample max 50 servers to avoid timeout
-    const allServers = this.client.guilds.cache
-      .map((g) => g.id)
-      .slice(0, 50);
+    const allServers = this.client.guilds.cache.map((g) => g.id).slice(0, 50);
 
     const scores = await Promise.all(
       allServers.map(async (id) => {
@@ -159,7 +160,10 @@ class ServerComparison {
           const { score, breakdown } = await this.calculateSecurityScore(id);
           return { score, breakdown };
         } catch (error) {
-          logger.error(`[ServerComparison] Error calculating score for ${id}:`, error);
+          logger.error(
+            `[ServerComparison] Error calculating score for ${id}:`,
+            error
+          );
           return { score: 0, breakdown: {} };
         }
       })
@@ -170,7 +174,8 @@ class ServerComparison {
       return { overall: 50, antiRaid: 10, antiNuke: 12, autoMod: 8 };
     }
 
-    const avg = validScores.reduce((sum, s) => sum + s.score, 0) / validScores.length;
+    const avg =
+      validScores.reduce((sum, s) => sum + s.score, 0) / validScores.length;
 
     return {
       overall: Math.round(avg),

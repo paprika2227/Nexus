@@ -36,25 +36,31 @@ self.addEventListener("fetch", (event) => {
         return response;
       }
 
-      return fetch(event.request).then((response) => {
-        // Check if we received a valid response
-        if (!response || response.status !== 200 || response.type !== "basic") {
+      return fetch(event.request)
+        .then((response) => {
+          // Check if we received a valid response
+          if (
+            !response ||
+            response.status !== 200 ||
+            response.type !== "basic"
+          ) {
+            return response;
+          }
+
+          // Clone the response
+          const responseToCache = response.clone();
+
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+
           return response;
-        }
-
-        // Clone the response
-        const responseToCache = response.clone();
-
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
+        })
+        .catch((error) => {
+          // If fetch fails, just return the error silently
+          console.log("Fetch failed for:", event.request.url);
+          return new Response("Network error", { status: 408 });
         });
-
-        return response;
-      }).catch((error) => {
-        // If fetch fails, just return the error silently
-        console.log("Fetch failed for:", event.request.url);
-        return new Response("Network error", { status: 408 });
-      });
     })
   );
 });

@@ -24,9 +24,7 @@ module.exports = {
       if (!analysis.hasWick) {
         const embed = new EmbedBuilder()
           .setTitle("ℹ️ Wick Not Found")
-          .setDescription(
-            "Wick bot is not in this server. Nothing to migrate!"
-          )
+          .setDescription("Wick bot is not in this server. Nothing to migrate!")
           .setColor(0x2196f3);
 
         return await interaction.editReply({ embeds: [embed] });

@@ -1,7 +1,7 @@
-const axios = require('axios');
-const crypto = require('crypto');
-const db = require('./database');
-const logger = require('./logger');
+const axios = require("axios");
+const crypto = require("crypto");
+const db = require("./database");
+const logger = require("./logger");
 
 /**
  * Integration Ecosystem
@@ -12,7 +12,7 @@ class IntegrationSystem {
     this.client = client;
     this.webhookQueue = [];
     this.rateLimits = new Map();
-    
+
     this.startWebhookProcessor();
   }
 
@@ -23,28 +23,36 @@ class IntegrationSystem {
     try {
       // Validate URL
       if (!this.isValidUrl(url)) {
-        return { success: false, error: 'Invalid webhook URL' };
+        return { success: false, error: "Invalid webhook URL" };
       }
 
       // Generate webhook ID and secret
-      const webhookId = crypto.randomBytes(16).toString('hex');
-      const webhookSecret = secret || crypto.randomBytes(32).toString('hex');
+      const webhookId = crypto.randomBytes(16).toString("hex");
+      const webhookSecret = secret || crypto.randomBytes(32).toString("hex");
 
       await db.db.run(
         `INSERT INTO webhooks (id, guild_id, url, events, secret, created_at, active)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [webhookId, guildId, url, JSON.stringify(events), webhookSecret, Date.now(), 1]
+        [
+          webhookId,
+          guildId,
+          url,
+          JSON.stringify(events),
+          webhookSecret,
+          Date.now(),
+          1,
+        ]
       );
 
       logger.info(`[Integrations] Registered webhook for guild ${guildId}`);
-      
-      return { 
-        success: true, 
+
+      return {
+        success: true,
         webhookId,
-        secret: webhookSecret 
+        secret: webhookSecret,
       };
     } catch (error) {
-      logger.error('[Integrations] Failed to register webhook', error);
+      logger.error("[Integrations] Failed to register webhook", error);
       return { success: false, error: error.message };
     }
   }
@@ -61,15 +69,15 @@ class IntegrationSystem {
       );
 
       for (const webhook of webhooks) {
-        const events = JSON.parse(webhook.events || '[]');
-        
+        const events = JSON.parse(webhook.events || "[]");
+
         // Check if webhook is subscribed to this event
-        if (events.includes(eventType) || events.includes('*')) {
+        if (events.includes(eventType) || events.includes("*")) {
           this.queueWebhook(webhook, eventType, payload);
         }
       }
     } catch (error) {
-      logger.error('[Integrations] Failed to trigger webhooks', error);
+      logger.error("[Integrations] Failed to trigger webhooks", error);
     }
   }
 
@@ -81,7 +89,7 @@ class IntegrationSystem {
       webhook,
       eventType,
       payload,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -112,22 +120,29 @@ class IntegrationSystem {
       }
 
       // Create signature
-      const signature = this.createSignature(webhook.secret, JSON.stringify(payload));
+      const signature = this.createSignature(
+        webhook.secret,
+        JSON.stringify(payload)
+      );
 
       // Send webhook
-      const response = await axios.post(webhook.url, {
-        event: eventType,
-        timestamp: Date.now(),
-        data: payload
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Nexus-Signature': signature,
-          'X-Nexus-Event': eventType,
-          'User-Agent': 'NexusBot-Webhooks/1.0'
+      const response = await axios.post(
+        webhook.url,
+        {
+          event: eventType,
+          timestamp: Date.now(),
+          data: payload,
         },
-        timeout: 5000
-      });
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-Nexus-Signature": signature,
+            "X-Nexus-Event": eventType,
+            "User-Agent": "NexusBot-Webhooks/1.0",
+          },
+          timeout: 5000,
+        }
+      );
 
       // Log successful delivery
       await db.db.run(
@@ -136,18 +151,28 @@ class IntegrationSystem {
         [webhook.id, eventType, response.status, Date.now()]
       );
 
-      logger.info(`[Integrations] Webhook delivered: ${webhook.id} - ${eventType}`);
-
+      logger.info(
+        `[Integrations] Webhook delivered: ${webhook.id} - ${eventType}`
+      );
     } catch (error) {
       // Log failed delivery
       await db.db.run(
         `INSERT INTO webhook_deliveries (webhook_id, event_type, status_code, success, error_message, delivered_at)
          VALUES (?, ?, ?, 0, ?, ?)`,
-        [webhook.id, eventType, error.response?.status || 0, error.message, Date.now()]
+        [
+          webhook.id,
+          eventType,
+          error.response?.status || 0,
+          error.message,
+          Date.now(),
+        ]
       );
 
-      logger.error(`[Integrations] Webhook delivery failed: ${webhook.id}`, error.message);
-      
+      logger.error(
+        `[Integrations] Webhook delivery failed: ${webhook.id}`,
+        error.message
+      );
+
       // Disable webhook after too many failures
       await this.checkWebhookHealth(webhook.id);
     }
@@ -167,19 +192,21 @@ class IntegrationSystem {
       );
 
       if (recentDeliveries.length >= 10) {
-        const failures = recentDeliveries.filter(d => !d.success).length;
-        
-        if (failures >= 8) { // 80% failure rate
-          await db.db.run(
-            `UPDATE webhooks SET active = 0 WHERE id = ?`,
-            [webhookId]
+        const failures = recentDeliveries.filter((d) => !d.success).length;
+
+        if (failures >= 8) {
+          // 80% failure rate
+          await db.db.run(`UPDATE webhooks SET active = 0 WHERE id = ?`, [
+            webhookId,
+          ]);
+
+          logger.warn(
+            `[Integrations] Disabled webhook ${webhookId} due to high failure rate`
           );
-          
-          logger.warn(`[Integrations] Disabled webhook ${webhookId} due to high failure rate`);
         }
       }
     } catch (error) {
-      logger.error('[Integrations] Failed to check webhook health', error);
+      logger.error("[Integrations] Failed to check webhook health", error);
     }
   }
 
@@ -187,10 +214,7 @@ class IntegrationSystem {
    * Create HMAC signature for webhook verification
    */
   createSignature(secret, payload) {
-    return crypto
-      .createHmac('sha256', secret)
-      .update(payload)
-      .digest('hex');
+    return crypto.createHmac("sha256", secret).update(payload).digest("hex");
   }
 
   /**
@@ -216,7 +240,8 @@ class IntegrationSystem {
       return false;
     }
 
-    if (limit.count >= 60) { // 60 requests per minute max
+    if (limit.count >= 60) {
+      // 60 requests per minute max
       return true;
     }
 
@@ -231,7 +256,7 @@ class IntegrationSystem {
   isValidUrl(url) {
     try {
       const parsed = new URL(url);
-      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
     } catch {
       return false;
     }
@@ -241,8 +266,8 @@ class IntegrationSystem {
    * Zapier Integration - Generate polling URL
    */
   async getZapierPollingURL(guildId, eventType) {
-    const apiKey = await this.generateAPIKey(guildId, 'zapier');
-    return `${process.env.PUBLIC_URL || 'http://localhost:3000'}/api/integrations/zapier/poll?guild=${guildId}&event=${eventType}&key=${apiKey}`;
+    const apiKey = await this.generateAPIKey(guildId, "zapier");
+    return `${process.env.PUBLIC_URL || "http://localhost:3000"}/api/integrations/zapier/poll?guild=${guildId}&event=${eventType}&key=${apiKey}`;
   }
 
   /**
@@ -251,18 +276,19 @@ class IntegrationSystem {
   async getIFTTTWebhookURL(guildId, eventType) {
     const result = await this.registerWebhook(
       guildId,
-      'https://maker.ifttt.com/trigger/{event}/with/key/{your-key}',
+      "https://maker.ifttt.com/trigger/{event}/with/key/{your-key}",
       [eventType]
     );
-    
+
     if (result.success) {
       return {
         success: true,
         webhookId: result.webhookId,
-        instructions: 'Replace {event} with your IFTTT event name and {your-key} with your IFTTT Webhooks key'
+        instructions:
+          "Replace {event} with your IFTTT event name and {your-key} with your IFTTT Webhooks key",
       };
     }
-    
+
     return result;
   }
 
@@ -270,18 +296,18 @@ class IntegrationSystem {
    * Generate API key for external integrations
    */
   async generateAPIKey(guildId, service) {
-    const apiKey = crypto.randomBytes(32).toString('hex');
-    
+    const apiKey = crypto.randomBytes(32).toString("hex");
+
     try {
       await db.db.run(
         `INSERT INTO integration_keys (guild_id, service, api_key, created_at)
          VALUES (?, ?, ?, ?)`,
         [guildId, service, apiKey, Date.now()]
       );
-      
+
       return apiKey;
     } catch (error) {
-      logger.error('[Integrations] Failed to generate API key', error);
+      logger.error("[Integrations] Failed to generate API key", error);
       return null;
     }
   }
@@ -295,10 +321,10 @@ class IntegrationSystem {
         `SELECT guild_id, service FROM integration_keys WHERE api_key = ?`,
         [apiKey]
       );
-      
+
       return result || null;
     } catch (error) {
-      logger.error('[Integrations] Failed to validate API key', error);
+      logger.error("[Integrations] Failed to validate API key", error);
       return null;
     }
   }
@@ -308,22 +334,22 @@ class IntegrationSystem {
    */
   getSupportedEvents() {
     return [
-      'member.join',
-      'member.leave',
-      'member.ban',
-      'member.unban',
-      'message.delete',
-      'message.edit',
-      'role.create',
-      'role.delete',
-      'channel.create',
-      'channel.delete',
-      'raid.detected',
-      'spam.detected',
-      'threat.detected',
-      'security.alert',
-      'backup.completed',
-      'config.changed'
+      "member.join",
+      "member.leave",
+      "member.ban",
+      "member.unban",
+      "message.delete",
+      "message.edit",
+      "role.create",
+      "role.delete",
+      "channel.create",
+      "channel.delete",
+      "raid.detected",
+      "spam.detected",
+      "threat.detected",
+      "security.alert",
+      "backup.completed",
+      "config.changed",
     ];
   }
 }

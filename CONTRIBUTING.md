@@ -199,17 +199,17 @@ npm run test:watch
 Example:
 
 ```javascript
-describe('AutoMod System', () => {
-  test('should detect spam messages', async () => {
-    const message = createMockMessage('spam spam spam');
+describe("AutoMod System", () => {
+  test("should detect spam messages", async () => {
+    const message = createMockMessage("spam spam spam");
     const result = await automod.checkMessage(message);
     expect(result.isSpam).toBe(true);
   });
 
-  test('should handle database errors gracefully', async () => {
+  test("should handle database errors gracefully", async () => {
     // Simulate database error
-    db.get = jest.fn().mockRejectedValue(new Error('DB Error'));
-    const result = await automod.getConfig('123');
+    db.get = jest.fn().mockRejectedValue(new Error("DB Error"));
+    const result = await automod.getConfig("123");
     expect(result).toBe(null);
   });
 });

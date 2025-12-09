@@ -6,8 +6,8 @@
  * Usage: node generate-docs.js
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 class DocGenerator {
   constructor() {
@@ -20,7 +20,7 @@ class DocGenerator {
    * Main generation function
    */
   async generate() {
-    console.log('🚀 Starting documentation generation...\n');
+    console.log("🚀 Starting documentation generation...\n");
 
     // Scan directories
     await this.scanCommands();
@@ -33,21 +33,21 @@ class DocGenerator {
     this.generateEventsDocs();
     this.generateIndexDocs();
 
-    console.log('\n✅ Documentation generation complete!');
-    console.log('📁 Output: readmes/AUTO_GENERATED_DOCS.md');
+    console.log("\n✅ Documentation generation complete!");
+    console.log("📁 Output: readmes/AUTO_GENERATED_DOCS.md");
   }
 
   /**
    * Scan commands directory
    */
   async scanCommands() {
-    const commandsDir = path.join(__dirname, 'commands');
-    const files = fs.readdirSync(commandsDir).filter(f => f.endsWith('.js'));
+    const commandsDir = path.join(__dirname, "commands");
+    const files = fs.readdirSync(commandsDir).filter((f) => f.endsWith(".js"));
 
     for (const file of files) {
       const filePath = path.join(commandsDir, file);
-      const content = fs.readFileSync(filePath, 'utf8');
-      
+      const content = fs.readFileSync(filePath, "utf8");
+
       const command = this.extractCommandInfo(content, file);
       if (command) {
         this.commands.push(command);
@@ -61,13 +61,13 @@ class DocGenerator {
    * Scan utils directory
    */
   async scanUtils() {
-    const utilsDir = path.join(__dirname, 'utils');
-    const files = fs.readdirSync(utilsDir).filter(f => f.endsWith('.js'));
+    const utilsDir = path.join(__dirname, "utils");
+    const files = fs.readdirSync(utilsDir).filter((f) => f.endsWith(".js"));
 
     for (const file of files) {
       const filePath = path.join(utilsDir, file);
-      const content = fs.readFileSync(filePath, 'utf8');
-      
+      const content = fs.readFileSync(filePath, "utf8");
+
       const util = this.extractUtilInfo(content, file);
       if (util) {
         this.utils.push(util);
@@ -81,13 +81,13 @@ class DocGenerator {
    * Scan events directory
    */
   async scanEvents() {
-    const eventsDir = path.join(__dirname, 'events');
-    const files = fs.readdirSync(eventsDir).filter(f => f.endsWith('.js'));
+    const eventsDir = path.join(__dirname, "events");
+    const files = fs.readdirSync(eventsDir).filter((f) => f.endsWith(".js"));
 
     for (const file of files) {
       const filePath = path.join(eventsDir, file);
-      const content = fs.readFileSync(filePath, 'utf8');
-      
+      const content = fs.readFileSync(filePath, "utf8");
+
       const event = this.extractEventInfo(content, file);
       if (event) {
         this.events.push(event);
@@ -104,26 +104,27 @@ class DocGenerator {
     try {
       const nameMatch = content.match(/\.setName\(['"](.+)['"]\)/);
       const descMatch = content.match(/\.setDescription\(['"](.+)['"]\)/);
-      
+
       if (!nameMatch) return null;
 
       // Extract subcommands
       const subcommands = [];
-      const subcommandRegex = /\.addSubcommand\(.*?\.setName\(['"](.+?)['"]\).*?\.setDescription\(['"](.+?)['"]\)/gs;
+      const subcommandRegex =
+        /\.addSubcommand\(.*?\.setName\(['"](.+?)['"]\).*?\.setDescription\(['"](.+?)['"]\)/gs;
       let match;
 
       while ((match = subcommandRegex.exec(content)) !== null) {
         subcommands.push({
           name: match[1],
-          description: match[2]
+          description: match[2],
         });
       }
 
       return {
         name: nameMatch[1],
-        description: descMatch ? descMatch[1] : 'No description',
+        description: descMatch ? descMatch[1] : "No description",
         filename,
-        subcommands
+        subcommands,
       };
     } catch (error) {
       return null;
@@ -142,8 +143,8 @@ class DocGenerator {
 
       return {
         name: classMatch[1],
-        description: docMatch ? docMatch[1] : 'No description',
-        filename
+        description: docMatch ? docMatch[1] : "No description",
+        filename,
       };
     } catch (error) {
       return null;
@@ -154,13 +155,13 @@ class DocGenerator {
    * Extract event information from file
    */
   extractEventInfo(content, filename) {
-    const eventName = filename.replace('.js', '');
+    const eventName = filename.replace(".js", "");
     const docMatch = content.match(/\/\*\*\s*\n\s*\*\s*(.+)\n/);
 
     return {
       name: eventName,
-      description: docMatch ? docMatch[1] : 'Event handler',
-      filename
+      description: docMatch ? docMatch[1] : "Event handler",
+      filename,
     };
   }
 
@@ -168,7 +169,7 @@ class DocGenerator {
    * Generate commands documentation
    */
   generateCommandsDocs() {
-    let md = '## 📜 Commands\n\n';
+    let md = "## 📜 Commands\n\n";
     md += `Total: ${this.commands.length} commands\n\n`;
 
     this.commands.sort((a, b) => a.name.localeCompare(b.name));
@@ -178,13 +179,13 @@ class DocGenerator {
       md += `${cmd.description}\n\n`;
 
       if (cmd.subcommands.length > 0) {
-        md += '**Subcommands:**\n';
+        md += "**Subcommands:**\n";
         for (const sub of cmd.subcommands) {
           md += `- \`${sub.name}\` - ${sub.description}\n`;
         }
       }
 
-      md += '\n---\n\n';
+      md += "\n---\n\n";
     }
 
     this.commandsDocs = md;
@@ -194,7 +195,7 @@ class DocGenerator {
    * Generate utils documentation
    */
   generateUtilsDocs() {
-    let md = '## 🔧 Utilities\n\n';
+    let md = "## 🔧 Utilities\n\n";
     md += `Total: ${this.utils.length} utility systems\n\n`;
 
     this.utils.sort((a, b) => a.name.localeCompare(b.name));
@@ -211,7 +212,7 @@ class DocGenerator {
    * Generate events documentation
    */
   generateEventsDocs() {
-    let md = '## 📡 Event Handlers\n\n';
+    let md = "## 📡 Event Handlers\n\n";
     md += `Total: ${this.events.length} event handlers\n\n`;
 
     this.events.sort((a, b) => a.name.localeCompare(b.name));
@@ -245,15 +246,15 @@ ${this.eventsDocs}
 **Update**: Run \`node generate-docs.js\` to regenerate
 `;
 
-    const outputPath = path.join(__dirname, 'readmes/AUTO_GENERATED_DOCS.md');
-    fs.writeFileSync(outputPath, md, 'utf8');
+    const outputPath = path.join(__dirname, "readmes/AUTO_GENERATED_DOCS.md");
+    fs.writeFileSync(outputPath, md, "utf8");
   }
 }
 
 // Run generator
 const generator = new DocGenerator();
-generator.generate().catch(error => {
-  console.error('❌ Documentation generation failed:', error);
+generator.generate().catch((error) => {
+  console.error("❌ Documentation generation failed:", error);
   process.exit(1);
 });
 
