@@ -698,11 +698,18 @@
                 : ""
             }
             ${
-              data.sessionId
+              data.sessionId && !data.sessionId.startsWith('session-')
                 ? `
               <div class="tooltip-row">
                 <span class="tooltip-label">Session:</span>
                 <span class="tooltip-value">${data.sessionId.substring(0, 8)}...</span>
+              </div>
+            `
+                : data.sessionId
+                ? `
+              <div class="tooltip-row">
+                <span class="tooltip-label">Session:</span>
+                <span class="tooltip-value">✅ Active</span>
               </div>
             `
                 : ""
