@@ -127,28 +127,9 @@ class GatewayManager extends EventEmitter {
     gateway.status = "ready";
     gateway.lastConnect = Date.now();
 
-    // Capture gateway URL from WebSocket
-    try {
-      const shard = this.client.ws.shards.get(shardId);
-      if (shard) {
-        // Try multiple ways to get gateway URL (Discord.js v14)
-        gateway.gatewayUrl = 
-          shard.connection?.url || 
-          shard.connection?.gateway || 
-          shard.gateway?.url || 
-          shard.gatewayURL ||
-          (shard.connection ? `wss://gateway.discord.gg` : null);
-        
-        // Resume URL
-        gateway.resumeUrl = shard.resumeURL || gateway.resumeUrl;
-        
-        // Debug log to see what we got
-        logger.info("GatewayManager", `[DEBUG] Shard ${shardId} gateway URL: ${gateway.gatewayUrl || 'NOT FOUND'}`);
-        logger.info("GatewayManager", `[DEBUG] Shard ${shardId} connection exists: ${!!shard.connection}`);
-      }
-    } catch (err) {
-      logger.warn("GatewayManager", `[DEBUG] Error getting gateway URL: ${err.message}`);
-    }
+    // Set gateway URL (Discord.js v14 doesn't expose specific gateway pod)
+    // Just use the default Discord gateway URL
+    gateway.gatewayUrl = `wss://gateway.discord.gg`;
 
     logger.success("GatewayManager", `Shard ${shardId} gateway ready${gateway.gatewayUrl ? ` - ${gateway.gatewayUrl}` : ''}`);
     this.emit("ready", { shardId });
