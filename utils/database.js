@@ -2373,6 +2373,113 @@ class Database {
 
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_command_analytics_command 
                  ON command_analytics(command_name, timestamp)`);
+
+    // Error Logging & Monitoring
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS error_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        command TEXT NOT NULL,
+        error_message TEXT NOT NULL,
+        stack_trace TEXT,
+        context TEXT,
+        timestamp INTEGER NOT NULL,
+        recovery_attempted INTEGER DEFAULT 0
+      )
+    `);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_error_logs_timestamp 
+                 ON error_logs(timestamp)`);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_error_logs_command 
+                 ON error_logs(command, timestamp)`);
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS error_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp INTEGER NOT NULL,
+        snapshot_data TEXT NOT NULL
+      )
+    `);
+
+    // Premium/Supporter Tier System (cosmetic perks only)
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS premium_users (
+        user_id TEXT PRIMARY KEY,
+        tier TEXT NOT NULL,
+        custom_badge TEXT,
+        custom_color TEXT,
+        supporter_since INTEGER NOT NULL,
+        expires_at INTEGER,
+        perks TEXT
+      )
+    `);
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS premium_guilds (
+        guild_id TEXT PRIMARY KEY,
+        tier TEXT NOT NULL,
+        custom_branding TEXT,
+        white_label_config TEXT,
+        supporter_since INTEGER NOT NULL,
+        expires_at INTEGER,
+        perks TEXT
+      )
+    `);
+
+    // Server Audit History
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS audit_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id TEXT NOT NULL,
+        audit_type TEXT NOT NULL,
+        score INTEGER NOT NULL,
+        issues TEXT,
+        warnings TEXT,
+        recommendations TEXT,
+        timestamp INTEGER NOT NULL
+      )
+    `);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_audit_history_guild 
+                 ON audit_history(guild_id, timestamp)`);
+
+    // Integration Ecosystem
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS webhooks (
+        id TEXT PRIMARY KEY,
+        guild_id TEXT NOT NULL,
+        url TEXT NOT NULL,
+        events TEXT NOT NULL,
+        secret TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        active INTEGER DEFAULT 1
+      )
+    `);
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS webhook_deliveries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        webhook_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        status_code INTEGER,
+        success INTEGER NOT NULL,
+        error_message TEXT,
+        delivered_at INTEGER NOT NULL
+      )
+    `);
+
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_webhook 
+                 ON webhook_deliveries(webhook_id, delivered_at)`);
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS integration_keys (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id TEXT NOT NULL,
+        service TEXT NOT NULL,
+        api_key TEXT NOT NULL UNIQUE,
+        created_at INTEGER NOT NULL
+      )
+    `);
   }
 
   // Server config methods

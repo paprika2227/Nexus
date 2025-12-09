@@ -1,6 +1,6 @@
 {
   "name": "nexus-bot",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "description": "Advanced Discord bot that exceeds Wick and all competitors",
   "author": "Nexus Bot Team",
   "license": "MIT",
@@ -10,6 +10,10 @@
     "start": "node shard.js",
     "dev": "node index.js",
     "shard": "node shard.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "docs:generate": "node generate-docs.js",
     "format": "prettier --write \"**/*.{js,json,html,css,md}\" --ignore-path .prettierignore",
     "format:check": "prettier --check \"**/*.{js,json,html,css,md}\" --ignore-path .prettierignore",
     "git:pull": "scripts\\pull.bat",
@@ -55,6 +59,7 @@
     "zlib-sync": "^0.1.9"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
     "prettier": "^3.7.4"
   }
 }
