@@ -425,6 +425,11 @@ class AuditLogMonitor {
     const executors = new Map();
 
     logs.forEach((entry) => {
+      // Skip entries without executor (system actions, deleted users)
+      if (!entry.executor || !entry.executor.id) {
+        return;
+      }
+
       const userId = entry.executor.id;
       if (!executors.has(userId)) {
         executors.set(userId, []);
