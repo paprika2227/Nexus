@@ -488,33 +488,7 @@ class Database {
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_voice_activity_guild_time 
                  ON voice_activity_logs(guild_id, timestamp)`);
 
-    // Webhook Events System (EXCEEDS WICK - real-time integrations)
-    this.db.run(`
-            CREATE TABLE IF NOT EXISTS webhook_subscriptions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                guild_id TEXT,
-                webhook_url TEXT,
-                event_type TEXT,
-                created_by TEXT,
-                created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
-                status TEXT DEFAULT 'active'
-            )
-        `);
-
-    this.db.run(`
-            CREATE TABLE IF NOT EXISTS webhook_deliveries (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                subscription_id INTEGER,
-                success INTEGER,
-                status_code INTEGER,
-                error_message TEXT,
-                delivered_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
-                FOREIGN KEY (subscription_id) REFERENCES webhook_subscriptions(id)
-            )
-        `);
-
-    this.db.run(`CREATE INDEX IF NOT EXISTS idx_webhook_guild 
-                 ON webhook_subscriptions(guild_id, status)`);
+    // Webhook Events System - REMOVED (duplicate tables, new schema defined below in Integration Ecosystem section)
 
     // Multi-Server Networks (EXCEEDS WICK - cross-server management)
     this.db.run(`
