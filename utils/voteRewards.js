@@ -38,9 +38,8 @@ class VoteRewards {
     };
     this.lastCheckedVotes = new Map(); // Track last checked time per user
     this.checkInterval = 5 * 60 * 1000; // Check every 5 minutes
-    // Hardcoded webhook URL for vote notifications
-    this.voteWebhookUrl =
-      "https://discord.com/api/webhooks/1445461285947838545/6usnevFUWY9YfaOtHU5V2nDRhzntLwPA4csNuolmIksymRYK0OIdHjeCj10f3ZqfSqJx";
+    // Vote notification webhook (from environment variable)
+    this.voteWebhookUrl = process.env.VOTE_WEBHOOK_URL;
     // Only create roles and give rewards in this guild
     this.targetGuildId = "1444737803660558396";
   }
