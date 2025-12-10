@@ -2,62 +2,14 @@ const AutoMod = require("../utils/automod");
 const db = require("../utils/database");
 const logger = require("../utils/logger");
 
-// Track users who have received DM auto-reply (24 hour cooldown)
-const dmReplyCooldowns = new Map();
-
 module.exports = {
   name: "messageCreate",
   async execute(message, client) {
     // PERFORMANCE: Early returns to avoid unnecessary processing
     if (message.author.bot) return;
 
-    // Handle DMs
-    if (!message.guild) {
-      // This is a DM
-      const userId = message.author.id;
-      const now = Date.now();
-      const cooldownTime = 24 * 60 * 60 * 1000; // 24 hours
-
-      // Check if user already received reply recently
-      if (dmReplyCooldowns.has(userId)) {
-        const lastReply = dmReplyCooldowns.get(userId);
-        if (now - lastReply < cooldownTime) {
-          // User already received reply within 24 hours, skip
-          console.log(
-            `[DM] ${message.author.tag} already received reply (cooldown active)`
-          );
-          return;
-        }
-      }
-
-      // Send auto-reply
-      console.log(
-        `[DM] Received DM from ${message.author.tag}: ${message.content}`
-      );
-      try {
-        await message.reply(
-          "Hi! For support, please join our Discord server: https://discord.gg/warmA4BsPP\n" +
-            "Or check our docs: https://azzraya.github.io/Nexus/docs.html"
-        );
-        console.log(`[DM] Replied to ${message.author.tag}`);
-
-        // Set cooldown
-        dmReplyCooldowns.set(userId, now);
-
-        // Cleanup old cooldowns (older than 48 hours)
-        for (const [id, timestamp] of dmReplyCooldowns.entries()) {
-          if (now - timestamp > cooldownTime * 2) {
-            dmReplyCooldowns.delete(id);
-          }
-        }
-      } catch (error) {
-        console.error(`[DM] Failed to reply:`, error);
-      }
-      return; // Stop processing DMs further
-    }
-
     if (message.system) return; // System messages
-    // DMs are already handled above
+    if (!message.guild) return; // DM messages
 
     // Track behavioral patterns
     if (client.behavioralFP) {
