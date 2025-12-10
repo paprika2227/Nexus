@@ -5558,54 +5558,6 @@ class Database {
   }
 
   /**
-   * Get last presence change timestamp
-   */
-  async getLastPresenceChange(guildId, userId) {
-    return new Promise((resolve, reject) => {
-      this.db.get(
-        "SELECT last_change FROM presence_changes WHERE guild_id = ? AND user_id = ?",
-        [guildId, userId],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row ? row.last_change : null);
-        }
-      );
-    });
-  }
-
-  /**
-   * Update last presence change timestamp
-   */
-  async updateLastPresenceChange(guildId, userId, timestamp) {
-    return new Promise((resolve, reject) => {
-      this.db.run(
-        "INSERT OR REPLACE INTO presence_changes (guild_id, user_id, last_change, status) VALUES (?, ?, ?, ?)",
-        [guildId, userId, timestamp, "changed"],
-        (err) => {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
-  }
-
-  /**
-   * Flag a suspicious account
-   */
-  async flagSuspiciousAccount(guildId, userId, reason) {
-    return new Promise((resolve, reject) => {
-      this.db.run(
-        "INSERT OR REPLACE INTO suspicious_accounts (guild_id, user_id, reason, flagged_at) VALUES (?, ?, ?, ?)",
-        [guildId, userId, reason, Date.now()],
-        (err) => {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
-  }
-
-  /**
    * Increment activity statistics (aggregate, not per-user)
    */
   async incrementActivityStat(guildId, hour, status) {
