@@ -3323,7 +3323,7 @@ class Database {
           }));
           resolve(behaviors);
         }
-      });
+      }      );
     });
   }
 
@@ -3353,6 +3353,25 @@ class Database {
       this.db.all(
         "SELECT * FROM threat_intelligence WHERE user_id = ? ORDER BY reported_at DESC",
         [userId],
+        (err, rows) => {
+          if (err) reject(err);
+          else {
+            const threats = (rows || []).map((row) => ({
+              ...row,
+              threat_data: JSON.parse(row.threat_data || "{}"),
+            }));
+            resolve(threats);
+          }
+        }
+      );
+    });
+  }
+
+  async getThreatIntelligenceForGuild(userId, guildId) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        "SELECT * FROM threat_intelligence WHERE user_id = ? AND source_guild_id = ? ORDER BY reported_at DESC",
+        [userId, guildId],
         (err, rows) => {
           if (err) reject(err);
           else {
@@ -3677,7 +3696,7 @@ class Database {
           }));
           resolve(behaviors);
         }
-      });
+      }      );
     });
   }
 
@@ -3707,6 +3726,25 @@ class Database {
       this.db.all(
         "SELECT * FROM threat_intelligence WHERE user_id = ? ORDER BY reported_at DESC",
         [userId],
+        (err, rows) => {
+          if (err) reject(err);
+          else {
+            const threats = (rows || []).map((row) => ({
+              ...row,
+              threat_data: JSON.parse(row.threat_data || "{}"),
+            }));
+            resolve(threats);
+          }
+        }
+      );
+    });
+  }
+
+  async getThreatIntelligenceForGuild(userId, guildId) {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        "SELECT * FROM threat_intelligence WHERE user_id = ? AND source_guild_id = ? ORDER BY reported_at DESC",
+        [userId, guildId],
         (err, rows) => {
           if (err) reject(err);
           else {
