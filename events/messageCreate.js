@@ -8,16 +8,24 @@ module.exports = {
     // PERFORMANCE: Early returns to avoid unnecessary processing
     if (message.author.bot) return;
 
-    if (message.channel.type === 1 && !message.author.bot) {
-      // 1 === DM in djs v14
-      message.reply(
-        "Hi! For support, please join our Discord server: https://discord.gg/warmA4BsPP\n" +
-          "Or check our docs: https://azzraya.github.io/Nexus/docs.html"
-      );
+    // Handle DMs
+    if (!message.guild) {
+      // This is a DM
+      console.log(`[DM] Received DM from ${message.author.tag}: ${message.content}`);
+      try {
+        await message.reply(
+          "Hi! For support, please join our Discord server: https://discord.gg/warmA4BsPP\n" +
+            "Or check our docs: https://azzraya.github.io/Nexus/docs.html"
+        );
+        console.log(`[DM] Replied to ${message.author.tag}`);
+      } catch (error) {
+        console.error(`[DM] Failed to reply:`, error);
+      }
+      return; // Stop processing DMs further
     }
 
     if (message.system) return; // System messages
-    if (!message.guild) return; // DM messages
+    // DMs are already handled above
 
     // Track behavioral patterns
     if (client.behavioralFP) {
