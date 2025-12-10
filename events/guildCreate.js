@@ -397,6 +397,12 @@ module.exports = {
               value:
                 "After moving the role, run `/security rolecheck` to verify!",
               inline: false,
+            },
+            {
+              name: "💬 Need Help?",
+              value:
+                "Join our support server: https://discord.gg/warmA4BsPP\nOr check docs: https://azzraya.github.io/Nexus/docs.html",
+              inline: false,
             }
           )
           .setColor(0xff0000)

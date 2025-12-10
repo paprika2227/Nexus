@@ -355,7 +355,9 @@ module.exports = {
           }
         )
         .setColor(0x00ff00)
-        .setFooter({ text: "Your server is now protected!" })
+        .setFooter({
+          text: "Need help? discord.gg/warmA4BsPP | Your server is now protected!",
+        })
         .setTimestamp();
 
       // Use editReply if deferred (button interaction), otherwise reply
@@ -445,7 +447,7 @@ module.exports = {
           completion === 100 ? 0x00ff00 : completion >= 50 ? 0xffaa00 : 0xff0000
         )
         .setFooter({
-          text: "Use /setup preset or /setup wizard to complete setup",
+          text: "Need help? discord.gg/warmA4BsPP | Use /setup preset or /setup wizard",
         })
         .setTimestamp();
 

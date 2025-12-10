@@ -31,7 +31,9 @@ module.exports = {
           "Click the buttons below to configure each feature."
       )
       .setColor(0x667eea)
-      .setFooter({ text: "You can always change these settings later" });
+      .setFooter({
+        text: "Need help? discord.gg/warmA4BsPP | You can change settings later",
+      });
 
     const buttons = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -272,7 +274,9 @@ module.exports = {
                 }
               )
               .setColor(0x00ff88)
-              .setFooter({ text: "Thank you for choosing Nexus!" }),
+              .setFooter({
+                text: "Need help? discord.gg/warmA4BsPP | Thank you for choosing Nexus!",
+              }),
           ],
           components: [],
         });

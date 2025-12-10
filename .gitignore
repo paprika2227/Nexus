@@ -37,3 +37,4 @@ competitorData.json
 coverage/
 *.test.log
 .jest-cache/
+maintainers.md

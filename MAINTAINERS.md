@@ -7,6 +7,7 @@ This document lists the current maintainers of the Nexus Bot project and their r
 ## Lead Maintainer
 
 ### SC4RL3TT ([@Azzraya](https://github.com/Azzraya))
+
 - **Role:** Project Creator & Lead Maintainer
 - **Joined:** December 2024
 - **Responsibilities:**
@@ -23,7 +24,7 @@ This document lists the current maintainers of the Nexus Bot project and their r
 
 ### [To be announced when Nexus reaches 100+ servers]
 
-*This section will be updated when a co-maintainer joins the project.*
+_This section will be updated when a co-maintainer joins the project._
 
 ---
 
@@ -45,6 +46,7 @@ When we're ready to add maintainers, we'll reach out to our most trusted contrib
 ### Decision Making
 
 **Major Decisions** (require Lead Maintainer approval):
+
 - Breaking changes to the API or bot
 - Adding/removing major features
 - Monetization or premium features
@@ -53,6 +55,7 @@ When we're ready to add maintainers, we'll reach out to our most trusted contrib
 - Major infrastructure changes
 
 **Day-to-Day Decisions** (any maintainer can approve):
+
 - Bug fixes and patches
 - Documentation updates
 - Minor feature improvements
@@ -60,6 +63,7 @@ When we're ready to add maintainers, we'll reach out to our most trusted contrib
 - Issue triaging
 
 **In Case of Disagreement:**
+
 - Discuss respectfully in private maintainer channels
 - Seek consensus when possible
 - Lead Maintainer has final say if consensus can't be reached
@@ -67,6 +71,7 @@ When we're ready to add maintainers, we'll reach out to our most trusted contrib
 ### Code of Conduct for Maintainers
 
 All maintainers must:
+
 - ✅ Be respectful and professional at all times
 - ✅ Act in the best interests of the project and community
 - ✅ Maintain confidentiality of sensitive information (see CO_MAINTAINER_AGREEMENT.md)
@@ -79,6 +84,7 @@ All maintainers must:
 ### Confidentiality
 
 Maintainers have access to sensitive information including:
+
 - Internal metrics and analytics
 - Strategic plans and competitor research
 - User data and moderation logs
@@ -91,6 +97,7 @@ See [CO_MAINTAINER_AGREEMENT.md](./CO_MAINTAINER_AGREEMENT.md) for full details.
 ### Removing Maintainers
 
 A maintainer may be removed for:
+
 - **Inactivity:** No activity for 90+ days without communication
 - **Breach of Trust:** Sharing confidential information
 - **Misconduct:** Unprofessional behavior, harassment, or abuse
@@ -103,13 +110,14 @@ The Lead Maintainer has sole authority to remove maintainers.
 
 ## Emeritus Maintainers
 
-*Former maintainers who have stepped down will be listed here with thanks for their contributions.*
+_Former maintainers who have stepped down will be listed here with thanks for their contributions._
 
 ---
 
 ## Contact
 
 For maintainer-related questions:
+
 - **Public Questions:** Open a GitHub issue
 - **Private Matters:** DM SC4RL3TT in the [Discord Support Server](https://discord.gg/warmA4BsPP)
 

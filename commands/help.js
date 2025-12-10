@@ -122,7 +122,7 @@ module.exports = {
       )
       .setColor(0x0099ff)
       .setFooter({
-        text: "Nexus - Beyond Wick. Free. Open Source. Powerful.",
+        text: "Need help? Join discord.gg/warmA4BsPP | Nexus - Beyond Wick.",
       })
       .setTimestamp();
 
