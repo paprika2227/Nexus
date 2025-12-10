@@ -22,8 +22,8 @@ describe("Heat System", () => {
       const guildId = "test_guild";
       const userId = "test_user";
 
-      await heatSystem.addHeat(guildId, userId, "spam", 10);
-      const heat = await heatSystem.getUserHeat(guildId, userId);
+      await heatSystem.addHeat(guildId, userId, 10, "spam");
+      const heat = heatSystem.getHeat(guildId, userId);
 
       expect(heat).toBeGreaterThan(0);
     });
@@ -33,13 +33,13 @@ describe("Heat System", () => {
       const userId = "test_user_decay";
 
       // Add heat
-      await heatSystem.addHeat(guildId, userId, "spam", 50);
-      const initialHeat = await heatSystem.getUserHeat(guildId, userId);
+      await heatSystem.addHeat(guildId, userId, 50, "spam");
+      const initialHeat = heatSystem.getHeat(guildId, userId);
 
       // Wait for decay (simulate)
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const decayedHeat = await heatSystem.getUserHeat(guildId, userId);
+      const decayedHeat = heatSystem.getHeat(guildId, userId);
       expect(decayedHeat).toBeLessThanOrEqual(initialHeat);
     });
 
@@ -47,11 +47,11 @@ describe("Heat System", () => {
       const guildId = "test_guild";
       const userId = "test_user_multi";
 
-      await heatSystem.addHeat(guildId, userId, "spam", 10);
-      await heatSystem.addHeat(guildId, userId, "mentions", 5);
-      await heatSystem.addHeat(guildId, userId, "caps", 3);
+      await heatSystem.addHeat(guildId, userId, 10, "spam");
+      await heatSystem.addHeat(guildId, userId, 5, "mentions");
+      await heatSystem.addHeat(guildId, userId, 3, "caps");
 
-      const totalHeat = await heatSystem.getUserHeat(guildId, userId);
+      const totalHeat = heatSystem.getHeat(guildId, userId);
       expect(totalHeat).toBeGreaterThan(15);
     });
   });
