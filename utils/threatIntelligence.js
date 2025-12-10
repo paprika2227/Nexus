@@ -20,7 +20,7 @@ class ThreatIntelligence {
     const existing = sharingEnabled
       ? await db.getThreatIntelligence(userId)
       : await db.getThreatIntelligenceForGuild(userId, sourceGuildId);
-    
+
     const similarThreat = existing.find(
       (t) =>
         t.threat_type === threatType && Date.now() - t.reported_at < 86400000 // Within 24 hours
@@ -174,7 +174,7 @@ class ThreatIntelligence {
     if (guildId) {
       const config = await db.getServerConfig(guildId);
       const sharingEnabled = config?.threat_intelligence_sharing !== 0;
-      
+
       if (sharingEnabled) {
         threats = await db.getThreatIntelligence(userId);
       } else {

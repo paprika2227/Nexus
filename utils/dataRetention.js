@@ -306,7 +306,10 @@ class DataRetention {
             [guildId],
             function (err) {
               if (err) {
-                logger.debug("DataRetention", `Failed to cleanup user_xp for ${guildId}`);
+                logger.debug(
+                  "DataRetention",
+                  `Failed to cleanup user_xp for ${guildId}`
+                );
                 resolve(0);
               } else {
                 resolve(this.changes);
@@ -321,7 +324,10 @@ class DataRetention {
             [guildId],
             function (err) {
               if (err) {
-                logger.debug("DataRetention", `Failed to cleanup user_stats for ${guildId}`);
+                logger.debug(
+                  "DataRetention",
+                  `Failed to cleanup user_stats for ${guildId}`
+                );
                 resolve(0);
               } else {
                 resolve(this.changes);
@@ -336,7 +342,10 @@ class DataRetention {
             [guildId],
             function (err) {
               if (err) {
-                logger.debug("DataRetention", `Failed to cleanup user_achievements for ${guildId}`);
+                logger.debug(
+                  "DataRetention",
+                  `Failed to cleanup user_achievements for ${guildId}`
+                );
                 resolve(0);
               } else {
                 resolve(this.changes);

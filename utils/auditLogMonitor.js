@@ -241,32 +241,34 @@ class AuditLogMonitor {
         }
 
         // Only fetch specific audit log types we need for security monitoring
-        // Using AuditLogEvent enum to ensure proper type conversion
+        // Explicitly convert enum values to numbers to ensure proper API format
+        const auditLogTypes = [
+          AuditLogEvent.ChannelCreate,
+          AuditLogEvent.ChannelUpdate,
+          AuditLogEvent.ChannelDelete,
+          AuditLogEvent.MemberKick,
+          AuditLogEvent.MemberBanAdd,
+          AuditLogEvent.MemberBanRemove,
+          AuditLogEvent.MemberUpdate,
+          AuditLogEvent.MemberRoleUpdate,
+          AuditLogEvent.MemberMove,
+          AuditLogEvent.MemberDisconnect,
+          AuditLogEvent.BotAdd,
+          AuditLogEvent.RoleCreate,
+          AuditLogEvent.RoleUpdate,
+          AuditLogEvent.RoleDelete,
+          AuditLogEvent.InviteCreate,
+          AuditLogEvent.InviteUpdate,
+          AuditLogEvent.InviteDelete,
+          AuditLogEvent.WebhookCreate,
+          AuditLogEvent.WebhookUpdate,
+          AuditLogEvent.WebhookDelete,
+          AuditLogEvent.MessageDelete,
+        ].map((val) => Number(val)); // Ensure all values are numbers
+
         const auditLogs = await guild.fetchAuditLogs({
           limit: 50, // Reduced from 100
-          type: [
-            AuditLogEvent.ChannelCreate,
-            AuditLogEvent.ChannelUpdate,
-            AuditLogEvent.ChannelDelete,
-            AuditLogEvent.MemberKick,
-            AuditLogEvent.MemberBanAdd,
-            AuditLogEvent.MemberBanRemove,
-            AuditLogEvent.MemberUpdate,
-            AuditLogEvent.MemberRoleUpdate,
-            AuditLogEvent.MemberMove,
-            AuditLogEvent.MemberDisconnect,
-            AuditLogEvent.BotAdd,
-            AuditLogEvent.RoleCreate,
-            AuditLogEvent.RoleUpdate,
-            AuditLogEvent.RoleDelete,
-            AuditLogEvent.InviteCreate,
-            AuditLogEvent.InviteUpdate,
-            AuditLogEvent.InviteDelete,
-            AuditLogEvent.WebhookCreate,
-            AuditLogEvent.WebhookUpdate,
-            AuditLogEvent.WebhookDelete,
-            AuditLogEvent.MessageDelete,
-          ],
+          type: auditLogTypes,
         });
         return auditLogs;
       } catch (error) {
