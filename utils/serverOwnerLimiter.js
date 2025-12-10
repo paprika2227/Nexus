@@ -61,9 +61,7 @@ class ServerOwnerLimiter {
       logger.warn(
         `[Owner Limiter] Keeping: ${keepServer.name} (${keepServer.id})`
       );
-      logger.warn(
-        `[Owner Limiter] Leaving ${leaveServers.size} other servers`
-      );
+      logger.warn(`[Owner Limiter] Leaving ${leaveServers.size} other servers`);
 
       // Send notification to owner before leaving
       try {
@@ -97,9 +95,7 @@ class ServerOwnerLimiter {
       // Leave the extra servers
       for (const server of leaveServers.values()) {
         try {
-          logger.info(
-            `[Owner Limiter] Leaving ${server.name} (${server.id})`
-          );
+          logger.info(`[Owner Limiter] Leaving ${server.name} (${server.id})`);
           await server.leave();
         } catch (error) {
           logger.error(
