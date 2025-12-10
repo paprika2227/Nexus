@@ -16,17 +16,20 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 ## ✅ Compliance Checklist
 
 ### 1. **No Selfbotting/Userbotting**
+
 - ✅ **PASS** - No user account automation detected
 - ✅ Uses official Discord.js bot library
 - ✅ Proper bot token authentication only
 
 ### 2. **No Token Stealing/Phishing**
+
 - ✅ **PASS** - No credential harvesting
 - ✅ No password collection
 - ✅ OAuth2 properly implemented for dashboard
 - ✅ No token logging or storage
 
 ### 3. **Rate Limiting & API Abuse Prevention**
+
 - ✅ **PASS** - Comprehensive rate limit handling
 - ✅ RateLimitHandler class implemented (`utils/rateLimitHandler.js`)
 - ✅ Audit log monitoring reduced from 30s to 10min intervals (Dec 10, 2025)
@@ -35,6 +38,7 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 - ⚠️ **NOTE:** Monitor rate limits after deployment - recently fixed aggressive audit log polling
 
 ### 4. **No Mass DM Spam**
+
 - ✅ **PASS** - No mass DM functionality detected
 - ✅ DM auto-reply feature was removed (user requested)
 - ✅ All DMs are:
@@ -44,9 +48,11 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 - ✅ No unsolicited bulk messaging
 
 ### 5. **Privileged Gateway Intents - Properly Justified**
+
 - ✅ **PASS** - All intents have legitimate use cases
 
 #### Active Intents:
+
 ```javascript
 - GuildMembers ✅ (Member screening, anti-raid, behavioral analysis)
 - GuildPresences ✅ (Presence-based verification, bot detection)
@@ -57,11 +63,13 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 ```
 
 **Verification Justification Ready:**
+
 - **GuildMembers:** Required for member screening, join raid detection, behavioral analysis for threat prediction
 - **MessageContent:** Required for content moderation, spam detection, automod rule enforcement
 - **GuildPresences:** Used for presence-based verification challenges and bot detection
 
 ### 6. **Data Privacy & GDPR Compliance**
+
 - ✅ **PASS** - Comprehensive privacy policy
 - ✅ GDPR compliant (`PRIVACY_POLICY.md`)
 - ✅ CCPA compliant
@@ -78,6 +86,7 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 - ✅ No third-party data sharing (except Discord API)
 
 ### 7. **No Data Scraping**
+
 - ✅ **PASS** - No unauthorized data collection
 - ✅ Member/guild caching is for legitimate bot functionality only
 - ✅ No bulk user data harvesting
@@ -85,6 +94,7 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 - ✅ All Discord data collection is for active moderation/security
 
 ### 8. **Proper Bot Identity**
+
 - ✅ **PASS** - Clear bot identification
 - ✅ Bot account properly marked as bot
 - ✅ No impersonation
@@ -92,18 +102,21 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 - ✅ Transparent about functionality
 
 ### 9. **No Prohibited Commands**
+
 - ✅ **PASS** - `/eval` command properly restricted
 - ✅ `/eval` is owner-only (`Owner.ensureOwner()` check)
 - ✅ No dangerous commands exposed to public
 - ✅ No arbitrary code execution for users
 
 ### 10. **Content Policy Compliance**
+
 - ✅ **PASS** - No NSFW/illegal content
 - ✅ Content filter implemented
 - ✅ Moderation tools for removing violations
 - ✅ No facilitation of ToS violations
 
 ### 11. **No Commercial ToS Violations**
+
 - ✅ **PASS** - Completely free bot
 - ✅ No premium features (removed per user request)
 - ✅ No payment collection
@@ -111,6 +124,7 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 - ✅ Open source (MIT License with commercial restriction)
 
 ### 12. **Proper Error Handling**
+
 - ✅ **PASS** - Comprehensive error handling
 - ✅ ErrorHandler, ErrorBoundary, ErrorRecovery systems
 - ✅ Graceful degradation on failures
@@ -154,6 +168,7 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 ### Data Collection (Transparent)
 
 **Server Data:**
+
 - Server IDs, names, configurations
 - Moderation logs and actions
 - Security events and threat data
@@ -161,6 +176,7 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 - Lockdown states
 
 **User Data:**
+
 - User IDs, usernames, discriminators
 - Messages (moderation only)
 - Moderation history
@@ -171,6 +187,7 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 - Achievement data
 
 **Technical Data:**
+
 - Command usage statistics
 - Performance metrics
 - Error logs
@@ -183,6 +200,7 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 ### API Usage Patterns
 
 **High-Frequency Operations:**
+
 - ✅ Audit log fetching: 10-minute intervals (recently fixed from 30s)
 - ✅ Health checks: 30-second intervals (no API calls, local only)
 - ✅ Bot list posting: 30-minute intervals (external APIs)
@@ -194,6 +212,7 @@ Nexus Bot has been audited against Discord's Terms of Service, Developer Terms o
 ### DM Usage (Legitimate)
 
 All DMs are for legitimate bot functionality:
+
 - Warning notifications (user triggered moderation)
 - Kick/ban notifications (moderation transparency)
 - Verification codes (anti-bot measures)
@@ -212,15 +231,15 @@ All DMs are for legitimate bot functionality:
 
 ## 📋 Verification Readiness Score
 
-| Category | Status | Score |
-|----------|--------|-------|
-| ToS Compliance | ✅ Pass | 100% |
-| Privacy Policy | ✅ Pass | 100% |
-| Rate Limiting | ✅ Pass | 100% |
-| Intent Justification | ✅ Ready | 100% |
-| Data Handling | ✅ Pass | 100% |
-| Security | ✅ Pass | 100% |
-| Documentation | ✅ Pass | 100% |
+| Category             | Status   | Score |
+| -------------------- | -------- | ----- |
+| ToS Compliance       | ✅ Pass  | 100%  |
+| Privacy Policy       | ✅ Pass  | 100%  |
+| Rate Limiting        | ✅ Pass  | 100%  |
+| Intent Justification | ✅ Ready | 100%  |
+| Data Handling        | ✅ Pass  | 100%  |
+| Security             | ✅ Pass  | 100%  |
+| Documentation        | ✅ Pass  | 100%  |
 
 **Overall: 100% - READY FOR VERIFICATION**
 
@@ -241,6 +260,7 @@ All DMs are for legitimate bot functionality:
 **Nexus Bot is FULLY COMPLIANT with Discord's Terms of Service and ready for verification at 75 servers.**
 
 ### Next Steps:
+
 1. Continue monitoring rate limits post-deployment
 2. Reach 75 servers
 3. Apply for verification via Discord Developer Portal

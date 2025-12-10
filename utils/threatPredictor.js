@@ -49,7 +49,9 @@ class ThreatPredictor {
       const last60s = now - 60000;
 
       // Fetch recent members
-      await guild.members.fetch();
+      // Fetch only recent members (last hour) instead of ALL
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+      await guild.members.fetch({ limit: 100 }); // Recent joins typically under 100
       const recentJoins = guild.members.cache.filter(
         (m) => m.joinedTimestamp > last60s
       );

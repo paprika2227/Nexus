@@ -374,7 +374,8 @@ module.exports = {
       }
 
       // Fetch all members and filter bots
-      await interaction.guild.members.fetch();
+      // Fetch members with limit to avoid excessive API calls
+      await interaction.guild.members.fetch({ limit: 1000 });
       const bots = interaction.guild.members.cache.filter(
         (m) => m.user.bot && m.id !== interaction.client.user.id
       );
@@ -430,7 +431,8 @@ module.exports = {
 
       const cutoff = Date.now() - hours * 60 * 60 * 1000;
 
-      await interaction.guild.members.fetch();
+      // Fetch members with limit to avoid excessive API calls
+      await interaction.guild.members.fetch({ limit: 1000 });
       const recentMembers = interaction.guild.members.cache.filter(
         (m) => m.joinedTimestamp > cutoff && !m.user.bot
       );

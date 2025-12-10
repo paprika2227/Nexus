@@ -95,6 +95,10 @@ client.advancedAntiNuke = new AdvancedAntiNuke(client);
 const AutoBackup = require("./utils/autoBackup");
 client.autoBackup = new AutoBackup(client);
 
+// Data Retention System (GDPR compliance - automatic cleanup)
+const dataRetention = require("./utils/dataRetention");
+dataRetention.init();
+
 // New Advanced Systems
 const HoneypotSystem = require("./utils/honeypot");
 client.honeypot = new HoneypotSystem(client);

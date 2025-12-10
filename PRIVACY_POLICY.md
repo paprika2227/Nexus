@@ -32,6 +32,9 @@ Nexus Bot ("we", "our", "us") is committed to protecting your privacy. This Priv
 - **XP and leveling data** (user experience points, levels, message activity for leveling systems)
 - **Vote history** (bot voting records, vote streaks, timestamps)
 - **Achievement data** (unlocked achievements, progress tracking, timestamps)
+- **Behavioral analysis data** (message patterns, activity patterns for threat detection - automatically deleted after 90 days)
+- **Presence data** (used only for presence-based verification, status role assignments, and bot detection - not stored long-term)
+- **Spam detection cache** (last 10 messages per user stored temporarily in memory for spam pattern detection - cleared on bot restart)
 
 ### Technical Information
 
@@ -95,9 +98,13 @@ When you log in to the Nexus Bot dashboard, we collect:
 
 - Server configurations: Until server removes bot (deleted 30 days after removal)
 - Moderation logs: 90 days (configurable per server)
+- **Automod violations** (including message content): 90 days (automatically deleted via daily cleanup)
+- **Behavioral data**: 90 days (automatically deleted via daily cleanup)
 - **Recovery snapshots**: 90 days (automatically created periodically and before/after security incidents)
 - Analytics: 1 year (anonymized after 90 days)
-- Threat intelligence: 30 days
+- Threat intelligence: 30 days (automatically deleted)
+- OAuth login logs: 90 days (automatically deleted)
+- **Spam detection cache**: Temporary (in-memory only, cleared on restart)
 - **Performance metrics**: 90 days (command times, query performance, memory usage)
 - Message content: Not stored permanently (only processed in real-time for moderation)
 - **Message edit/delete events**: 90 days (logged for moderation and security purposes, includes message content at time of edit/delete)
@@ -168,17 +175,18 @@ Nexus Bot includes an automatic server recovery system that creates snapshots of
 - Use data for bot functionality and security features
 - Store data securely on our servers
 
-## Threat Intelligence Network
+## Threat Intelligence Network (Cross-Server Data Sharing)
 
-Our Threat Intelligence Network is a security feature that allows servers to share threat information to protect against malicious users.
+**IMPORTANT:** Our Threat Intelligence Network is a security feature that **automatically shares threat data across ALL servers using Nexus Bot**. By using Nexus Bot, server owners consent to participating in this network.
 
-### What Data is Shared:
+### What Data is Shared Across Servers:
 
 - **User IDs (Discord snowflakes)** - To identify users who have been reported as threats
 - **Threat type** - The category of threat (raid, spam, harassment, etc.)
 - **Threat severity** - Risk score and severity level
 - **Source guild ID** - The server that reported the threat (for verification purposes)
 - **Threat metadata** - Contextual information about the threat
+- **Cross-server attack patterns** - Coordinated attack detection across multiple servers
 
 ### What is NOT Shared:
 
@@ -201,6 +209,7 @@ This data sharing allows servers to:
 - **Opt-Out:** You can disable threat intelligence sharing for your server via bot configuration
 - **Opt-In Default:** Threat intelligence sharing is enabled by default for security
 - **Data Deletion:** Threat reports are automatically deleted after 30 days
+- **Opt-Out:** Users can request exclusion from threat intelligence sharing by contacting support (may reduce bot effectiveness)
 
 ### Legal Basis (GDPR):
 

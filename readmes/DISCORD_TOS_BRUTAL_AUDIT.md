@@ -25,16 +25,19 @@ client.devTracking.currentStatus = newPresence?.status || "offline";
 ```
 
 **The Problem:**
+
 - You're using GuildPresences intent **EXCLUSIVELY** to track when YOU (the bot owner) are online
 - This is **NOT** a legitimate use case for this privileged intent
 - Discord explicitly states privileged intents must be for user-facing features, not internal tracking
 
 **Why This is Bad:**
+
 - ❌ Privileged intents cannot be used for developer convenience
 - ❌ This will get you **denied** or **removed** if Discord audits your bot
 - ❌ Violates the spirit of privileged intent restrictions
 
 **Discord's Intent Policy:**
+
 > "Privileged intents are only granted when the functionality is user-facing and cannot be achieved through other means."
 
 **Your Usage:** Tracking when you're online for... what? Personal convenience? That's not user-facing.
@@ -42,6 +45,7 @@ client.devTracking.currentStatus = newPresence?.status || "offline";
 **Severity:** 🔴 **CRITICAL - Could prevent verification or get bot banned**
 
 **Fix:**
+
 - **Option 1:** Remove GuildPresences intent entirely (RECOMMENDED)
 - **Option 2:** Add ACTUAL user-facing presence features (status-based verification, role assignments, etc.) and justify it properly
 - **Option 3:** Delete `presenceUpdate.js` and track yourself through other means (webhooks, manual status)
@@ -68,17 +72,20 @@ VALUES (..., messageContent.substring(0, 1000), ...)
 ```
 
 **The Problem:**
+
 - You're storing message content for automod violations
 - **NO CLEANUP CODE EXISTS** - This data is kept **FOREVER**
 - Your privacy policy says "90 days" but there's no code enforcing it
 
 **Why This is Bad:**
+
 - ❌ **GDPR Violation:** You're not actually deleting data after 90 days as promised
 - ❌ **Privacy Policy Mismatch:** Your docs say 90 days, reality is forever
 - ❌ **Unnecessary Data Retention:** Moderation logs don't need message content indefinitely
 - ❌ Discord could see this as excessive data collection
 
 **Privacy Policy Claims:**
+
 > "Moderation logs: 90 days (configurable per server)"
 
 **Reality:** No deletion code exists. You're lying in your privacy policy.
@@ -87,10 +94,12 @@ VALUES (..., messageContent.substring(0, 1000), ...)
 
 **Fix:**
 Add cleanup job:
+
 ```javascript
 // Delete automod violations older than 90 days
-db.run(`DELETE FROM automod_violations WHERE timestamp < ?`, 
-       [Date.now() - (90 * 24 * 60 * 60 * 1000)]);
+db.run(`DELETE FROM automod_violations WHERE timestamp < ?`, [
+  Date.now() - 90 * 24 * 60 * 60 * 1000,
+]);
 ```
 
 ---
@@ -112,12 +121,14 @@ if (typeof data === "object" && data !== null) {
 ```
 
 **The Problem:**
+
 - Behavioral data is stored indefinitely
 - Can include message content/metadata
 - **NO CLEANUP CODE**
 - Not clearly disclosed in privacy policy
 
 **Why This is Bad:**
+
 - ❌ **Indefinite profiling** - You're building permanent user profiles
 - ❌ **No retention limit** - Privacy policy doesn't specify retention for behavioral data
 - ❌ **Potential GDPR "Right to be Forgotten" violation**
@@ -126,10 +137,12 @@ if (typeof data === "object" && data !== null) {
 **Severity:** 🟠 **SERIOUS - Privacy/GDPR risk**
 
 **Fix:**
+
 ```javascript
 // Delete behavioral data older than 90 days
-db.run(`DELETE FROM behavioral_data WHERE timestamp < ?`, 
-       [Date.now() - (90 * 24 * 60 * 60 * 1000)]);
+db.run(`DELETE FROM behavioral_data WHERE timestamp < ?`, [
+  Date.now() - 90 * 24 * 60 * 60 * 1000,
+]);
 ```
 
 ---
@@ -148,12 +161,14 @@ await this.detectCrossServerPattern(userId, threatType, sourceGuildId);
 ```
 
 **The Problem:**
+
 - You're sharing user threat data across ALL servers using your bot
 - User banned in Server A? That data is shared with Server B, C, D...
 - This happens **without explicit user consent**
 - Creates a cross-server tracking/profiling network
 
 **Why This is Questionable:**
+
 - ⚠️ **Cross-Context Tracking:** You're linking user behavior across independent servers
 - ⚠️ **Data Sharing:** Server owners didn't consent to their moderation data being shared
 - ⚠️ **Privacy Policy:** Only vaguely mentions "threat intelligence network"
@@ -168,15 +183,18 @@ Sharing personal data (threat reports) across contexts without explicit consent 
 **Severity:** 🟠 **SERIOUS - Privacy risk, potential GDPR issue**
 
 **Defense:**
+
 - ✅ It's for security (legitimate interest)
 - ✅ Only shares threat data, not general user data
 - ✅ Servers opt-in by using the bot
 
 **Risk:**
+
 - A user or server owner could challenge this under GDPR
 - Discord might not like you building a cross-server tracking network
 
 **Fix Options:**
+
 1. **Make it opt-in** - Servers explicitly enable threat intelligence sharing
 2. **Better disclosure** - Make it VERY clear in privacy policy
 3. **User opt-out** - Allow users to request their data not be shared cross-server
@@ -190,10 +208,11 @@ Sharing personal data (threat reports) across contexts without explicit consent 
 **Files:** `utils/memberIntelligence.js`, `commands/bulk.js`, `commands/role.js`
 
 ```javascript
-await guild.members.fetch();  // Fetches ALL members!
+await guild.members.fetch(); // Fetches ALL members!
 ```
 
 **The Problem:**
+
 - You're calling `guild.members.fetch()` with no arguments
 - This fetches **EVERY MEMBER** in the guild
 - For large servers (10k+ members), this is:
@@ -202,6 +221,7 @@ await guild.members.fetch();  // Fetches ALL members!
   - Could trigger rate limits
 
 **Why This is Questionable:**
+
 - ⚠️ GuildMembers intent justification should be "as-needed" not "bulk fetching"
 - ⚠️ Discord prefers targeted fetching over bulk operations
 - ⚠️ Could be seen as member scraping if done frequently
@@ -209,6 +229,7 @@ await guild.members.fetch();  // Fetches ALL members!
 **Severity:** 🟡 **MODERATE - API abuse concern**
 
 **Fix:**
+
 ```javascript
 // Instead of fetching ALL members:
 await guild.members.fetch();
@@ -229,22 +250,25 @@ await guild.members.fetch(userId);
 
 ```javascript
 // Store message in history
-history.push(content);  // Last 10 messages per user
+history.push(content); // Last 10 messages per user
 if (history.length > 10) history.shift();
 this.messageHistory.set(key, history);
 ```
 
 **The Problem:**
+
 - Storing last 10 message contents in memory per user
 - Not disclosed in privacy policy
 - Could accumulate for many users
 
 **Why This is Minor:**
+
 - ✅ It's in memory (cleared on restart)
 - ✅ It's for spam detection (legitimate)
 - ✅ Only 10 messages
 
 **But:**
+
 - ⚠️ Not disclosed anywhere
 - ⚠️ Could be hundreds of MB for large servers
 - ⚠️ Message content should be minimized
@@ -252,6 +276,7 @@ this.messageHistory.set(key, history);
 **Severity:** 🟡 **MODERATE - Minor privacy concern**
 
 **Fix:**
+
 - Store hashes instead of full content
 - Add to privacy policy: "Last 10 messages cached temporarily for spam detection"
 
@@ -280,20 +305,21 @@ this.messageHistory.set(key, history);
 
 ### Risk Breakdown:
 
-| Issue | Risk of Rejection | Risk of Ban | Easy Fix? |
-|-------|------------------|-------------|-----------|
-| GuildPresences Abuse | 🔴 **HIGH** | 🟠 Medium | ✅ Yes (delete file) |
-| No Data Cleanup | 🟠 Medium | 🟡 Low | ✅ Yes (add cron job) |
-| Behavioral Data | 🟠 Medium | 🟡 Low | ✅ Yes (add cleanup) |
-| Cross-Server Tracking | 🟡 Low | 🟡 Low | 🟠 Maybe (complex) |
-| Member Fetching | 🟡 Low | 🟢 Very Low | ✅ Yes (change calls) |
-| Message Cache | 🟢 Very Low | 🟢 Very Low | ✅ Yes (document it) |
+| Issue                 | Risk of Rejection | Risk of Ban | Easy Fix?             |
+| --------------------- | ----------------- | ----------- | --------------------- |
+| GuildPresences Abuse  | 🔴 **HIGH**       | 🟠 Medium   | ✅ Yes (delete file)  |
+| No Data Cleanup       | 🟠 Medium         | 🟡 Low      | ✅ Yes (add cron job) |
+| Behavioral Data       | 🟠 Medium         | 🟡 Low      | ✅ Yes (add cleanup)  |
+| Cross-Server Tracking | 🟡 Low            | 🟡 Low      | 🟠 Maybe (complex)    |
+| Member Fetching       | 🟡 Low            | 🟢 Very Low | ✅ Yes (change calls) |
+| Message Cache         | 🟢 Very Low       | 🟢 Very Low | ✅ Yes (document it)  |
 
 ---
 
 ## 🔥 WHAT DISCORD REVIEWERS WILL ASK
 
 ### 1. **GuildPresences Intent**
+
 **They'll ask:** "Why do you need presence data?"
 
 **Your current answer:** "To track when I'm online"  
@@ -307,6 +333,7 @@ this.messageHistory.set(key, history);
 ---
 
 ### 2. **MessageContent Intent**
+
 **They'll ask:** "What are you doing with message content?"
 
 **Your answer:** "Content moderation, spam detection, automod enforcement"  
@@ -319,6 +346,7 @@ this.messageHistory.set(key, history);
 ---
 
 ### 3. **GuildMembers Intent**
+
 **They'll ask:** "Why do you need member data?"
 
 **Your answer:** "Member screening, anti-raid, behavioral analysis"  
@@ -335,6 +363,7 @@ this.messageHistory.set(key, history);
 ### 🔴 **CRITICAL (Do Before Applying)**
 
 1. **Fix GuildPresences Abuse** (30 minutes)
+
    ```bash
    rm events/presenceUpdate.js
    # Remove GuildPresences from index.js intents
@@ -343,16 +372,20 @@ this.messageHistory.set(key, history);
 2. **Add Data Retention Cleanup** (1 hour)
    ```javascript
    // Add to utils/database.js or create utils/dataRetention.js
-   cron.schedule('0 0 * * *', async () => {
-     const ninetyDaysAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
-     
+   cron.schedule("0 0 * * *", async () => {
+     const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+
      // Cleanup automod violations
-     await db.run('DELETE FROM automod_violations WHERE timestamp < ?', [ninetyDaysAgo]);
-     
+     await db.run("DELETE FROM automod_violations WHERE timestamp < ?", [
+       ninetyDaysAgo,
+     ]);
+
      // Cleanup behavioral data
-     await db.run('DELETE FROM behavioral_data WHERE timestamp < ?', [ninetyDaysAgo]);
-     
-     logger.info('Data retention cleanup completed');
+     await db.run("DELETE FROM behavioral_data WHERE timestamp < ?", [
+       ninetyDaysAgo,
+     ]);
+
+     logger.info("Data retention cleanup completed");
    });
    ```
 
@@ -399,16 +432,19 @@ You asked for brutal honesty, so here it is:
 **You're not breaking ToS maliciously** - all your violations are because you built features that sounded cool but didn't think about the privacy/compliance implications.
 
 **The good news:**
+
 - None of these are "get banned immediately" violations
 - They're all fixable in a few hours
 - Your core functionality (anti-nuke, moderation) is solid
 
 **The bad news:**
+
 - Discord's verification team IS checking these things now
 - GuildPresences abuse is the kiss of death for verification
 - Your privacy policy promises things your code doesn't deliver (90-day retention)
 
 **What would I do?**
+
 1. Delete `presenceUpdate.js` RIGHT NOW
 2. Remove GuildPresences intent
 3. Add data cleanup cron job
@@ -416,6 +452,7 @@ You asked for brutal honesty, so here it is:
 5. Apply for verification
 
 **Risk of getting caught:**
+
 - Low if you apply now (they're not auditing code... yet)
 - High if you scale to 1000+ servers (automated checks)
 - **Medium if you apply for verification** (manual review, they might check)
