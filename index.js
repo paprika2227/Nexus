@@ -9,6 +9,7 @@
 const {
   Client,
   GatewayIntentBits,
+  Partials,
   Collection,
   Options,
   Sweepers,
@@ -33,6 +34,10 @@ const client = new Client({
     GatewayIntentBits.GuildInvites,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildPresences,
+  ],
+  partials: [
+    Partials.Channel, // Required for DMs
+    Partials.Message, // Required for DM messages
   ],
 });
 

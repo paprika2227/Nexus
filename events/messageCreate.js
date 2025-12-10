@@ -11,7 +11,9 @@ module.exports = {
     // Handle DMs
     if (!message.guild) {
       // This is a DM
-      console.log(`[DM] Received DM from ${message.author.tag}: ${message.content}`);
+      console.log(
+        `[DM] Received DM from ${message.author.tag}: ${message.content}`
+      );
       try {
         await message.reply(
           "Hi! For support, please join our Discord server: https://discord.gg/warmA4BsPP\n" +
