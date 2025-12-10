@@ -7,6 +7,14 @@ module.exports = {
   async execute(message, client) {
     // PERFORMANCE: Early returns to avoid unnecessary processing
     if (message.author.bot) return;
+
+    if (message.channel.type === "DM" && !message.author.bot) {
+      message.reply(
+        "Hi! For support, please join our Discord server: https://discord.gg/warmA4BsPP\n" +
+          "Or check our docs: https://azzraya.github.io/Nexus/docs.html"
+      );
+    }
+
     if (message.system) return; // System messages
     if (!message.guild) return; // DM messages
 

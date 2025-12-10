@@ -223,8 +223,7 @@ class DashboardServer {
     // Session
     this.app.use(
       session({
-        secret:
-          process.env.SESSION_SECRET || "unknown",
+        secret: process.env.SESSION_SECRET || "unknown",
         resave: false,
         saveUninitialized: false,
         cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }, // 7 days
