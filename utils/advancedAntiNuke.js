@@ -678,12 +678,25 @@ class AdvancedAntiNuke {
 
     // If ownerId matches member but it's a mass-ban attack, override owner check
     // This handles cases where an alt account has ownership transferred to it
+    // ALWAYS try to ban mass-banners, even if Discord says they're the owner
     if (isOwner && ownerId === member.id && threatType === "mass_ban") {
       logger.error(
         `[Anti-Nuke] ⚠️ WARNING: Member ${member.user.tag} (${member.id}) is detected as server owner but is mass-banning. Overriding owner check - attempting ban anyway.`
       );
+      logger.error(
+        `[Anti-Nuke] ⚠️ If this account is NOT actually the owner, ownership may have been transferred to the alt. Attempting all actions regardless.`
+      );
       // For mass-ban, treat as admin even if detected as owner - try to ban anyway
       isOwner = false; // Override owner check for mass-ban attacks
+    }
+    
+    // Also check: if user is admin and doing mass-ban, they're definitely a threat regardless of owner status
+    // Some servers might have transferred ownership to an alt that's now nuking
+    if (isAdmin && threatType === "mass_ban" && isOwner) {
+      logger.error(
+        `[Anti-Nuke] ⚠️ CRITICAL: Admin account ${member.user.tag} (${member.id}) is mass-banning AND detected as owner. This is likely a compromised/alt account with transferred ownership. Overriding owner protection.`
+      );
+      isOwner = false; // Override - try to ban anyway
     }
 
     if (isOwner) {
@@ -1155,6 +1168,14 @@ class AdvancedAntiNuke {
           : member.id === guild.ownerId;
       } catch (error) {
         isOwnerCheck = member.id === guild.ownerId; // Fallback
+      }
+
+      // Override owner check for mass-ban attacks (handles alt accounts with transferred ownership)
+      if (isOwnerCheck && threatType === "mass_ban") {
+        logger.error(
+          `[Anti-Nuke] ⚠️ Overriding owner check for mass-ban attack - attempting ban anyway (account may have transferred ownership)`
+        );
+        isOwnerCheck = false; // Override - try to ban
       }
 
       if (isOwnerCheck) {
