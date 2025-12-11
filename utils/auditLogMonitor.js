@@ -1,9 +1,7 @@
 // Real-Time Audit Log Monitoring System
 // EXCEEDS WICK - Continuous monitoring of audit logs for suspicious patterns
-const { AuditLogEvent } = require("discord.js");
 const db = require("./database");
 const logger = require("./logger");
-const ErrorHandler = require("./errorHandler");
 
 class AuditLogMonitor {
   constructor(client) {
