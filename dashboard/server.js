@@ -2410,16 +2410,23 @@ class DashboardServer {
     this.app.get("/api/v2/stats", async (req, res) => {
       try {
         addRateLimitHeaders(req, res);
-        
+
         // Get commands run count from command_usage_log
-        const commandsRun = await new Promise((resolve) => {
+        const commandsRun = await new Promise((resolve, reject) => {
           db.db.get(
             "SELECT COUNT(*) as total FROM command_usage_log",
             [],
-            (err, row) => resolve(row?.total || 0)
+            (err, row) => {
+              if (err) {
+                logger.error("API", "Failed to get commandsRun count", err);
+                resolve(0);
+              } else {
+                resolve(row?.total || 0);
+              }
+            }
           );
         });
-        
+
         const stats = {
           serverCount: this.client.guilds.cache.size,
           userCount: this.client.guilds.cache.reduce(
