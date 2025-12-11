@@ -9,28 +9,40 @@ module.exports = {
     if (client.advancedAntiNuke) {
       try {
         const auditLogs = await ban.guild.fetchAuditLogs({
-          limit: 1,
+          limit: 5,
           type: 20, // MEMBER_BAN_ADD
         });
-        const entry = auditLogs.entries.first();
-        if (entry && entry.executor) {
-          // Check if executor is admin
-          const executorMember = await ban.guild.members.fetch(entry.executor.id).catch(() => null);
-          const isAdmin = executorMember?.permissions.has("Administrator");
-          
-          logger.info(
-            `[guildBanAdd] Ban by ${entry.executor.tag} (${entry.executor.id}) ${isAdmin ? '[ADMIN]' : ''} - monitoring for anti-nuke`
-          );
-          
-          await client.advancedAntiNuke.monitorAction(
-            ban.guild,
-            "banAdd",
-            entry.executor.id,
-            { bannedUserId: ban.user.id }
-          );
+        
+        const now = Date.now();
+        const matchingEntry = auditLogs.entries.find(entry => {
+          const isRecent = (now - entry.createdTimestamp) < 10000; // Within 10 seconds
+          const matchesTarget = entry.target && entry.target.id === ban.user.id;
+          return isRecent && matchesTarget && entry.executor;
+        });
+        
+        if (matchingEntry && matchingEntry.executor) {
+          if (matchingEntry.executor.id !== client.user.id) {
+            const executorMember = await ban.guild.members.fetch(matchingEntry.executor.id).catch(() => null);
+            const isAdmin = executorMember?.permissions.has("Administrator");
+            
+            logger.info(
+              `[guildBanAdd] Ban by ${matchingEntry.executor.tag} (${matchingEntry.executor.id}) ${isAdmin ? '[ADMIN]' : ''} - monitoring for anti-nuke`
+            );
+            
+            await client.advancedAntiNuke.monitorAction(
+              ban.guild,
+              "banAdd",
+              matchingEntry.executor.id,
+              { bannedUserId: ban.user.id }
+            );
+          } else {
+            logger.debug(
+              `[guildBanAdd] Skipping ban monitoring - bot executed the ban (${ban.user.id})`
+            );
+          }
         } else {
           logger.warn(
-            `[guildBanAdd] Could not find audit log entry for ban of ${ban.user.tag} (${ban.user.id})`
+            `[guildBanAdd] Could not find matching audit log entry for ban of ${ban.user.tag} (${ban.user.id}) in ${ban.guild.id} - entry may be delayed or missing`
           );
         }
       } catch (error) {
