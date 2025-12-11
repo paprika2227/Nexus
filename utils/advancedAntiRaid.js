@@ -544,7 +544,6 @@ class AdvancedAntiRaid {
 
     // When a raid is confirmed, ban ALL recent joins (they're already filtered to recent in detectRaid)
     // Only apply additional filtering for very large servers to prevent false positives
-    const memberCount = guild.memberCount || 1;
     const isLargeServer = memberCount > 1000;
     
     // For large servers, still apply some suspicion filtering to prevent false positives
