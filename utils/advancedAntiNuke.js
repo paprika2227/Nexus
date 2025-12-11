@@ -239,10 +239,23 @@ class AdvancedAntiNuke {
 
     // Check whitelist first (EXCEEDS WICK)
     if (await this.isWhitelisted(guild.id, userId)) {
-      logger.debug(
-        `[Anti-Nuke] User ${userId} is whitelisted in ${guild.name} - skipping monitoring`
+      logger.warn(
+        `[Anti-Nuke] User ${userId} is WHITELISTED in ${guild.name} - skipping monitoring for ${actionType}`
       );
       return; // Whitelisted users are exempt
+    }
+    
+    // Log that we're monitoring (especially for admins)
+    try {
+      const member = await guild.members.fetch(userId).catch(() => null);
+      const isAdmin = member?.permissions.has("Administrator");
+      if (isAdmin) {
+        logger.warn(
+          `[Anti-Nuke] Monitoring ADMIN ${userId} for ${actionType} in ${guild.name} (admins are NOT exempt)`
+        );
+      }
+    } catch (error) {
+      // Continue even if fetch fails
     }
 
     // Track permission changes if this is a permission-related action
@@ -616,16 +629,16 @@ class AdvancedAntiNuke {
       return;
     }
 
-    // Check if user is owner - SKIP all actions (owner cannot be banned/kicked)
+    // Check if user is owner - we can't ban/kick them, but we can still take other actions
     const isOwner = member.id === guild.ownerId;
+    const isAdmin = member.permissions.has("Administrator");
+    
     if (isOwner) {
       logger.warn(
-        `[Anti-Nuke] ⚠️ THREAT DETECTED from SERVER OWNER ${userId} (${threatType}) in ${guild.id} - SKIPPING ACTION (owner cannot be banned/kicked)`
+        `[Anti-Nuke] ⚠️ THREAT DETECTED from SERVER OWNER ${userId} (${threatType}) in ${guild.id} - Cannot ban/kick owner, but will attempt to remove permissions/roles`
       );
-      return; // Exit early - cannot take action against server owner
+      // Don't return - continue to try removing permissions/roles even if we can't ban
     }
-
-    const isAdmin = member.permissions.has("Administrator");
 
     logger.warn(
       `[Anti-Nuke] 🚨 CRITICAL THREAT: ${threatType} by ${userId} (${
@@ -658,9 +671,9 @@ class AdvancedAntiNuke {
     const hasBanPerms = botMember.permissions.has("BanMembers");
     const hasKickPerms = botMember.permissions.has("KickMembers");
 
-    // TRY TO BAN IMMEDIATELY
+    // TRY TO BAN IMMEDIATELY (skip if server owner - can't ban owner)
     let actionTaken = false;
-    if (hasBanPerms) {
+    if (hasBanPerms && !isOwner) {
       try {
         await member.ban({
           reason: `Anti-Nuke EMERGENCY: ${threatType} detected`,
