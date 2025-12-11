@@ -2410,6 +2410,16 @@ class DashboardServer {
     this.app.get("/api/v2/stats", async (req, res) => {
       try {
         addRateLimitHeaders(req, res);
+        
+        // Get commands run count from command_usage_log
+        const commandsRun = await new Promise((resolve) => {
+          db.db.get(
+            "SELECT COUNT(*) as total FROM command_usage_log",
+            [],
+            (err, row) => resolve(row?.total || 0)
+          );
+        });
+        
         const stats = {
           serverCount: this.client.guilds.cache.size,
           userCount: this.client.guilds.cache.reduce(
@@ -2419,6 +2429,7 @@ class DashboardServer {
           avgResponseTime: 50,
           uptime: Math.floor(this.client.uptime / 1000),
           commandCount: this.client.commands?.size || 99,
+          commandsRun: commandsRun,
           shardCount: this.client.shard?.count || 1,
           memoryUsage: process.memoryUsage(),
           nodeVersion: process.version,
