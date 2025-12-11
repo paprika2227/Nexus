@@ -4734,6 +4734,20 @@ class DashboardServer {
         const { userId, source } = req.body;
 
         if (userId && source) {
+          // Validate source before tracking (trackPendingInviteSource will also validate, but fail fast here)
+          const isValidSource = await db.inviteSourceExists(source).catch(() => false);
+          
+          if (!isValidSource) {
+            logger.warn(
+              "API",
+              `Rejected invalid invite source: ${source} for user ${userId}`
+            );
+            return res.status(400).json({ 
+              success: false, 
+              error: "Invalid invite source" 
+            });
+          }
+
           await db.trackPendingInviteSource(userId, source);
           logger.info(
             "API",
