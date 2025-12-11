@@ -144,31 +144,87 @@
       // Discord OAuth URL
       const BOT_CLIENT_ID = "1444739230679957646";
       const DISCORD_INVITE_URL = `https://discord.com/oauth2/authorize?client_id=${BOT_CLIENT_ID}&permissions=8&integration_type=0&scope=bot+applications.commands`;
+      const API_URL = "https://regular-puma-clearly.ngrok-free.app";
 
       // Get source parameter
       const urlParams = new URLSearchParams(window.location.search);
       const source = urlParams.get("source") || "direct";
 
-      // Display source info
-      if (source && source !== "direct") {
-        document.getElementById("sourceInfo").innerHTML = `
-                <div class="source-badge">
-                    📊 Tracking source: <strong>${source}</strong>
-                </div>
-            `;
+      // Validate source before proceeding
+      async function validateSource(sourceParam) {
+        // "direct" is always valid (default)
+        if (sourceParam === "direct" || !sourceParam) {
+          return true;
+        }
+
+        try {
+          // Check if source exists in invite_sources table
+          const response = await fetch(`${API_URL}/api/admin/invite-sources`, {
+            headers: {
+              "ngrok-skip-browser-warning": "true",
+            },
+          });
+
+          if (!response.ok) {
+            // If API fails, allow "direct" only
+            return sourceParam === "direct";
+          }
+
+          const sources = await response.json();
+          // Check if the source exists in the list
+          const sourceExists = sources.some((s) => s.source === sourceParam);
+          return sourceExists;
+        } catch (error) {
+          console.error("[Invite] Error validating source:", error);
+          // On error, only allow "direct"
+          return sourceParam === "direct";
+        }
       }
 
-      // The invite-tracker.js script will handle storing the source
-      // Now redirect to Discord
-      const finalUrl = DISCORD_INVITE_URL;
+      // Main logic
+      (async () => {
+        const isValid = await validateSource(source);
 
-      // Set manual link
-      document.getElementById("manualLink").href = finalUrl;
+        if (!isValid) {
+          // Invalid source - show 404 error
+          document.querySelector(".redirect-container").innerHTML = `
+            <div class="logo">❌</div>
+            <h1>Invalid Invite Source</h1>
+            <p style="color: #ff6b6b; font-weight: 600;">
+              The invite source "${source}" is not valid.
+            </p>
+            <p style="margin-top: 20px; font-size: 0.9rem; opacity: 0.8;">
+              Please use a valid invite link or visit the main page.
+            </p>
+            <a href="/" class="manual-link" style="margin-top: 30px;">
+              Go to Homepage
+            </a>
+          `;
+          return; // Don't redirect or track
+        }
 
-      // Auto-redirect after 2 seconds (gives time for tracking script to run)
-      setTimeout(() => {
-        window.location.href = finalUrl;
-      }, 2000);
+        // Valid source - proceed with normal flow
+        // Display source info
+        if (source && source !== "direct") {
+          document.getElementById("sourceInfo").innerHTML = `
+            <div class="source-badge">
+              📊 Tracking source: <strong>${source}</strong>
+            </div>
+          `;
+        }
+
+        // The invite-tracker.js script will handle storing the source
+        // Now redirect to Discord
+        const finalUrl = DISCORD_INVITE_URL;
+
+        // Set manual link
+        document.getElementById("manualLink").href = finalUrl;
+
+        // Auto-redirect after 2 seconds (gives time for tracking script to run)
+        setTimeout(() => {
+          window.location.href = finalUrl;
+        }, 2000);
+      })();
     </script>
   </body>
 </html>
