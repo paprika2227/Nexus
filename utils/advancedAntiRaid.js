@@ -539,59 +539,74 @@ class AdvancedAntiRaid {
       `Raid detected in ${guild.name} (${guild.id}) [${serverSizeTier}]: Threat score ${threatScore}, ${suspiciousJoins.length} suspicious joins`
     );
 
-    // Only take action on the most suspicious members (not all joins)
-    // Filter to only ban members that match multiple criteria
-    // Adjust suspicion threshold based on server size + sensitivity
-    const baseSuspicionThreshold = 3;
-    const suspicionThreshold = Math.ceil(
-      baseSuspicionThreshold * finalMultiplier
-    );
-
-    const highlySuspicious = suspiciousJoins.filter((join) => {
-      let suspicionScore = 0;
-
-      // Account age (new accounts are more suspicious)
-      if (Date.now() - join.createdTimestamp < 86400000) suspicionScore += 2; // Less than 1 day old
-      if (Date.now() - join.createdTimestamp < 3600000) suspicionScore += 1; // Less than 1 hour old
-
-      // Account characteristics
-      if (!join.hasAvatar) suspicionScore += 1; // No avatar
-      if (parseInt(join.discriminator) < 1000) suspicionScore += 1; // Default discriminator
-
-      // Threshold adjusted by sensitivity (less sensitive = need higher suspicion)
-      return suspicionScore >= suspicionThreshold;
-    });
-
-    // If we don't have enough highly suspicious members, don't ban anyone
-    // This prevents banning legitimate users
-    if (highlySuspicious.length === 0) {
-      logger.warn(
-        `Raid detected but no highly suspicious members to ban in ${guild.name}`
+    // When a raid is confirmed, ban ALL recent joins (they're already filtered to recent in detectRaid)
+    // Only apply additional filtering for very large servers to prevent false positives
+    const memberCount = guild.memberCount || 1;
+    const isLargeServer = memberCount > 1000;
+    
+    // For large servers, still apply some suspicion filtering to prevent false positives
+    // For smaller servers, if raid is detected, ban all recent joins
+    let membersToBan = suspiciousJoins;
+    
+    if (isLargeServer && finalMultiplier > 1.5) {
+      // Large server with low sensitivity - apply light suspicion filtering
+      const baseSuspicionThreshold = 1; // Lowered from 3
+      const suspicionThreshold = Math.ceil(
+        baseSuspicionThreshold * finalMultiplier
       );
-      // Still enable lockdown but don't ban anyone
-      try {
-        const { Client } = require("discord.js");
-        // Try to get client from index.js
-        const indexModule = require("../index.js");
-        if (indexModule.client?.antiRaid?.lockdown) {
-          indexModule.client.antiRaid.lockdown.set(guild.id, {
-            enabled: true,
-            startedAt: Date.now(),
-            reason: "Raid detected - lockdown enabled",
-          });
+
+      const highlySuspicious = suspiciousJoins.filter((join) => {
+        let suspicionScore = 0;
+
+        // Account age (new accounts are more suspicious)
+        if (Date.now() - join.createdTimestamp < 86400000) suspicionScore += 2; // Less than 1 day old
+        if (Date.now() - join.createdTimestamp < 3600000) suspicionScore += 1; // Less than 1 hour old
+
+        // Account characteristics
+        if (!join.hasAvatar) suspicionScore += 1; // No avatar
+        if (parseInt(join.discriminator) < 1000) suspicionScore += 1; // Default discriminator
+        
+        // If raid is confirmed and we have many joins, lower threshold
+        if (suspiciousJoins.length >= 10) suspicionScore += 1; // Bonus point for confirmed raid
+
+        return suspicionScore >= suspicionThreshold;
+      });
+
+      // Only use filtered list if we have results, otherwise use all
+      if (highlySuspicious.length > 0) {
+        membersToBan = highlySuspicious;
+      } else if (suspiciousJoins.length >= 15) {
+        // If we have 15+ joins in a raid, ban all even if they don't meet suspicion threshold
+        membersToBan = suspiciousJoins;
+        logger.warn(
+          `Raid detected with ${suspiciousJoins.length} joins - banning all recent joins despite low suspicion scores in ${guild.name}`
+        );
+      } else {
+        // Small raid on large server - be more cautious
+        logger.warn(
+          `Raid detected but no highly suspicious members to ban in ${guild.name} (${suspiciousJoins.length} joins, threshold: ${suspicionThreshold})`
+        );
+        // Still enable lockdown
+        try {
+          const indexModule = require("../index.js");
+          if (indexModule.client?.antiRaid?.lockdown) {
+            indexModule.client.antiRaid.lockdown.set(guild.id, {
+              enabled: true,
+              startedAt: Date.now(),
+              reason: "Raid detected - lockdown enabled",
+            });
+          }
+        } catch (error) {
+          logger.warn("Could not set lockdown:", error.message);
         }
-      } catch (error) {
-        // If we can't set lockdown, just log
-        logger.warn("Could not set lockdown:", error.message);
+        return;
       }
-      return;
     }
 
-    // Take action on highly suspicious members only
-    // IMPORTANT: Only ban members who joined RECENTLY (within last 2 minutes)
+    // Double-check: Only ban members who joined RECENTLY (within last 2 minutes)
     // This prevents banning existing members
     const twoMinutesAgo = Date.now() - 120000;
-    const recentSuspicious = highlySuspicious.filter(
+    const recentSuspicious = membersToBan.filter(
       (join) => join.timestamp && join.timestamp >= twoMinutesAgo
     );
 
@@ -601,6 +616,10 @@ class AdvancedAntiRaid {
       );
       return;
     }
+
+    logger.info(
+      `[Anti-Raid] Banning ${recentSuspicious.length} members from raid in ${guild.name} (${suspiciousJoins.length} total joins detected)`
+    );
 
     let successCount = 0;
     for (const join of recentSuspicious) {
