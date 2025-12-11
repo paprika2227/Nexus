@@ -84,8 +84,65 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 4.3.3 - December 11, 2025</h2>
+          <h2>Version 4.3.4 - December 11, 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔒 Security & Invite Source Validation</h3>
+          <p>
+            Fixed critical security vulnerability where invite sources could be
+            spoofed. Invalid sources now show error pages instead of
+            redirecting.
+          </p>
+
+          <h4>🔒 Security Fixes</h4>
+          <ul>
+            <li>
+              <strong>Invite Source Validation:</strong> Added server-side and
+              client-side validation to prevent source spoofing
+            </li>
+            <li>
+              <strong>Invalid Source Handling:</strong> Invalid invite sources
+              now show 404 error page instead of redirecting to Discord
+            </li>
+            <li>
+              <strong>Source Validation Endpoint:</strong> New public API
+              endpoint to validate invite sources without exposing full source
+              list
+            </li>
+          </ul>
+
+          <h4>🔧 Technical Improvements</h4>
+          <ul>
+            <li>
+              Added <code>inviteSourceExists()</code> function to validate
+              sources against <code>invite_sources</code> table
+            </li>
+            <li>
+              Updated <code>trackInviteClick()</code> and
+              <code>trackPendingInviteSource()</code> to validate sources before
+              tracking
+            </li>
+            <li>
+              Client-side validation in <code>invite.html</code> checks source
+              validity before redirecting
+            </li>
+            <li>
+              Invalid sources default to "direct" or show error page (no
+              tracking)
+            </li>
+          </ul>
+
+          <h4>🐛 Bug Fixes</h4>
+          <ul>
+            <li>
+              Fixed <code>hasBanPerms</code> temporal dead zone error in
+              anti-nuke system
+            </li>
+            <li>Fixed homepage link in invite error page</li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 4.3.3 - December 11, 2025</h2>
           <h3>⚡ Performance & API Optimization</h3>
           <p>
             Replaced audit log fetching with intelligent ban caching system to

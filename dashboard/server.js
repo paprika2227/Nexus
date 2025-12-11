@@ -4701,7 +4701,7 @@ class DashboardServer {
     this.app.get("/api/validate-invite-source", async (req, res) => {
       try {
         const { source } = req.query;
-        
+
         if (!source) {
           return res.json({ valid: false, error: "Source parameter required" });
         }
@@ -4760,16 +4760,18 @@ class DashboardServer {
 
         if (userId && source) {
           // Validate source before tracking (trackPendingInviteSource will also validate, but fail fast here)
-          const isValidSource = await db.inviteSourceExists(source).catch(() => false);
-          
+          const isValidSource = await db
+            .inviteSourceExists(source)
+            .catch(() => false);
+
           if (!isValidSource) {
             logger.warn(
               "API",
               `Rejected invalid invite source: ${source} for user ${userId}`
             );
-            return res.status(400).json({ 
-              success: false, 
-              error: "Invalid invite source" 
+            return res.status(400).json({
+              success: false,
+              error: "Invalid invite source",
             });
           }
 

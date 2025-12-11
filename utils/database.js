@@ -4413,7 +4413,7 @@ class Database {
         resolve(true);
         return;
       }
-      
+
       this.db.get(
         "SELECT source FROM invite_sources WHERE source = ?",
         [source],
@@ -4493,8 +4493,10 @@ class Database {
   trackPendingInviteSource(userId, source, ipAddress = null, userAgent = null) {
     return new Promise(async (resolve, reject) => {
       // Validate source exists (or is "direct")
-      const isValidSource = await this.inviteSourceExists(source).catch(() => false);
-      
+      const isValidSource = await this.inviteSourceExists(source).catch(
+        () => false
+      );
+
       if (!isValidSource) {
         logger.warn(
           "Database",
@@ -4523,8 +4525,10 @@ class Database {
   ) {
     return new Promise(async (resolve, reject) => {
       // Validate source exists (or is "direct")
-      const isValidSource = await this.inviteSourceExists(source).catch(() => false);
-      
+      const isValidSource = await this.inviteSourceExists(source).catch(
+        () => false
+      );
+
       if (!isValidSource) {
         logger.warn(
           "Database",
