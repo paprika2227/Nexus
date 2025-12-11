@@ -1,4 +1,4 @@
-const { ActivityType } = require("discord.js");
+const { ActivityType, GatewayIntentBits } = require("discord.js");
 const ShardManager = require("../utils/shardManager");
 const { registerCommands } = require("../utils/registerCommands");
 const logger = require("../utils/logger");
@@ -7,6 +7,7 @@ const rateLimitHandler = require("../utils/rateLimitHandler");
 const memoryMonitor = require("../utils/memoryMonitor");
 const autoScaling = require("../utils/autoScaling");
 const shardErrorTracker = require("../utils/shardErrorTracker");
+const { GatewayIntentBits } = require("discord.js");
 
 module.exports = {
   name: "clientReady",
