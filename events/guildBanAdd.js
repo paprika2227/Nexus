@@ -8,17 +8,37 @@ module.exports = {
     // Advanced anti-nuke monitoring
     if (client.advancedAntiNuke) {
       try {
-        const auditLogs = await ban.guild.fetchAuditLogs({
-          limit: 5,
-          type: 20, // MEMBER_BAN_ADD
-        });
+        const findAuditEntry = async (retries = 3, delayMs = 500) => {
+          for (let attempt = 1; attempt <= retries; attempt++) {
+            if (attempt > 1) {
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+            
+            const auditLogs = await ban.guild.fetchAuditLogs({
+              limit: 15,
+              type: 20, // MEMBER_BAN_ADD
+            });
+            
+            const now = Date.now();
+            const matchingEntry = auditLogs.entries.find(entry => {
+              const isRecent = (now - entry.createdTimestamp) < 30000;
+              const matchesTarget = entry.target && entry.target.id === ban.user.id;
+              return isRecent && matchesTarget && entry.executor;
+            });
+            
+            if (matchingEntry) {
+              return matchingEntry;
+            }
+            
+            logger.debug(
+              `[guildBanAdd] Attempt ${attempt}/${retries} - No matching audit entry yet for ${ban.user.id}`
+            );
+          }
+          return null;
+        };
         
-        const now = Date.now();
-        const matchingEntry = auditLogs.entries.find(entry => {
-          const isRecent = (now - entry.createdTimestamp) < 10000; // Within 10 seconds
-          const matchesTarget = entry.target && entry.target.id === ban.user.id;
-          return isRecent && matchesTarget && entry.executor;
-        });
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const matchingEntry = await findAuditEntry();
         
         if (matchingEntry && matchingEntry.executor) {
           if (matchingEntry.executor.id !== client.user.id) {
@@ -42,7 +62,7 @@ module.exports = {
           }
         } else {
           logger.warn(
-            `[guildBanAdd] Could not find matching audit log entry for ban of ${ban.user.tag} (${ban.user.id}) in ${ban.guild.id} - entry may be delayed or missing`
+            `[guildBanAdd] Could not find matching audit log entry for ban of ${ban.user.tag} (${ban.user.id}) in ${ban.guild.id}`
           );
         }
       } catch (error) {
