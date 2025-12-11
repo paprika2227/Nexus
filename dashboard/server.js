@@ -2042,11 +2042,20 @@ class DashboardServer {
           );
         });
 
-        const commandsRun = await new Promise((resolve) => {
+        const commandsRun = await new Promise((resolve, reject) => {
           db.db.get(
             "SELECT COUNT(*) as total FROM command_usage_log",
             [],
-            (err, row) => resolve(row?.total || 0)
+            (err, row) => {
+              if (err) {
+                logger.error("API", "Failed to get commandsRun count (v1)", err);
+                resolve(0);
+              } else {
+                // Ensure it's a number (SQLite COUNT returns integer)
+                const count = row?.total ? Number(row.total) : 0;
+                resolve(count);
+              }
+            }
           );
         });
 
