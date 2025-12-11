@@ -8,6 +8,10 @@ const performanceMonitor = require("../utils/performanceMonitor");
 module.exports = {
   name: "guildMemberAdd",
   async execute(member, client) {
+    logger.info(
+      `[guildMemberAdd] Member joined: ${member.user.tag} (${member.id}) in ${member.guild.name} (${member.guild.id})`
+    );
+    
     // Track growth analytics
     if (client.growthAnalytics) {
       client.growthAnalytics.trackJoin(
