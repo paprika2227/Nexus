@@ -7,7 +7,6 @@ const rateLimitHandler = require("../utils/rateLimitHandler");
 const memoryMonitor = require("../utils/memoryMonitor");
 const autoScaling = require("../utils/autoScaling");
 const shardErrorTracker = require("../utils/shardErrorTracker");
-const { GatewayIntentBits } = require("discord.js");
 
 module.exports = {
   name: "clientReady",
