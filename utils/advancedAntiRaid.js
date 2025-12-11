@@ -512,22 +512,24 @@ class AdvancedAntiRaid {
       logger.warn(
         `[Anti-Raid] RAID DETECTED in ${guild.name} with ${totalJoins} total joins!`
       );
-      
+
       // Get ALL joins from the last 5 minutes (not just 2 minutes) to catch the raid
       const fiveMinutesAgo = Date.now() - 300000; // 5 minutes
       const recentJoins = joinData.joins.filter(
         (join) => join.timestamp && join.timestamp >= fiveMinutesAgo
       );
 
-      // Handle raid if we have ANY recent joins (even if just 1, because we know total is high)
-      if (recentJoins.length > 0 || totalJoins >= 5) {
-        // Use all recent joins, or if none recent but total is high, use all joins
-        const joinsToBan = recentJoins.length > 0 ? recentJoins : joinData.joins.slice(-10); // Last 10 if no recent
-        
+      // Handle raid IMMEDIATELY - no waiting, trigger right away
+      // Use all recent joins, or if none recent but total is high, use all recent joins
+      if (recentJoins.length > 0 || totalJoins >= 3) {
+        // Use all recent joins, or if none recent but total is high, use all joins from last 5 minutes
+        const joinsToBan =
+          recentJoins.length > 0 ? recentJoins : joinData.joins.slice(-Math.min(totalJoins, 50)); // Use all joins if no recent, up to 50
+
         logger.warn(
           `[Anti-Raid] Handling raid: ${joinsToBan.length} members to ban in ${guild.name}`
         );
-        
+
         await this.handleRaid(
           guild,
           joinsToBan,
