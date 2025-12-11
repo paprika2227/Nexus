@@ -453,11 +453,14 @@ class AdvancedAntiRaid {
     const networkMinJoins = Math.ceil(10 * finalMultiplier);
 
     // Adjust threat score threshold (larger servers = higher threshold needed)
-    const threatScoreThreshold = Math.ceil(85 * finalMultiplier);
+    // Lowered from 85 to 50 to be more sensitive
+    const threatScoreThreshold = Math.ceil(50 * finalMultiplier);
 
-    // Only trigger if multiple algorithms agree OR threat score is very high
+    // More aggressive detection: Rate-based alone can trigger for smaller raids
+    // OR if we have enough joins, rate-based is sufficient
     const isRaid =
-      (results.rateBased && results.patternBased) || // Both rate and pattern must trigger
+      (results.rateBased && joinData.joins.length >= minJoinsForRaid) || // Rate-based alone if enough joins
+      (results.rateBased && results.patternBased) || // Both rate and pattern
       (results.rateBased && results.behavioral) || // Rate + behavioral
       (results.patternBased &&
         results.behavioral &&
@@ -465,7 +468,7 @@ class AdvancedAntiRaid {
       (results.networkBased && joinData.joins.length >= networkMinJoins) || // Network needs many joins
       (results.temporalPattern && joinData.joins.length >= minJoinsForRaid) || // Temporal pattern detection
       (results.graphBased && joinData.joins.length >= networkMinJoins) || // Graph-based network detection
-      threatScore >= threatScoreThreshold; // Threshold adjusted by sensitivity
+      threatScore >= threatScoreThreshold; // Lowered threshold
 
     if (isRaid) {
       // Only pass RECENT joins (within last 2 minutes) to prevent banning old members
@@ -617,16 +620,44 @@ class AdvancedAntiRaid {
       return;
     }
 
+    // Check bot permissions before attempting any actions
+    const botMember = await guild.members.fetch(guild.client.user.id).catch(() => null);
+    if (!botMember) {
+      logger.error(`[Anti-Raid] Cannot fetch bot member in ${guild.name} - cannot take action`);
+      return;
+    }
+
+    const hasBanPerms = botMember.permissions.has("BanMembers");
+    const hasKickPerms = botMember.permissions.has("KickMembers");
+    const hasManageRolesPerms = botMember.permissions.has("ManageRoles");
+
+    if (action === "ban" && !hasBanPerms) {
+      logger.error(`[Anti-Raid] Bot lacks BanMembers permission in ${guild.name} - cannot ban raiders`);
+      return;
+    }
+    if (action === "kick" && !hasKickPerms) {
+      logger.error(`[Anti-Raid] Bot lacks KickMembers permission in ${guild.name} - cannot kick raiders`);
+      return;
+    }
+    if (action === "quarantine" && !hasManageRolesPerms) {
+      logger.error(`[Anti-Raid] Bot lacks ManageRoles permission in ${guild.name} - cannot quarantine raiders`);
+      return;
+    }
+
     logger.info(
       `[Anti-Raid] Banning ${recentSuspicious.length} members from raid in ${guild.name} (${suspiciousJoins.length} total joins detected)`
     );
 
     let successCount = 0;
+    let failedCount = 0;
     for (const join of recentSuspicious) {
       try {
         // Double-check: Only ban if they joined recently
         const member = await guild.members.fetch(join.id).catch(() => null);
-        if (!member) continue;
+        if (!member) {
+          failedCount++;
+          continue;
+        }
 
         // Verify member joined recently (within last 5 minutes as safety)
         const memberJoinTime = member.joinedTimestamp;
@@ -638,6 +669,16 @@ class AdvancedAntiRaid {
               (Date.now() - memberJoinTime) / 1000
             )}s ago (existing member)`
           );
+          failedCount++;
+          continue;
+        }
+
+        // Check role hierarchy - bot must be able to ban this member
+        if (botMember.roles.highest.position <= member.roles.highest.position && member.id !== guild.ownerId) {
+          logger.warn(
+            `Cannot ban ${member.user.tag} - bot role hierarchy too low (bot: ${botMember.roles.highest.position}, member: ${member.roles.highest.position})`
+          );
+          failedCount++;
           continue;
         }
 
@@ -646,8 +687,10 @@ class AdvancedAntiRaid {
             reason: `Anti-raid protection (Threat: ${threatScore}%)`,
             deleteMessageDays: 1,
           });
+          logger.info(`[Anti-Raid] Banned ${member.user.tag} (${member.id}) from ${guild.name}`);
         } else if (action === "kick") {
           await member.kick("Anti-raid protection");
+          logger.info(`[Anti-Raid] Kicked ${member.user.tag} (${member.id}) from ${guild.name}`);
         } else if (action === "quarantine") {
           // Add quarantine role if configured
           const quarantineRole = guild.roles.cache.find((r) =>
@@ -655,20 +698,37 @@ class AdvancedAntiRaid {
           );
           if (quarantineRole) {
             await member.roles.add(quarantineRole);
+            logger.info(`[Anti-Raid] Quarantined ${member.user.tag} (${member.id}) in ${guild.name}`);
           }
         }
 
         successCount++;
 
         // Log to database
-        await db.db.run(
+        db.db.run(
           "INSERT INTO anti_raid_logs (guild_id, user_id, action_taken, timestamp) VALUES (?, ?, ?, ?)",
-          [guild.id, join.id, action, Date.now()]
+          [guild.id, join.id, action, Date.now()],
+          (err) => {
+            if (err) {
+              logger.error(`[Anti-Raid] Failed to log ban to database: ${err.message}`);
+            }
+          }
         );
       } catch (error) {
-        logger.error(`Failed to ${action} ${join.id}: ${error.message}`);
+        failedCount++;
+        logger.error(`[Anti-Raid] Failed to ${action} ${join.id} in ${guild.name}: ${error.message}`);
+        // Log specific error types
+        if (error.code === 50013) {
+          logger.error(`[Anti-Raid] Missing permissions to ${action} ${join.id}`);
+        } else if (error.code === 50035) {
+          logger.error(`[Anti-Raid] Invalid form body when attempting to ${action} ${join.id}`);
+        }
       }
     }
+
+    logger.info(
+      `[Anti-Raid] Action complete in ${guild.name}: ${successCount} successful, ${failedCount} failed out of ${recentSuspicious.length} attempts`
+    );
 
     // Enable lockdown
     const lockdownMap =

@@ -2018,11 +2018,18 @@ class DashboardServer {
     this.app.get("/api/v1/stats", async (req, res) => {
       try {
         // Get security stats from database
-        const raidsBlocked = await new Promise((resolve) => {
+        const raidsBlocked = await new Promise((resolve, reject) => {
           db.db.get(
             "SELECT COUNT(*) as count FROM anti_raid_logs",
             [],
-            (err, row) => resolve(row?.count || 0)
+            (err, row) => {
+              if (err) {
+                logger.error("API", "Failed to get raidsBlocked count (v1)", err);
+                resolve(0);
+              } else {
+                resolve(row?.count ? Number(row.count) : 0);
+              }
+            }
           );
         });
 
@@ -2041,11 +2048,18 @@ class DashboardServer {
           );
         });
 
-        const threatsDetected = await new Promise((resolve) => {
+        const threatsDetected = await new Promise((resolve, reject) => {
           db.db.get(
             "SELECT COUNT(*) as count FROM security_logs WHERE threat_score >= 60",
             [],
-            (err, row) => resolve(row?.count || 0)
+            (err, row) => {
+              if (err) {
+                logger.error("API", "Failed to get threatsDetected count (v1)", err);
+                resolve(0);
+              } else {
+                resolve(row?.count ? Number(row.count) : 0);
+              }
+            }
           );
         });
 
