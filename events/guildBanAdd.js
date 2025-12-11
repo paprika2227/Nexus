@@ -13,15 +13,28 @@ module.exports = {
         });
         const entry = auditLogs.entries.first();
         if (entry && entry.executor) {
+          // Check if executor is admin
+          const executorMember = await ban.guild.members.fetch(entry.executor.id).catch(() => null);
+          const isAdmin = executorMember?.permissions.has("Administrator");
+          
+          logger.info(
+            `[guildBanAdd] Ban by ${entry.executor.tag} (${entry.executor.id}) ${isAdmin ? '[ADMIN]' : ''} - monitoring for anti-nuke`
+          );
+          
           await client.advancedAntiNuke.monitorAction(
             ban.guild,
             "banAdd",
             entry.executor.id,
             { bannedUserId: ban.user.id }
           );
+        } else {
+          logger.warn(
+            `[guildBanAdd] Could not find audit log entry for ban of ${ban.user.tag} (${ban.user.id})`
+          );
         }
       } catch (error) {
-        // Ignore audit log errors
+        logger.error(`[guildBanAdd] Error monitoring ban: ${error.message}`);
+        console.error(`[guildBanAdd] Error monitoring ban:`, error);
       }
     }
 
