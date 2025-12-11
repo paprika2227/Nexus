@@ -36,6 +36,7 @@ class AdvancedAntiNuke {
     this.attackerCreatedChannels = new Map(); // Track channels created by attackers (userId-guildId -> Set<channelId>)
     this.attackerCreatedRoles = new Map(); // Track roles created by attackers (userId-guildId -> Set<roleId>)
     this.attackerCreatedWebhooks = new Map(); // Track webhooks created by attackers (userId-guildId -> Set<webhookId>)
+    this.banCache = new Map(); // Cache ban data: guildId -> Map<bannedUserId, {executorId, executorTag, timestamp}>
   }
 
   // Get server-size-aware adaptive thresholds
@@ -229,6 +230,45 @@ class AdvancedAntiNuke {
     }
 
     return { suspicious: false };
+  }
+
+  // Cache ban data (called from guildBanAdd event)
+  cacheBan(guildId, bannedUserId, executorId, executorTag) {
+    if (!this.banCache.has(guildId)) {
+      this.banCache.set(guildId, new Map());
+    }
+    const guildBans = this.banCache.get(guildId);
+    guildBans.set(bannedUserId, {
+      executorId,
+      executorTag,
+      timestamp: Date.now(),
+    });
+    
+    // Clean up old entries (older than 5 minutes)
+    const fiveMinutesAgo = Date.now() - 300000;
+    for (const [bannedId, data] of guildBans.entries()) {
+      if (data.timestamp < fiveMinutesAgo) {
+        guildBans.delete(bannedId);
+      }
+    }
+  }
+
+  // Get executor from ban cache
+  getBanExecutor(guildId, bannedUserId) {
+    const guildBans = this.banCache.get(guildId);
+    if (!guildBans) return null;
+    
+    const banData = guildBans.get(bannedUserId);
+    if (!banData) return null;
+    
+    // Check if data is still recent (within 5 minutes)
+    const fiveMinutesAgo = Date.now() - 300000;
+    if (banData.timestamp < fiveMinutesAgo) {
+      guildBans.delete(bannedUserId);
+      return null;
+    }
+    
+    return banData;
   }
 
   async monitorAction(guild, actionType, userId, details = {}) {

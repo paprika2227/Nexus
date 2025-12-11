@@ -5,17 +5,31 @@ const logger = require("../utils/logger");
 module.exports = {
   name: "guildBanAdd",
   async execute(ban, client) {
-    // Advanced anti-nuke monitoring
+    // Advanced anti-nuke monitoring - use cached ban data instead of audit logs
     if (client.advancedAntiNuke) {
       try {
-        const findAuditEntry = async (retries = 3, delayMs = 500) => {
-          for (let attempt = 1; attempt <= retries; attempt++) {
-            if (attempt > 1) {
-              await new Promise(resolve => setTimeout(resolve, delayMs));
-            }
-            
+        // Get executor from cache (set when ban command is used or from previous lookup)
+        const banData = client.advancedAntiNuke.getBanExecutor(ban.guild.id, ban.user.id);
+        
+        if (banData && banData.executorId !== client.user.id) {
+          const executorMember = await ban.guild.members.fetch(banData.executorId).catch(() => null);
+          const isAdmin = executorMember?.permissions.has("Administrator");
+
+          logger.info(
+            `[guildBanAdd] Ban by ${banData.executorTag} (${banData.executorId}) ${isAdmin ? "[ADMIN]" : ""} - monitoring for anti-nuke (from cache)`
+          );
+
+          await client.advancedAntiNuke.monitorAction(
+            ban.guild,
+            "banAdd",
+            banData.executorId,
+            { bannedUserId: ban.user.id }
+          );
+        } else if (!banData) {
+          // If not in cache, do one-time audit log lookup and cache it (fallback only)
+          try {
             const auditLogs = await ban.guild.fetchAuditLogs({
-              limit: 15,
+              limit: 10,
               type: 20, // MEMBER_BAN_ADD
             });
             
@@ -26,45 +40,41 @@ module.exports = {
               return isRecent && matchesTarget && entry.executor;
             });
             
-            if (matchingEntry) {
-              return matchingEntry;
+            if (matchingEntry && matchingEntry.executor && matchingEntry.executor.id !== client.user.id) {
+              // Cache it for future use (no more audit log calls for this ban)
+              client.advancedAntiNuke.cacheBan(
+                ban.guild.id,
+                ban.user.id,
+                matchingEntry.executor.id,
+                matchingEntry.executor.tag
+              );
+              
+              const executorMember = await ban.guild.members.fetch(matchingEntry.executor.id).catch(() => null);
+              const isAdmin = executorMember?.permissions.has("Administrator");
+
+              logger.info(
+                `[guildBanAdd] Ban by ${matchingEntry.executor.tag} (${matchingEntry.executor.id}) ${isAdmin ? "[ADMIN]" : ""} - monitoring for anti-nuke (cached for future)`
+              );
+
+              await client.advancedAntiNuke.monitorAction(
+                ban.guild,
+                "banAdd",
+                matchingEntry.executor.id,
+                { bannedUserId: ban.user.id }
+              );
+            } else {
+              logger.debug(
+                `[guildBanAdd] Could not determine executor for ban of ${ban.user.tag} (${ban.user.id}) - may be from external source`
+              );
             }
-            
+          } catch (auditError) {
             logger.debug(
-              `[guildBanAdd] Attempt ${attempt}/${retries} - No matching audit entry yet for ${ban.user.id}`
-            );
-          }
-          return null;
-        };
-        
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const matchingEntry = await findAuditEntry();
-        
-        if (matchingEntry && matchingEntry.executor) {
-          if (matchingEntry.executor.id !== client.user.id) {
-            const executorMember = await ban.guild.members
-              .fetch(matchingEntry.executor.id)
-              .catch(() => null);
-            const isAdmin = executorMember?.permissions.has("Administrator");
-
-            logger.info(
-              `[guildBanAdd] Ban by ${matchingEntry.executor.tag} (${matchingEntry.executor.id}) ${isAdmin ? "[ADMIN]" : ""} - monitoring for anti-nuke`
-            );
-
-            await client.advancedAntiNuke.monitorAction(
-              ban.guild,
-              "banAdd",
-              matchingEntry.executor.id,
-              { bannedUserId: ban.user.id }
-            );
-          } else {
-            logger.debug(
-              `[guildBanAdd] Skipping ban monitoring - bot executed the ban (${ban.user.id})`
+              `[guildBanAdd] Could not fetch audit logs for ban tracking: ${auditError.message}`
             );
           }
         } else {
-          logger.warn(
-            `[guildBanAdd] Could not find matching audit log entry for ban of ${ban.user.tag} (${ban.user.id}) in ${ban.guild.id}`
+          logger.debug(
+            `[guildBanAdd] Skipping ban monitoring - bot executed the ban (${ban.user.id})`
           );
         }
       } catch (error) {

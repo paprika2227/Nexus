@@ -10,6 +10,16 @@ class Moderation {
 
       await db.addModLog(guild.id, user.id, moderator.id, "ban", reason);
 
+      // Cache ban data for anti-nuke (avoids audit log API calls)
+      if (guild.client?.advancedAntiNuke) {
+        guild.client.advancedAntiNuke.cacheBan(
+          guild.id,
+          user.id,
+          moderator.id,
+          moderator.tag || moderator.username || "Unknown"
+        );
+      }
+
       return { success: true, message: `Banned ${user.tag}` };
     } catch (error) {
       logger.error(`Ban failed: ${error.message}`);
