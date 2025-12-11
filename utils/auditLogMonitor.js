@@ -10,13 +10,14 @@ class AuditLogMonitor {
     this.suspiciousPatterns = new Map(); // guildId -> Map<userId, patternData>
     this.permissionTestCache = new Map(); // userId-guildId -> {changes: [], timestamps: []}
     this.coordinatedAttackCache = new Map(); // guildId -> {users: Set, actions: [], window}
-    this.checkInterval = 900000; // Check every 15 minutes (optimized to prevent rate limiting)
+    this.checkInterval = 1800000; // Check every 30 minutes (reduced to prevent rate limiting)
+    this.staggerDelay = 5000; // Stagger guild checks by 5 seconds to avoid bursts
     this.patternWindow = 60000; // 1 minute window for pattern detection
     this.maxConsecutiveErrors = 5; // Stop monitoring after 5 consecutive errors
   }
 
   // Start monitoring a guild's audit logs
-  startMonitoring(guild) {
+  startMonitoring(guild, staggerDelay = 0) {
     if (this.monitoringGuilds.has(guild.id)) {
       return; // Already monitoring
     }
@@ -36,34 +37,45 @@ class AuditLogMonitor {
       `Starting audit log monitoring for ${guild.name} (${guild.id})`
     );
 
-    const interval = setInterval(async () => {
-      try {
-        // Verify guild still exists before each check
-        if (!this.client.guilds.cache.has(guild.id)) {
-          logger.debug(
-            "AuditLogMonitor",
-            `Guild ${guild.id} no longer accessible during interval, stopping`
-          );
-          this.stopMonitoring(guild.id);
-          return;
-        }
-        await this.analyzeAuditLogs(guild);
-      } catch (error) {
-        logger.error("AuditLogMonitor", "Error analyzing audit logs", {
-          message: error?.message || String(error),
-          stack: error?.stack,
-          name: error?.name,
-          guildId: guild.id,
-        });
-      }
-    }, this.checkInterval);
+    // Stagger initial check to prevent all guilds checking at once
+    const initialDelay = staggerDelay || 0;
 
-    this.monitoringGuilds.set(guild.id, {
-      interval,
-      lastCheck: Date.now(),
-      consecutiveErrors: 0,
-      guild: guild, // Store guild reference for cleanup
-    });
+    const startInterval = () => {
+      const interval = setInterval(async () => {
+        try {
+          // Verify guild still exists before each check
+          if (!this.client.guilds.cache.has(guild.id)) {
+            logger.debug(
+              "AuditLogMonitor",
+              `Guild ${guild.id} no longer accessible during interval, stopping`
+            );
+            this.stopMonitoring(guild.id);
+            return;
+          }
+          await this.analyzeAuditLogs(guild);
+        } catch (error) {
+          logger.error("AuditLogMonitor", "Error analyzing audit logs", {
+            message: error?.message || String(error),
+            stack: error?.stack,
+            name: error?.name,
+            guildId: guild.id,
+          });
+        }
+      }, this.checkInterval);
+
+      this.monitoringGuilds.set(guild.id, {
+        interval,
+        lastCheck: Date.now(),
+        consecutiveErrors: 0,
+        guild: guild, // Store guild reference for cleanup
+      });
+    };
+
+    if (initialDelay > 0) {
+      setTimeout(startInterval, initialDelay);
+    } else {
+      startInterval();
+    }
   }
 
   // Clean up monitoring for guilds that no longer exist

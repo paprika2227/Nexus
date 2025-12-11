@@ -276,11 +276,17 @@ module.exports = {
 
     // Start audit log monitoring for all servers (EXCEEDS WICK)
     if (client.auditLogMonitor) {
-      client.guilds.cache.forEach((guild) => {
+      // Stagger audit log monitoring to prevent rate limit bursts
+      const guilds = Array.from(client.guilds.cache.values());
+      let staggerDelay = 0;
+      
+      guilds.forEach((guild) => {
         try {
           // Only start monitoring if guild exists and bot is in it
           if (guild && client.guilds.cache.has(guild.id)) {
-            client.auditLogMonitor.startMonitoring(guild);
+            client.auditLogMonitor.startMonitoring(guild, staggerDelay);
+            // Stagger each guild by 5 seconds to avoid bursts
+            staggerDelay += 5000;
           }
         } catch (error) {
           logger.debug(
@@ -291,7 +297,7 @@ module.exports = {
       });
       logger.info(
         "Ready",
-        `Started audit log monitoring for ${client.guilds.cache.size} servers`
+        `Started audit log monitoring for ${guilds.length} servers (staggered to prevent rate limits)`
       );
 
       // Set up periodic cleanup for stale guilds (every 5 minutes)
