@@ -158,22 +158,23 @@
         }
 
         try {
-          // Check if source exists in invite_sources table
-          const response = await fetch(`${API_URL}/api/admin/invite-sources`, {
-            headers: {
-              "ngrok-skip-browser-warning": "true",
-            },
-          });
+          // Use dedicated validation endpoint
+          const response = await fetch(
+            `${API_URL}/api/validate-invite-source?source=${encodeURIComponent(sourceParam)}`,
+            {
+              headers: {
+                "ngrok-skip-browser-warning": "true",
+              },
+            }
+          );
 
           if (!response.ok) {
-            // If API fails, allow "direct" only
+            // If API fails, only allow "direct"
             return sourceParam === "direct";
           }
 
-          const sources = await response.json();
-          // Check if the source exists in the list
-          const sourceExists = sources.some((s) => s.source === sourceParam);
-          return sourceExists;
+          const result = await response.json();
+          return result.valid === true;
         } catch (error) {
           console.error("[Invite] Error validating source:", error);
           // On error, only allow "direct"

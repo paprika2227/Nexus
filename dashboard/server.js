@@ -4697,6 +4697,31 @@ class DashboardServer {
       }
     });
 
+    // GET /api/validate-invite-source - Public endpoint to validate invite source
+    this.app.get("/api/validate-invite-source", async (req, res) => {
+      try {
+        const { source } = req.query;
+        
+        if (!source) {
+          return res.json({ valid: false, error: "Source parameter required" });
+        }
+
+        // "direct" is always valid
+        if (source === "direct") {
+          return res.json({ valid: true });
+        }
+
+        // Check if source exists
+        const isValid = await db.inviteSourceExists(source).catch(() => false);
+        res.json({ valid: isValid });
+      } catch (error) {
+        logger.error("API", "Error validating invite source", {
+          message: error?.message || String(error),
+        });
+        res.json({ valid: false, error: "Validation failed" });
+      }
+    });
+
     // POST /api/track-invite-click - Track when someone clicks an invite link
     this.app.post("/api/track-invite-click", async (req, res) => {
       try {
