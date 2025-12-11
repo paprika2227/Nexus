@@ -658,7 +658,7 @@ class AdvancedAntiNuke {
         `[Anti-Nuke] Could not fetch owner, using guild.ownerId fallback: ${error.message}`
       );
     }
-    
+
     const isAdmin = member.permissions.has("Administrator");
 
     // Log detailed info for debugging
@@ -666,9 +666,9 @@ class AdvancedAntiNuke {
       `[Anti-Nuke] 🚨 CRITICAL THREAT: ${threatType} by ${userId} (${member.user.tag}) in ${guild.id}`
     );
     logger.warn(
-      `[Anti-Nuke] Owner check - isOwner: ${isOwner}, isAdmin: ${isAdmin}, ownerId: ${ownerId} (${ownerTag || 'unknown'}), member.id: ${member.id} (${member.user.tag}), guild.ownerId: ${guild.ownerId}`
+      `[Anti-Nuke] Owner check - isOwner: ${isOwner}, isAdmin: ${isAdmin}, ownerId: ${ownerId} (${ownerTag || "unknown"}), member.id: ${member.id} (${member.user.tag}), guild.ownerId: ${guild.ownerId}`
     );
-    
+
     // If ownerId matches member but user insists it's not the owner, log a warning
     if (isOwner && ownerId === member.id) {
       logger.error(
@@ -685,7 +685,7 @@ class AdvancedAntiNuke {
       // For mass-ban, treat as admin even if detected as owner - try to ban anyway
       isOwner = false; // Override owner check for mass-ban attacks
     }
-    
+
     if (isOwner) {
       logger.warn(
         `[Anti-Nuke] ⚠️ THREAT DETECTED from SERVER OWNER ${userId} (${threatType}) in ${guild.id} - Cannot ban/kick owner, but will attempt to remove permissions/roles`
@@ -1150,11 +1150,13 @@ class AdvancedAntiNuke {
       let isOwnerCheck = false;
       try {
         const owner = await guild.fetchOwner().catch(() => null);
-        isOwnerCheck = owner ? member.id === owner.id : member.id === guild.ownerId;
+        isOwnerCheck = owner
+          ? member.id === owner.id
+          : member.id === guild.ownerId;
       } catch (error) {
         isOwnerCheck = member.id === guild.ownerId; // Fallback
       }
-      
+
       if (isOwnerCheck) {
         logger.warn(
           `[Anti-Nuke] Skipping ban/kick attempt on server owner ${userId} in ${guild.id} (owner cannot be banned)`
