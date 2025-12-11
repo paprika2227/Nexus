@@ -9,7 +9,14 @@ class AdvancedAntiRaid {
       const recentJoins = joins.filter(
         (j) => Date.now() - j.timestamp < timeWindow
       );
-      return recentJoins.length >= threshold;
+      const result = recentJoins.length >= threshold;
+      // Debug logging
+      if (recentJoins.length > 0) {
+        logger.debug(
+          `[Anti-Raid] Rate-based check: ${recentJoins.length} joins in ${timeWindow}ms window, threshold: ${threshold}, triggered: ${result}`
+        );
+      }
+      return result;
     },
 
     // Algorithm 2: Pattern-based detection (detects coordinated joins)
@@ -440,12 +447,17 @@ class AdvancedAntiRaid {
     }
 
     // Adjust minimum joins for raid detection based on server size + sensitivity
-    // Larger servers or less sensitive settings = need more joins
-    const minJoinsForRaid = Math.ceil(baseMinJoins * finalMultiplier);
+    // Lowered base from 5 to 2 to be much more sensitive
+    // For very small servers, use minimum of 2 joins
+    const minJoinsForRaid = Math.max(2, Math.ceil(2 * finalMultiplier));
 
-    if (joinData.joins.length < minJoinsForRaid) {
-      return false; // Not enough joins to be considered a raid
-    }
+    // Debug logging
+    logger.debug(
+      `[Anti-Raid] Detection check for ${guild.name}: ${joinData.joins.length} joins, min required: ${minJoinsForRaid}, multiplier: ${finalMultiplier.toFixed(2)}, timeWindow: ${config.anti_raid_time_window || 10000}ms`
+    );
+
+    // Don't return early - let detection algorithms run even with fewer joins
+    // They will handle their own minimum thresholds
 
     // Adjust thresholds based on server size + sensitivity
     // Larger servers = need more joins for pattern/behavioral detection
@@ -453,13 +465,14 @@ class AdvancedAntiRaid {
     const networkMinJoins = Math.ceil(10 * finalMultiplier);
 
     // Adjust threat score threshold (larger servers = higher threshold needed)
-    // Lowered from 85 to 50 to be more sensitive
-    const threatScoreThreshold = Math.ceil(50 * finalMultiplier);
+    // Lowered from 50 to 30 to be much more sensitive
+    const threatScoreThreshold = Math.max(30, Math.ceil(30 * finalMultiplier));
 
     // More aggressive detection: Rate-based alone can trigger for smaller raids
     // OR if we have enough joins, rate-based is sufficient
+    // Minimum 2 joins required for any detection
     const isRaid =
-      (results.rateBased && joinData.joins.length >= minJoinsForRaid) || // Rate-based alone if enough joins
+      (joinData.joins.length >= 2 && results.rateBased) || // Rate-based alone if 2+ joins
       (results.rateBased && results.patternBased) || // Both rate and pattern
       (results.rateBased && results.behavioral) || // Rate + behavioral
       (results.patternBased &&
@@ -468,7 +481,7 @@ class AdvancedAntiRaid {
       (results.networkBased && joinData.joins.length >= networkMinJoins) || // Network needs many joins
       (results.temporalPattern && joinData.joins.length >= minJoinsForRaid) || // Temporal pattern detection
       (results.graphBased && joinData.joins.length >= networkMinJoins) || // Graph-based network detection
-      threatScore >= threatScoreThreshold; // Lowered threshold
+      (joinData.joins.length >= 2 && threatScore >= threatScoreThreshold); // Lowered threshold, minimum 2 joins
 
     if (isRaid) {
       // Only pass RECENT joins (within last 2 minutes) to prevent banning old members
@@ -490,9 +503,12 @@ class AdvancedAntiRaid {
       }
     }
 
-    // Clean old joins (older than 1 minute)
+    // Clean old joins (older than time window + buffer to allow detection)
+    // Keep joins for at least 2x the time window to allow for detection
+    const timeWindow = config.anti_raid_time_window || 10000;
+    const cleanupWindow = Math.max(timeWindow * 2, 30000); // At least 30 seconds
     joinData.joins = joinData.joins.filter(
-      (j) => Date.now() - j.timestamp < 60000
+      (j) => Date.now() - j.timestamp < cleanupWindow
     );
     await this.saveJoinHistory(guild.id, joinData);
 
@@ -545,11 +561,11 @@ class AdvancedAntiRaid {
     // When a raid is confirmed, ban ALL recent joins (they're already filtered to recent in detectRaid)
     // Only apply additional filtering for very large servers to prevent false positives
     const isLargeServer = memberCount > 1000;
-    
+
     // For large servers, still apply some suspicion filtering to prevent false positives
     // For smaller servers, if raid is detected, ban all recent joins
     let membersToBan = suspiciousJoins;
-    
+
     if (isLargeServer && finalMultiplier > 1.5) {
       // Large server with low sensitivity - apply light suspicion filtering
       const baseSuspicionThreshold = 1; // Lowered from 3
@@ -567,7 +583,7 @@ class AdvancedAntiRaid {
         // Account characteristics
         if (!join.hasAvatar) suspicionScore += 1; // No avatar
         if (parseInt(join.discriminator) < 1000) suspicionScore += 1; // Default discriminator
-        
+
         // If raid is confirmed and we have many joins, lower threshold
         if (suspiciousJoins.length >= 10) suspicionScore += 1; // Bonus point for confirmed raid
 
@@ -620,9 +636,13 @@ class AdvancedAntiRaid {
     }
 
     // Check bot permissions before attempting any actions
-    const botMember = await guild.members.fetch(guild.client.user.id).catch(() => null);
+    const botMember = await guild.members
+      .fetch(guild.client.user.id)
+      .catch(() => null);
     if (!botMember) {
-      logger.error(`[Anti-Raid] Cannot fetch bot member in ${guild.name} - cannot take action`);
+      logger.error(
+        `[Anti-Raid] Cannot fetch bot member in ${guild.name} - cannot take action`
+      );
       return;
     }
 
@@ -631,15 +651,21 @@ class AdvancedAntiRaid {
     const hasManageRolesPerms = botMember.permissions.has("ManageRoles");
 
     if (action === "ban" && !hasBanPerms) {
-      logger.error(`[Anti-Raid] Bot lacks BanMembers permission in ${guild.name} - cannot ban raiders`);
+      logger.error(
+        `[Anti-Raid] Bot lacks BanMembers permission in ${guild.name} - cannot ban raiders`
+      );
       return;
     }
     if (action === "kick" && !hasKickPerms) {
-      logger.error(`[Anti-Raid] Bot lacks KickMembers permission in ${guild.name} - cannot kick raiders`);
+      logger.error(
+        `[Anti-Raid] Bot lacks KickMembers permission in ${guild.name} - cannot kick raiders`
+      );
       return;
     }
     if (action === "quarantine" && !hasManageRolesPerms) {
-      logger.error(`[Anti-Raid] Bot lacks ManageRoles permission in ${guild.name} - cannot quarantine raiders`);
+      logger.error(
+        `[Anti-Raid] Bot lacks ManageRoles permission in ${guild.name} - cannot quarantine raiders`
+      );
       return;
     }
 
@@ -673,7 +699,10 @@ class AdvancedAntiRaid {
         }
 
         // Check role hierarchy - bot must be able to ban this member
-        if (botMember.roles.highest.position <= member.roles.highest.position && member.id !== guild.ownerId) {
+        if (
+          botMember.roles.highest.position <= member.roles.highest.position &&
+          member.id !== guild.ownerId
+        ) {
           logger.warn(
             `Cannot ban ${member.user.tag} - bot role hierarchy too low (bot: ${botMember.roles.highest.position}, member: ${member.roles.highest.position})`
           );
@@ -686,10 +715,14 @@ class AdvancedAntiRaid {
             reason: `Anti-raid protection (Threat: ${threatScore}%)`,
             deleteMessageDays: 1,
           });
-          logger.info(`[Anti-Raid] Banned ${member.user.tag} (${member.id}) from ${guild.name}`);
+          logger.info(
+            `[Anti-Raid] Banned ${member.user.tag} (${member.id}) from ${guild.name}`
+          );
         } else if (action === "kick") {
           await member.kick("Anti-raid protection");
-          logger.info(`[Anti-Raid] Kicked ${member.user.tag} (${member.id}) from ${guild.name}`);
+          logger.info(
+            `[Anti-Raid] Kicked ${member.user.tag} (${member.id}) from ${guild.name}`
+          );
         } else if (action === "quarantine") {
           // Add quarantine role if configured
           const quarantineRole = guild.roles.cache.find((r) =>
@@ -697,7 +730,9 @@ class AdvancedAntiRaid {
           );
           if (quarantineRole) {
             await member.roles.add(quarantineRole);
-            logger.info(`[Anti-Raid] Quarantined ${member.user.tag} (${member.id}) in ${guild.name}`);
+            logger.info(
+              `[Anti-Raid] Quarantined ${member.user.tag} (${member.id}) in ${guild.name}`
+            );
           }
         }
 
@@ -709,18 +744,26 @@ class AdvancedAntiRaid {
           [guild.id, join.id, action, Date.now()],
           (err) => {
             if (err) {
-              logger.error(`[Anti-Raid] Failed to log ban to database: ${err.message}`);
+              logger.error(
+                `[Anti-Raid] Failed to log ban to database: ${err.message}`
+              );
             }
           }
         );
       } catch (error) {
         failedCount++;
-        logger.error(`[Anti-Raid] Failed to ${action} ${join.id} in ${guild.name}: ${error.message}`);
+        logger.error(
+          `[Anti-Raid] Failed to ${action} ${join.id} in ${guild.name}: ${error.message}`
+        );
         // Log specific error types
         if (error.code === 50013) {
-          logger.error(`[Anti-Raid] Missing permissions to ${action} ${join.id}`);
+          logger.error(
+            `[Anti-Raid] Missing permissions to ${action} ${join.id}`
+          );
         } else if (error.code === 50035) {
-          logger.error(`[Anti-Raid] Invalid form body when attempting to ${action} ${join.id}`);
+          logger.error(
+            `[Anti-Raid] Invalid form body when attempting to ${action} ${join.id}`
+          );
         }
       }
     }
