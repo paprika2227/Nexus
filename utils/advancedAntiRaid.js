@@ -395,6 +395,11 @@ class AdvancedAntiRaid {
 
     joinData.joins.push(memberData);
 
+    // Log every join for debugging
+    logger.info(
+      `[Anti-Raid] Member joined ${guild.name}: ${member.user.tag} (${member.id}), total joins in history: ${joinData.joins.length}`
+    );
+
     // Run all detection algorithms with server-size-aware thresholds
     // Use a more reasonable threshold - don't scale too aggressively
     const baseMaxJoins = config.anti_raid_max_joins || 5;
@@ -482,12 +487,12 @@ class AdvancedAntiRaid {
 
     // Trigger if:
     // 1. Rate-based detection triggers (joins within time window exceed threshold)
-    // 2. Total joins exceed a reasonable threshold (e.g., 10+ joins = likely raid)
+    // 2. Total joins exceed a reasonable threshold (e.g., 5+ joins = likely raid)
     // 3. Recent joins (within time window) exceed threshold
     const isRaid =
-      totalJoins >= 10 || // 10+ total joins = definitely a raid
+      totalJoins >= 5 || // 5+ total joins = definitely a raid (lowered from 10)
       recentJoinsCount >= scaledMaxJoins || // Joins within time window exceed threshold
-      (totalJoins >= 5 && results.rateBased) || // 5+ joins and rate-based triggers
+      (totalJoins >= 3 && results.rateBased) || // 3+ joins and rate-based triggers
       (results.rateBased && results.patternBased) || // Both rate and pattern
       (results.rateBased && results.behavioral) || // Rate + behavioral
       (results.patternBased &&
@@ -496,25 +501,45 @@ class AdvancedAntiRaid {
       (results.networkBased && totalJoins >= networkMinJoins) || // Network needs many joins
       (results.temporalPattern && totalJoins >= minJoinsForRaid) || // Temporal pattern detection
       (results.graphBased && totalJoins >= networkMinJoins) || // Graph-based network detection
-      (totalJoins >= 5 && threatScore >= threatScoreThreshold); // 5+ joins and high threat score
+      (totalJoins >= 3 && threatScore >= threatScoreThreshold); // 3+ joins and high threat score
+
+    // Debug logging for detection results
+    logger.info(
+      `[Anti-Raid] Detection check for ${guild.name}: totalJoins=${totalJoins}, recentJoins=${recentJoinsCount}, rateBased=${results.rateBased}, isRaid=${isRaid}`
+    );
 
     if (isRaid) {
-      // Only pass RECENT joins (within last 2 minutes) to prevent banning old members
-      const twoMinutesAgo = Date.now() - 120000; // 2 minutes
+      logger.warn(
+        `[Anti-Raid] RAID DETECTED in ${guild.name} with ${totalJoins} total joins!`
+      );
+      
+      // Get ALL joins from the last 5 minutes (not just 2 minutes) to catch the raid
+      const fiveMinutesAgo = Date.now() - 300000; // 5 minutes
       const recentJoins = joinData.joins.filter(
-        (join) => join.timestamp && join.timestamp >= twoMinutesAgo
+        (join) => join.timestamp && join.timestamp >= fiveMinutesAgo
       );
 
-      // Only handle raid if we have recent suspicious joins
-      if (recentJoins.length > 0) {
+      // Handle raid if we have ANY recent joins (even if just 1, because we know total is high)
+      if (recentJoins.length > 0 || totalJoins >= 5) {
+        // Use all recent joins, or if none recent but total is high, use all joins
+        const joinsToBan = recentJoins.length > 0 ? recentJoins : joinData.joins.slice(-10); // Last 10 if no recent
+        
+        logger.warn(
+          `[Anti-Raid] Handling raid: ${joinsToBan.length} members to ban in ${guild.name}`
+        );
+        
         await this.handleRaid(
           guild,
-          recentJoins,
+          joinsToBan,
           threatScore,
           results,
           finalMultiplier
         );
         return true;
+      } else {
+        logger.warn(
+          `[Anti-Raid] Raid detected but no recent joins to ban in ${guild.name} (total: ${totalJoins}, recent: ${recentJoins.length})`
+        );
       }
     }
 
