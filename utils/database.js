@@ -4405,6 +4405,26 @@ class Database {
     });
   }
 
+  // Check if invite source exists (validation)
+  inviteSourceExists(source) {
+    return new Promise((resolve, reject) => {
+      // Allow "direct" as a default source
+      if (source === "direct") {
+        resolve(true);
+        return;
+      }
+      
+      this.db.get(
+        "SELECT source FROM invite_sources WHERE source = ?",
+        [source],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(!!row);
+        }
+      );
+    });
+  }
+
   // Delete invite source
   deleteInviteSource(source) {
     return new Promise((resolve, reject) => {
@@ -4471,7 +4491,18 @@ class Database {
 
   // Track pending invite source (before bot joins)
   trackPendingInviteSource(userId, source, ipAddress = null, userAgent = null) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+      // Validate source exists (or is "direct")
+      const isValidSource = await this.inviteSourceExists(source).catch(() => false);
+      
+      if (!isValidSource) {
+        logger.warn(
+          "Database",
+          `[Invite Tracking] Rejected invalid invite source: ${source} for user ${userId} - defaulting to "direct"`
+        );
+        source = "direct"; // Default to direct for invalid sources
+      }
+
       this.db.run(
         "INSERT INTO pending_invite_sources (user_id, source, timestamp, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)",
         [userId, source, Date.now(), ipAddress, userAgent],
@@ -4490,7 +4521,18 @@ class Database {
     userAgent = null,
     referrer = null
   ) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+      // Validate source exists (or is "direct")
+      const isValidSource = await this.inviteSourceExists(source).catch(() => false);
+      
+      if (!isValidSource) {
+        logger.warn(
+          "Database",
+          `[Invite Tracking] Rejected invalid invite source: ${source} - defaulting to "direct"`
+        );
+        source = "direct"; // Default to direct for invalid sources
+      }
+
       const now = Date.now();
 
       // Store anonymously first, will be associated with user later
@@ -4503,20 +4545,23 @@ class Database {
             return;
           }
 
-          // Also increment click count for this source
-          this.db.run(
-            "UPDATE invite_sources SET total_clicks = total_clicks + 1, updated_at = ? WHERE source = ?",
-            [now, source],
-            (err2) => {
-              // Don't fail if source doesn't exist yet
-              if (err2)
-                logger.debug(
-                  "Database",
-                  `[Invite Tracking] Note: Source '${source}' not found in invite_sources table`
-                );
-              resolve();
-            }
-          );
+          // Also increment click count for this source (only if valid)
+          if (isValidSource) {
+            this.db.run(
+              "UPDATE invite_sources SET total_clicks = total_clicks + 1, updated_at = ? WHERE source = ?",
+              [now, source],
+              (err2) => {
+                if (err2)
+                  logger.debug(
+                    "Database",
+                    `[Invite Tracking] Note: Source '${source}' not found in invite_sources table`
+                  );
+                resolve();
+              }
+            );
+          } else {
+            resolve();
+          }
         }
       );
     });
