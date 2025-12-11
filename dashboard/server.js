@@ -2445,7 +2445,7 @@ class DashboardServer {
 
         const nukesBlocked = await new Promise((resolve, reject) => {
           db.db.get(
-            "SELECT COUNT(*) as count FROM anti_nuke_logs WHERE action_taken = 1",
+            "SELECT COUNT(*) as count FROM security_logs WHERE action_taken = 1 AND threat_type IN ('rapid_channel_deletion', 'mass_channel_deletion', 'mass_channel_creation', 'mass_role_deletion', 'mass_role_creation', 'mass_ban', 'mass_kick', 'mass_webhook_creation', 'mass_emoji_deletion', 'mass_emoji_creation', 'voice_raid', 'combined_attack')",
             [],
             (err, row) => {
               if (err) {
