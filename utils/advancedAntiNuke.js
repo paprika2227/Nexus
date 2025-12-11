@@ -911,6 +911,7 @@ class AdvancedAntiNuke {
         : [];
 
       // If attacker has Administrator permission, try to remove it from their roles
+      let adminRemoved = false;
       if (member.permissions.has("Administrator")) {
         logger.warn(
           `[Anti-Nuke] Attacker has Administrator permission - attempting to strip it`
@@ -931,6 +932,7 @@ class AdvancedAntiNuke {
                 logger.warn(
                   `[Anti-Nuke] Removed Administrator permission from role ${role.name}`
                 );
+                adminRemoved = true;
               }
             } catch (error) {
               logger.error(
@@ -943,6 +945,38 @@ class AdvancedAntiNuke {
 
         // Reduced wait time (EXCEEDS WICK - faster response)
         await new Promise((resolve) => setTimeout(resolve, 500));
+        
+        // After removing admin, refresh member and try to ban again
+        if (adminRemoved && !isOwner) {
+          try {
+            const refreshedMember = await guild.members.fetch(userId).catch(() => null);
+            if (refreshedMember && hasBanPerms) {
+              logger.warn(
+                `[Anti-Nuke] Admin removed - attempting to ban ${userId} now`
+              );
+              await refreshedMember.ban({
+                reason: `Anti-Nuke EMERGENCY: ${threatType} detected (admin stripped)`,
+                deleteMessageSeconds: 604800,
+              });
+              logger.success(
+                `[Anti-Nuke] ✅ BANNED ${userId} after removing admin permissions`
+              );
+              
+              // Trigger recovery
+              this.attemptRecovery(guild, threatType, counts, userId).catch(
+                (error) => {
+                  logger.error(`[Anti-Nuke] Recovery failed:`, error);
+                }
+              );
+              return; // Success - exit
+            }
+          } catch (banError) {
+            logger.error(
+              `[Anti-Nuke] Ban failed after removing admin: ${banError.message}`
+            );
+            // Continue to role removal as fallback
+          }
+        }
       }
 
       // Remove ALL roles from attacker (this will strip admin if we couldn't remove it from the role)
