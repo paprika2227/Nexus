@@ -350,8 +350,28 @@ class AdvancedAntiRaid {
   }
 
   static async detectRaid(guild, member) {
+    logger.info(
+      `[Anti-Raid] detectRaid called for ${member.user.tag} (${member.id}) in ${guild.name} (${guild.id})`
+    );
+    
     const config = await db.getServerConfig(guild.id);
-    if (!config || !config.anti_raid_enabled) return false;
+    if (!config) {
+      logger.warn(
+        `[Anti-Raid] No config found for ${guild.name} (${guild.id}) - skipping detection`
+      );
+      return false;
+    }
+    
+    if (!config.anti_raid_enabled) {
+      logger.debug(
+        `[Anti-Raid] Anti-raid is disabled for ${guild.name} (${guild.id}) - skipping detection`
+      );
+      return false;
+    }
+    
+    logger.debug(
+      `[Anti-Raid] Anti-raid is ENABLED for ${guild.name} (${guild.id}), proceeding with detection`
+    );
 
     // Get server size multiplier (dynamic scaling)
     const memberCount = guild.memberCount || 1;
@@ -406,7 +426,7 @@ class AdvancedAntiRaid {
     };
 
     joinData.joins.push(memberData);
-    
+
     // Update cache immediately (synchronous, no DB delay)
     cacheEntry.joins = joinData.joins;
 
@@ -539,7 +559,9 @@ class AdvancedAntiRaid {
       if (recentJoins.length > 0 || totalJoins >= 3) {
         // Use all recent joins, or if none recent but total is high, use all joins from last 5 minutes
         const joinsToBan =
-          recentJoins.length > 0 ? recentJoins : joinData.joins.slice(-Math.min(totalJoins, 50)); // Use all joins if no recent, up to 50
+          recentJoins.length > 0
+            ? recentJoins
+            : joinData.joins.slice(-Math.min(totalJoins, 50)); // Use all joins if no recent, up to 50
 
         logger.warn(
           `[Anti-Raid] Handling raid: ${joinsToBan.length} members to ban in ${guild.name}`
@@ -548,7 +570,7 @@ class AdvancedAntiRaid {
         // Clear cache and save to DB before handling raid
         await this.saveJoinHistory(guild.id, joinData);
         cacheEntry.lastCleanup = Date.now();
-        
+
         await this.handleRaid(
           guild,
           joinsToBan,
@@ -556,10 +578,10 @@ class AdvancedAntiRaid {
           results,
           finalMultiplier
         );
-        
+
         // Clear cache after raid is handled
         this.joinCache.delete(guild.id);
-        
+
         return true;
       } else {
         logger.warn(
