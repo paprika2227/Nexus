@@ -396,13 +396,15 @@ class AdvancedAntiRaid {
     joinData.joins.push(memberData);
 
     // Run all detection algorithms with server-size-aware thresholds
-    const scaledMaxJoins = Math.ceil(
-      (config.anti_raid_max_joins || 5) * finalMultiplier
-    );
+    // Use a more reasonable threshold - don't scale too aggressively
+    const baseMaxJoins = config.anti_raid_max_joins || 5;
+    const scaledMaxJoins = Math.max(3, Math.ceil(baseMaxJoins * Math.min(finalMultiplier, 2.0))); // Cap multiplier at 2.0
+    
+    const timeWindow = config.anti_raid_time_window || 10000;
     const results = {
       rateBased: this.detectionAlgorithms.rateBased(
         joinData.joins,
-        config.anti_raid_time_window || 10000,
+        timeWindow,
         scaledMaxJoins // Scale threshold by server size + sensitivity
       ),
       patternBased: this.detectionAlgorithms.patternBased(joinData.joins),
@@ -468,20 +470,30 @@ class AdvancedAntiRaid {
     // Lowered from 50 to 30 to be much more sensitive
     const threatScoreThreshold = Math.max(30, Math.ceil(30 * finalMultiplier));
 
-    // More aggressive detection: Rate-based alone can trigger for smaller raids
-    // OR if we have enough joins, rate-based is sufficient
-    // Minimum 2 joins required for any detection
+    // More aggressive detection: Trigger on high join count OR rate-based detection
+    // If we have a lot of joins in a short time, it's definitely a raid
+    const totalJoins = joinData.joins.length;
+    const recentJoinsCount = joinData.joins.filter(
+      (j) => Date.now() - j.timestamp < timeWindow
+    ).length;
+    
+    // Trigger if:
+    // 1. Rate-based detection triggers (joins within time window exceed threshold)
+    // 2. Total joins exceed a reasonable threshold (e.g., 10+ joins = likely raid)
+    // 3. Recent joins (within time window) exceed threshold
     const isRaid =
-      (joinData.joins.length >= 2 && results.rateBased) || // Rate-based alone if 2+ joins
+      (totalJoins >= 10) || // 10+ total joins = definitely a raid
+      (recentJoinsCount >= scaledMaxJoins) || // Joins within time window exceed threshold
+      (totalJoins >= 5 && results.rateBased) || // 5+ joins and rate-based triggers
       (results.rateBased && results.patternBased) || // Both rate and pattern
       (results.rateBased && results.behavioral) || // Rate + behavioral
       (results.patternBased &&
         results.behavioral &&
-        joinData.joins.length >= patternBehavioralMinJoins) || // Pattern + behavioral (needs more joins if less sensitive)
-      (results.networkBased && joinData.joins.length >= networkMinJoins) || // Network needs many joins
-      (results.temporalPattern && joinData.joins.length >= minJoinsForRaid) || // Temporal pattern detection
-      (results.graphBased && joinData.joins.length >= networkMinJoins) || // Graph-based network detection
-      (joinData.joins.length >= 2 && threatScore >= threatScoreThreshold); // Lowered threshold, minimum 2 joins
+        totalJoins >= patternBehavioralMinJoins) || // Pattern + behavioral
+      (results.networkBased && totalJoins >= networkMinJoins) || // Network needs many joins
+      (results.temporalPattern && totalJoins >= minJoinsForRaid) || // Temporal pattern detection
+      (results.graphBased && totalJoins >= networkMinJoins) || // Graph-based network detection
+      (totalJoins >= 5 && threatScore >= threatScoreThreshold); // 5+ joins and high threat score
 
     if (isRaid) {
       // Only pass RECENT joins (within last 2 minutes) to prevent banning old members
