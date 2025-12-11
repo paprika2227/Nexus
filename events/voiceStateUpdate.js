@@ -58,6 +58,23 @@ module.exports = {
             `[Anti-Nuke] 🚨 VOICE RAID DETECTED: ${raidData.joinCount} users joined voice in ${guild.id} (threshold: ${voiceRaidThreshold})`
           );
 
+          // Track in event-based tracker (for coordinated attack detection)
+          if (client.eventActionTracker) {
+            // Track each user in the raid for pattern detection
+            for (const userId of raidData.userIds) {
+              client.eventActionTracker.trackAction(
+                guild.id,
+                "VOICE_RAID",
+                userId,
+                {
+                  joinCount: raidData.joinCount,
+                  totalUsers: raidData.userIds.size,
+                  channelId: newState.channel.id,
+                }
+              );
+            }
+          }
+          
           // Trigger threat handling
           await client.advancedAntiNuke.monitorAction(
             guild,

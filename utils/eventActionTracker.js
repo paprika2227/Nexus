@@ -139,7 +139,10 @@ class EventActionTracker {
         a.actionType === "MEMBER_BAN_ADD" ||
         a.actionType === "MEMBER_KICK" ||
         a.actionType === "CHANNEL_DELETE" ||
-        a.actionType === "ROLE_DELETE"
+        a.actionType === "ROLE_DELETE" ||
+        a.actionType === "WEBHOOK_DELETE" ||
+        a.actionType === "EMOJI_DELETE" ||
+        a.actionType === "VOICE_RAID"
     );
 
     if (attackActions.length < 3) return;

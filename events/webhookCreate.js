@@ -7,10 +7,26 @@ module.exports = {
     try {
       // Monitor webhook creation for anti-nuke
       if (webhook.guild && client.advancedAntiNuke) {
+        const ownerId = webhook.owner?.id || "unknown";
+        
+        // Track in event-based tracker
+        if (client.eventActionTracker && ownerId !== "unknown") {
+          client.eventActionTracker.trackAction(
+            webhook.guild.id,
+            "WEBHOOK_CREATE",
+            ownerId,
+            {
+              webhookId: webhook.id,
+              webhookName: webhook.name,
+              channelId: webhook.channelId,
+            }
+          );
+        }
+        
         await client.advancedAntiNuke.monitorAction(
           webhook.guild,
           "webhookCreate",
-          webhook.owner?.id || "unknown",
+          ownerId,
           {
             webhookId: webhook.id,
             webhookName: webhook.name,
