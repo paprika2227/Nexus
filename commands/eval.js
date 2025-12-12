@@ -5,6 +5,7 @@ const {
   MessageFlags,
 } = require("discord.js");
 const Owner = require("../utils/owner");
+const ErrorMessages = require("../utils/errorMessages");
 
 module.exports = {
   data: new SlashCommandBuilder()
