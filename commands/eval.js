@@ -636,6 +636,16 @@ module.exports = {
       const memoryUsed =
         (process.memoryUsage().heapUsed - startMemory) / 1024 / 1024;
 
+      // Track eval usage for analytics (async, don't wait)
+      if (client.commandAnalytics) {
+        client.commandAnalytics
+          .trackCommand(guild?.id || "DM", user.id, "eval", true, executionTime)
+          .catch((err) => {
+            // Silently fail analytics - don't break eval
+            logger.debug("Eval", `Analytics tracking failed: ${err.message}`);
+          });
+      }
+
       const embed = new EmbedBuilder()
         .setTitle("✅ Evaluation Successful")
         .addFields(fields)
