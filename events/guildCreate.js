@@ -68,6 +68,42 @@ module.exports = {
       0
     );
 
+    // 65 servers - Early heads up (10 away from verification milestone)
+    if (serverCount === 65) {
+      try {
+        const owner = await client.users.fetch(process.env.OWNER_ID);
+        await owner.send({
+          embeds: [
+            {
+              title: "📢 Getting Close to Verification!",
+              description:
+                "**Nexus has reached 65 servers!**\n\nYou're **10 servers away** from being able to apply for Discord Bot Verification (75 servers required).\n\n**What to Prepare:**\n- Start gathering information for the verification form\n- Review Discord's verification requirements\n- Ensure your bot meets all criteria\n\n**At 75 servers**, you'll be able to apply for verification to remove the 100-server limit.",
+              color: 0xfbbf24,
+              fields: [
+                {
+                  name: "📊 Current Stats",
+                  value: `**Servers:** ${serverCount}\n**Users:** ${totalUsers}\n**Version:** ${version}`,
+                  inline: false,
+                },
+                {
+                  name: "🎯 Next Milestone",
+                  value: "10 more servers until you can apply for verification",
+                  inline: false,
+                },
+              ],
+              timestamp: new Date().toISOString(),
+              footer: {
+                text: "Keep up the great growth!",
+              },
+            },
+          ],
+        });
+        logger.info("Verification", `Sent 65-server heads up to owner`);
+      } catch (error) {
+        logger.error("Verification", `Failed to send DM to owner: ${error}`);
+      }
+    }
+
     // 75 servers - Can apply for verification
     if (serverCount === 75) {
       try {
