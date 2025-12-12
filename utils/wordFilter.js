@@ -163,9 +163,9 @@ class WordFilter {
     if (!text || typeof text !== "string") return "";
 
     // Remove zero-width characters
-    text = text.replace(/[\u200B-\u200D\uFEFF]/g, "");
+    text = text.replace(/[\u200B-\u200D\uFEFF\u2060]/g, "");
 
-    // Normalize Unicode font variations to ASCII
+    // Normalize Unicode font variations to ASCII (this also removes emojis/decorative chars)
     text = this.normalizeFonts(text);
 
     // Remove spacing variations (keep only single spaces)
@@ -190,14 +190,18 @@ class WordFilter {
 
     // Replace leetspeak characters
     for (const [leet, normal] of Object.entries(leetMap)) {
-      text = text.replace(new RegExp(leet, "gi"), normal);
+      text = text.replace(
+        new RegExp(leet.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"),
+        normal
+      );
     }
 
     // Remove repeated characters (more than 2 in a row)
     text = text.replace(/(.)\1{2,}/g, "$1$1");
 
     // Remove special characters that might be used for obfuscation
-    text = text.replace(/[^\w\s]/g, "");
+    // Keep only alphanumeric after all normalization
+    text = text.replace(/[^\w]/g, "");
 
     return text;
   }
@@ -212,6 +216,334 @@ class WordFilter {
     if (!text || typeof text !== "string") return "";
 
     let normalized = text;
+
+    // Normalize Latin Extended-A characters (diacritics) to base ASCII
+    // Handles characters like Ğ (U+011E) -> G, ğ (U+011F) -> g
+    normalized = normalized.replace(/[\u0100-\u017F]/g, (char) => {
+      const code = char.charCodeAt(0);
+      // Map to base ASCII: remove diacritics
+      // A-Z with diacritics (U+0100-0105, 0106-010D, etc.) -> A-Z
+      // a-z with diacritics -> a-z
+      if (code >= 0x0100 && code <= 0x017f) {
+        // Remove diacritics by mapping to base character
+        const baseMap = {
+          // A variants
+          0x0100: "A",
+          0x0101: "a",
+          0x0102: "A",
+          0x0103: "a",
+          0x0104: "A",
+          0x0105: "a",
+          // C variants
+          0x0106: "C",
+          0x0107: "c",
+          0x0108: "C",
+          0x0109: "c",
+          0x010a: "C",
+          0x010b: "c",
+          0x010c: "C",
+          0x010d: "c",
+          // D variants
+          0x010e: "D",
+          0x010f: "d",
+          // E variants
+          0x0112: "E",
+          0x0113: "e",
+          0x0114: "E",
+          0x0115: "e",
+          0x0116: "E",
+          0x0117: "e",
+          0x0118: "E",
+          0x0119: "e",
+          0x011a: "E",
+          0x011b: "e",
+          // G variants (including Ğ)
+          0x011c: "G",
+          0x011d: "g",
+          0x011e: "G",
+          0x011f: "g",
+          0x0120: "G",
+          0x0121: "g",
+          0x0122: "G",
+          0x0123: "g",
+          // H variants
+          0x0124: "H",
+          0x0125: "h",
+          0x0126: "H",
+          0x0127: "h",
+          // I variants
+          0x0128: "I",
+          0x0129: "i",
+          0x012a: "I",
+          0x012b: "i",
+          0x012c: "I",
+          0x012d: "i",
+          0x012e: "I",
+          0x012f: "i",
+          0x0130: "I",
+          0x0131: "i",
+          // J variants
+          0x0134: "J",
+          0x0135: "j",
+          // K variants
+          0x0136: "K",
+          0x0137: "k",
+          // L variants
+          0x0139: "L",
+          0x013a: "l",
+          0x013b: "L",
+          0x013c: "l",
+          0x013d: "L",
+          0x013e: "l",
+          0x013f: "L",
+          0x0140: "l",
+          0x0141: "L",
+          0x0142: "l",
+          // N variants
+          0x0143: "N",
+          0x0144: "n",
+          0x0145: "N",
+          0x0146: "n",
+          0x0147: "N",
+          0x0148: "n",
+          0x0149: "n",
+          0x014a: "N",
+          0x014b: "n",
+          // O variants
+          0x014c: "O",
+          0x014d: "o",
+          0x014e: "O",
+          0x014f: "o",
+          0x0150: "O",
+          0x0151: "o",
+          0x0152: "O",
+          0x0153: "o",
+          0x0154: "R",
+          0x0155: "r",
+          0x0156: "R",
+          0x0157: "r",
+          0x0158: "R",
+          0x0159: "r",
+          // S variants
+          0x015a: "S",
+          0x015b: "s",
+          0x015c: "S",
+          0x015d: "s",
+          0x015e: "S",
+          0x015f: "s",
+          0x0160: "S",
+          0x0161: "s",
+          0x0162: "T",
+          0x0163: "t",
+          0x0164: "T",
+          0x0165: "t",
+          0x0166: "T",
+          0x0167: "t",
+          // U variants
+          0x0168: "U",
+          0x0169: "u",
+          0x016a: "U",
+          0x016b: "u",
+          0x016c: "U",
+          0x016d: "u",
+          0x016e: "U",
+          0x016f: "u",
+          0x0170: "U",
+          0x0171: "u",
+          0x0172: "U",
+          0x0173: "u",
+          // W, Y, Z variants
+          0x0174: "W",
+          0x0175: "w",
+          0x0176: "Y",
+          0x0177: "y",
+          0x0178: "Y",
+          0x0179: "Z",
+          0x017a: "z",
+          0x017b: "Z",
+          0x017c: "z",
+          0x017d: "Z",
+          0x017e: "z",
+          0x017f: "s",
+        };
+        return baseMap[code] || char;
+      }
+      return char;
+    });
+
+    // Normalize upside-down text characters
+    // Maps upside-down Unicode characters to their normal equivalents
+    normalized = normalized.replace(/[\u0250-\u02AF\u2183-\u2184]/g, (char) => {
+      const code = char.charCodeAt(0);
+      const upsideDownMap = {
+        // Upside-down lowercase
+        0x0250: "q", // ɐ - upside-down a
+        0x0251: "q", // ɒ - upside-down alpha
+        0x0252: "q", // ɒ - upside-down turned alpha
+        0x0253: "b", // ɔ - upside-down c
+        0x0254: "o", // ɔ - upside-down o
+        0x0255: "c", // ɕ - similar to c
+        0x0256: "d", // ɖ - similar to d
+        0x0257: "d", // ɗ - similar to d
+        0x0259: "e", // ə - schwa (upside-down e)
+        0x025a: "e", // ɚ - schwa with hook
+        0x025b: "e", // ɛ - epsilon (upside-down e)
+        0x025c: "e", // ɜ - reversed epsilon
+        0x025d: "e", // ɝ - reversed epsilon with hook
+        0x025e: "e", // ɞ - closed reversed open epsilon
+        0x025f: "j", // ɟ - dotless j with stroke
+        0x0260: "g", // ɠ - g with hook
+        0x0261: "g", // ɡ - script g
+        0x0262: "n", // ɢ - small capital g
+        0x0263: "y", // ɣ - gamma
+        0x0264: "y", // ɤ - rams horn
+        0x0265: "h", // ɥ - turned h
+        0x0266: "h", // ɦ - h with hook
+        0x0267: "h", // ɧ - heng with hook
+        0x0268: "i", // ɨ - i with stroke
+        0x0269: "i", // ɩ - iota
+        0x026a: "i", // ɪ - small capital i
+        0x026b: "l", // ɫ - l with middle tilde
+        0x026c: "l", // ɬ - l with belt
+        0x026d: "l", // ɭ - l with retroflex hook
+        0x026e: "l", // ɮ - lezh
+        0x026f: "m", // ɯ - turned m
+        0x0270: "m", // ɰ - turned m with long leg
+        0x0271: "m", // ɱ - m with hook
+        0x0272: "n", // ɲ - n with left hook
+        0x0273: "n", // ɳ - n with retroflex hook
+        0x0274: "n", // ɴ - small capital n
+        0x0275: "o", // ɵ - barred o
+        0x0276: "o", // ɶ - small capital oe
+        0x0277: "o", // ɷ - closed omega
+        0x0278: "f", // ɸ - phi
+        0x0279: "r", // ɹ - turned r
+        0x027a: "r", // ɺ - turned r with long leg
+        0x027b: "r", // ɻ - turned r with hook
+        0x027c: "r", // ɼ - r with long leg
+        0x027d: "r", // ɽ - r with tail
+        0x027e: "r", // ɾ - r with fishhook
+        0x027f: "r", // ɿ - reversed r with fishhook
+        0x0280: "r", // ʀ - small capital r
+        0x0281: "r", // ʁ - small capital inverted r
+        0x0282: "s", // ʂ - s with hook
+        0x0283: "s", // ʃ - esh
+        0x0284: "s", // ʄ - dotless j with stroke and hook
+        0x0285: "s", // ʅ - s with hook
+        0x0286: "s", // ʆ - esh with curl
+        0x0287: "t", // ʇ - turned t
+        0x0288: "t", // ʈ - t with retroflex hook
+        0x0289: "u", // ʉ - barred u
+        0x028a: "u", // ʊ - u with hook
+        0x028b: "v", // ʋ - v with hook
+        0x028c: "v", // ʌ - turned v (upside-down v)
+        0x028d: "w", // ʍ - turned w
+        0x028e: "y", // ʎ - turned y
+        0x028f: "y", // ʏ - small capital y
+        0x0290: "z", // ʐ - z with retroflex hook
+        0x0291: "z", // ʑ - z with curl
+        0x0292: "z", // ʒ - ezh
+        0x0293: "z", // ʓ - ezh with curl
+        0x0294: "?", // ʔ - glottal stop
+        0x0295: "?", // ʕ - pharyngeal voiced fricative
+        0x0296: "?", // ʖ - inverted glottal stop
+        0x0297: "?", // ʗ - stretched c
+        0x0298: "?", // ʘ - bilabial click
+        0x0299: "b", // ʙ - small capital b
+        0x029a: "e", // ʚ - closed epsilon
+        0x029b: "g", // ʛ - small capital g with hook
+        0x029c: "h", // ʜ - small capital h
+        0x029d: "j", // ʝ - j with crossed-tail
+        0x029e: "k", // ʞ - turned k
+        0x029f: "l", // ʟ - small capital l
+        0x02a0: "q", // ʠ - q with hook
+        0x02a1: "g", // ʡ - glottal stop with stroke
+        0x02a2: "g", // ʢ - reversed glottal stop with stroke
+        0x02a3: "dz", // ʣ - dz digraph
+        0x02a4: "dezh", // ʤ - dezh digraph
+        0x02a5: "dz", // ʥ - dz digraph with curl
+        0x02a6: "ts", // ʦ - ts digraph
+        0x02a7: "tesh", // ʧ - tesh digraph
+        0x02a8: "tc", // ʨ - tc digraph with curl
+        0x02a9: "fn", // ʩ - feng digraph
+        0x02aa: "ls", // ʪ - ls digraph
+        0x02ab: "lz", // ʫ - lz digraph
+        0x02ac: "ww", // ʬ - bilabial percussive
+        0x02ad: "n", // ʭ - bidental percussive
+        0x02ae: "h", // ʮ - h with hook
+        0x02af: "h", // ʯ - reversed h with hook
+        // Additional upside-down/turned characters
+        0x2183: "c", // Ↄ - reversed c
+        0x2184: "c", // ↄ - latin small letter reversed c
+      };
+      return upsideDownMap[code] || char;
+    });
+
+    // Normalize Modifier Letters (U+02B0-02FF, U+1D00-1D7F) - includes superscript/subscript
+    // Handles characters like ᵃ (U+1D43) -> a
+    normalized = normalized.replace(/[\u02B0-\u02FF\u1D00-\u1D7F]/g, (char) => {
+      const code = char.charCodeAt(0);
+      // Common modifier letter mappings
+      const modifierMap = {
+        // Modifier letters (U+02B0-02FF)
+        0x02b0: "h",
+        0x02b1: "h",
+        0x02b2: "j",
+        0x02b3: "r",
+        0x02b4: "r",
+        0x02b5: "r",
+        0x02b6: "r",
+        0x02b7: "w",
+        0x02b8: "y",
+        // Phonetic Extensions - superscript letters (U+1D00-1D7F)
+        // These are commonly used for obfuscation
+        0x1d43: "a", // ᵃ - Modifier Letter Small A
+        0x1d47: "b",
+        0x1d48: "d",
+        0x1d49: "e",
+        0x1d4d: "e",
+        0x1d4f: "g",
+        0x1d50: "g",
+        0x1d52: "h",
+        0x1d56: "i",
+        0x1d57: "i",
+        0x1d58: "k",
+        0x1d5b: "l",
+        0x1d5d: "m",
+        0x1d5e: "n",
+        0x1d61: "o",
+        0x1d62: "o",
+        0x1d63: "o",
+        0x1d64: "o",
+        0x1d65: "o",
+        0x1d66: "p",
+        0x1d67: "r",
+        0x1d68: "r",
+        0x1d69: "r",
+        0x1d6a: "t",
+        0x1d6b: "t",
+        0x1d6c: "u",
+        0x1d6d: "u",
+        0x1d6e: "u",
+        0x1d6f: "v",
+        0x1d70: "w",
+        0x1d71: "z",
+      };
+      if (modifierMap[code]) {
+        return modifierMap[code];
+      }
+      // For other modifier letters, try to extract base character
+      // Many modifier letters are just stylized versions of base letters
+      const normalizedChar = char
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+      // If normalization produced a single letter, use it
+      if (/^[a-z]$/.test(normalizedChar)) {
+        return normalizedChar;
+      }
+      return char;
+    });
 
     // Fullwidth characters (全角) - U+FF00 to U+FFEF
     // Convert fullwidth to ASCII
@@ -320,6 +652,144 @@ class WordFilter {
       }
       return match;
     });
+
+    // Mathematical Bold Fraktur (U+1D56C-1D59F uppercase, U+1D5A0-1D5D3 lowercase)
+    normalized = normalized.replace(/[\uD835][\uDD6C-\uDDD3]/g, (match) => {
+      const high = match.charCodeAt(0);
+      const low = match.charCodeAt(1);
+      const code = ((high - 0xd800) << 10) + (low - 0xdc00) + 0x10000;
+      if (code >= 0x1d56c && code <= 0x1d59f) {
+        return String.fromCharCode(code - 0x1d56c + 65); // A-Z
+      } else if (code >= 0x1d5a0 && code <= 0x1d5d3) {
+        return String.fromCharCode(code - 0x1d5a0 + 97); // a-z
+      }
+      return match;
+    });
+
+    // Small Capitals (U+1D00-1D7F) - Phonetic Extensions
+    // Map small capitals to their base letters
+    normalized = normalized.replace(/[\u1D00-\u1D7F]/g, (char) => {
+      const code = char.charCodeAt(0);
+      const smallCapMap = {
+        // Small capitals A-Z
+        0x1d00: "a",
+        0x1d01: "ae",
+        0x1d02: "b",
+        0x1d03: "d",
+        0x1d04: "d",
+        0x1d05: "e",
+        0x1d07: "e",
+        0x1d08: "e",
+        0x1d09: "i",
+        0x1d0a: "i",
+        0x1d0b: "j",
+        0x1d0c: "k",
+        0x1d0d: "l",
+        0x1d0e: "m",
+        0x1d0f: "n",
+        0x1d10: "n",
+        0x1d11: "o",
+        0x1d12: "ou",
+        0x1d13: "o",
+        0x1d14: "o",
+        0x1d15: "o",
+        0x1d16: "o",
+        0x1d17: "o",
+        0x1d18: "p",
+        0x1d19: "r",
+        0x1d1a: "r",
+        0x1d1b: "t",
+        0x1d1c: "t",
+        0x1d1d: "u",
+        0x1d1e: "u",
+        0x1d1f: "m",
+        0x1d20: "v",
+        0x1d21: "w",
+        0x1d22: "z",
+        // Additional small capitals
+        0x1d26: "a",
+        0x1d27: "ae",
+        0x1d28: "b",
+        0x1d29: "d",
+        0x1d2a: "e",
+        0x1d2b: "e",
+        0x1d2c: "g",
+        0x1d2d: "h",
+        0x1d2e: "i",
+        0x1d2f: "j",
+        0x1d30: "k",
+        0x1d31: "l",
+        0x1d32: "m",
+        0x1d33: "n",
+        0x1d34: "o",
+        0x1d35: "o",
+        0x1d36: "o",
+        0x1d37: "o",
+        // IPA Extensions
+        0x1d6b: "t",
+        0x1d6c: "u",
+        0x1d6d: "u",
+        0x1d6e: "u",
+        0x1d6f: "v",
+        0x1d70: "w",
+        0x1d71: "z",
+      };
+      return smallCapMap[code] || char;
+    });
+
+    // Remove combining marks (diacritics that combine with base characters)
+    // U+0300-036F: Combining Diacritical Marks
+    // U+1AB0-1AFF: Combining Diacritical Marks Extended
+    // U+20D0-20FF: Combining Diacritical Marks for Symbols
+    normalized = normalized.replace(
+      /[\u0300-\u036F\u1AB0-\u1AFF\u20D0-\u20FF]/g,
+      ""
+    );
+
+    // Remove emoji keycap sequences (numbers/symbols followed by U+20E3)
+    normalized = normalized.replace(/[\u0023-\u0039]\u20E3/g, "");
+
+    // Remove regional indicator symbols (flag emojis) U+1F1E6-1F1FF
+    normalized = normalized.replace(/[\uD83C][\uDDE6-\uDDFF]/g, "");
+
+    // Remove box drawing and block elements (U+2500-259F)
+    normalized = normalized.replace(/[\u2500-\u259F]/g, "");
+
+    // Remove geometric shapes (U+25A0-25FF)
+    normalized = normalized.replace(/[\u25A0-\u25FF]/g, "");
+
+    // Remove miscellaneous symbols (U+2600-26FF) - emojis, symbols
+    // But keep common punctuation, so be selective
+    normalized = normalized.replace(/[\u2600-\u26FF]/g, "");
+
+    // Remove dingbats (U+2700-27BF)
+    normalized = normalized.replace(/[\u2700-\u27BF]/g, "");
+
+    // Remove enclosed alphanumerics (circled, parenthesized, etc.) - U+2460-24FF
+    // We already handle some, but remove others
+    normalized = normalized.replace(/[\u2460-\u24FF]/g, (char) => {
+      const code = char.charCodeAt(0);
+      // Keep our handled ranges, remove others
+      if (code >= 0x24b6 && code <= 0x24e9) {
+        return char; // Already handled
+      }
+      if (code >= 0x249c && code <= 0x24b5) {
+        return char; // Already handled
+      }
+      return ""; // Remove other enclosed characters
+    });
+
+    // Remove variation selectors (U+FE00-FE0F)
+    normalized = normalized.replace(/[\uFE00-\uFE0F]/g, "");
+
+    // Remove zero-width joiners/non-joiners (already handled, but ensure)
+    normalized = normalized.replace(/[\u200B-\u200D\uFEFF\u2060]/g, "");
+
+    // Remove emoji modifiers and skin tone modifiers (U+1F3FB-1F3FF)
+    normalized = normalized.replace(/[\uD83C][\uDFFB-\uDFFF]/g, "");
+
+    // Remove tag sequences (U+E0000-E007F) - rarely used but can obfuscate
+    normalized = normalized.replace(/[\uDB40][\uDC00-\uDC7F]/g, "");
 
     return normalized;
   }

@@ -84,8 +84,63 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 4.3.7 - January 2025</h2>
+          <h2>Version 4.3.8 - January 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🛡️ Enhanced Font Variation Detection</h3>
+          <p>
+            Significantly expanded Unicode font normalization to detect even
+            more obfuscation attempts, including upside-down text and additional
+            mathematical fonts.
+          </p>
+
+          <h4>✨ New Features</h4>
+          <ul>
+            <li>
+              <strong>Upside-Down Text Support:</strong> Added normalization for
+              IPA (International Phonetic Alphabet) extensions and upside-down
+              characters (U+0250-02AF)
+            </li>
+            <li>
+              <strong>Mathematical Bold Fraktur:</strong> Added support for
+              Mathematical Bold Fraktur font variations (U+1D56C-1D5D3)
+            </li>
+            <li>
+              <strong>Small Capitals:</strong> Enhanced small capitals detection
+              (Phonetic Extensions U+1D00-1D7F)
+            </li>
+            <li>
+              <strong>Emoji & Decorative Removal:</strong> Automatically strips
+              emoji keycaps, regional indicators (flags), box drawing, geometric
+              shapes, and other decorative characters before checking
+            </li>
+            <li>
+              <strong>Combining Marks:</strong> Removes combining diacritical
+              marks that can be used for obfuscation
+            </li>
+          </ul>
+
+          <h4>🔧 Improvements</h4>
+          <ul>
+            <li>
+              <strong>Comprehensive Font Coverage:</strong> Now handles
+              Mathematical (Bold, Italic, Script, Fraktur, Double-struck, Bold
+              Fraktur), Fullwidth, Circled, Parenthesized, Squared, Small
+              Capitals, Modifier Letters, Latin Extended-A, and Upside-Down text
+            </li>
+            <li>
+              <strong>Better Obfuscation Detection:</strong> Catches variations
+              like <code>n!GĞᵃ</code>, <code>ɐɓɓıu</code>, <code>𝔫𝔦𝔤𝔤𝔞</code>,
+              and many more
+            </li>
+            <li>
+              <strong>Performance:</strong> Optimized normalization order for
+              better detection accuracy
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 4.3.7 - January 2025</h2>
           <h3>🛡️ Expanded Default Blacklist</h3>
           <p>
             Enhanced the default word filter blacklist with comprehensive LGBT
