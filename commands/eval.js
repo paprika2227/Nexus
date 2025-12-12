@@ -278,11 +278,37 @@ module.exports = {
     const code = interaction.options.getString("code");
     const silent = interaction.options.getBoolean("silent") ?? false;
 
+    // Rate limiting for eval command (prevent abuse even by owner)
+    const rateLimiter = interaction.client.rateLimiter;
+    if (rateLimiter) {
+      const rateLimitKey = `eval:${interaction.user.id}`;
+      const rateLimitCheck = await rateLimiter.checkLimit(rateLimitKey, {
+        points: 10, // 10 evals per minute
+        duration: 60,
+      });
+
+      if (!rateLimitCheck.allowed) {
+        return interaction.reply({
+          content: `❌ **Rate Limited:** You can only run 10 eval commands per minute. Try again in ${Math.ceil(rateLimitCheck.resetIn / 1000)} seconds.`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+    }
+
     // Check for sensitive access attempts
     if (this.checkForSensitiveAccess(code)) {
       return interaction.reply({
         content:
           "❌ **Security Blocked:** Access to sensitive information (tokens, secrets) is not allowed in eval.",
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
+    // Check code length (prevent extremely long code)
+    const MAX_CODE_LENGTH = 2000; // Discord message limit
+    if (code.length > MAX_CODE_LENGTH) {
+      return interaction.reply({
+        content: `❌ **Code Too Long:** Maximum code length is ${MAX_CODE_LENGTH} characters.`,
         flags: MessageFlags.Ephemeral,
       });
     }
@@ -293,6 +319,15 @@ module.exports = {
     const guild = interaction.guild;
     const user = interaction.user;
     const member = interaction.member;
+
+    // Track eval usage for analytics
+    if (client.commandAnalytics) {
+      client.commandAnalytics.recordCommand("eval", {
+        userId: user.id,
+        guildId: guild?.id || "DM",
+        codeLength: code.length,
+      });
+    }
 
     // Create a sanitized process.env proxy that blocks sensitive keys
     const sanitizedEnv = new Proxy(process.env, {
@@ -481,15 +516,53 @@ module.exports = {
       // Create and execute function with context variables
       // Pass sanitized client and process with sanitized env
       const evalFunction = eval(wrappedCode);
-      let result = await evalFunction(
-        sanitizedClient,
-        channel,
-        guild,
-        user,
-        member,
-        interaction,
-        { env: sanitizedEnv }
-      );
+
+      // Execution timeout (30 seconds max)
+      const EXECUTION_TIMEOUT = 30000;
+      const startTime = Date.now();
+      const startMemory = process.memoryUsage().heapUsed;
+
+      let result;
+      try {
+        // Execute with timeout protection
+        result = await Promise.race([
+          evalFunction(
+            sanitizedClient,
+            channel,
+            guild,
+            user,
+            member,
+            interaction,
+            { env: sanitizedEnv }
+          ),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error("Execution timeout (30s limit exceeded)")),
+              EXECUTION_TIMEOUT
+            )
+          ),
+        ]);
+
+        // Check execution time and memory
+        const executionTime = Date.now() - startTime;
+        const endMemory = process.memoryUsage().heapUsed;
+        const memoryUsed = (endMemory - startMemory) / 1024 / 1024; // MB
+
+        // Log performance metrics
+        if (executionTime > 5000 || memoryUsed > 50) {
+          logger.warn(
+            "Eval",
+            `Slow/heavy eval: ${executionTime}ms, ${memoryUsed.toFixed(2)}MB by ${user.tag}`
+          );
+        }
+      } catch (timeoutError) {
+        if (timeoutError.message.includes("timeout")) {
+          throw new Error(
+            `⏱️ **Execution Timeout:** Code execution exceeded 30 seconds and was terminated.`
+          );
+        }
+        throw timeoutError;
+      }
 
       // Convert result to string, handling circular references and depth limits
       const constants = require("../utils/constants");
@@ -507,6 +580,18 @@ module.exports = {
 
       // Sanitize output to remove any token leaks
       output = this.sanitizeOutput(output);
+
+      // Limit output size (prevent massive outputs)
+      const MAX_OUTPUT_LENGTH = 1900; // Leave room for truncation message
+      if (output.length > MAX_OUTPUT_LENGTH) {
+        output =
+          output.substring(0, MAX_OUTPUT_LENGTH) +
+          `\n\n... (truncated, ${output.length - MAX_OUTPUT_LENGTH} characters removed)`;
+        logger.warn(
+          "Eval",
+          `Large output truncated: ${output.length} chars by ${user.tag}`
+        );
+      }
 
       // Limit output and code display lengths
       output = this.ensureFieldLength(output, 990);
@@ -549,12 +634,19 @@ module.exports = {
         });
       }
 
+      // Calculate execution metrics
+      const executionTime = Date.now() - startTime;
+      const memoryUsed =
+        (process.memoryUsage().heapUsed - startMemory) / 1024 / 1024;
+
       const embed = new EmbedBuilder()
         .setTitle("✅ Evaluation Successful")
         .addFields(fields)
         .setColor(0x00ff00)
         .setTimestamp()
-        .setFooter({ text: `Executed by ${user.tag}` });
+        .setFooter({
+          text: `Executed by ${user.tag} | ${executionTime}ms | ${memoryUsed.toFixed(2)}MB`,
+        });
 
       if (silent) {
         return interaction.reply({
@@ -572,6 +664,12 @@ module.exports = {
 
       // Sanitize error output to remove any token leaks
       errorOutput = this.sanitizeOutput(errorOutput);
+
+      // Log eval errors for debugging
+      logger.error("Eval", `Error in eval by ${user.tag}:`, {
+        message: error.message,
+        code: code.substring(0, 100), // First 100 chars for context
+      });
 
       // Limit error output and code display lengths
       errorOutput = this.ensureFieldLength(errorOutput, 990);
