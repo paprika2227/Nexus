@@ -450,13 +450,8 @@ module.exports = {
           return originalRequire(module);
         };
         
-        // Block dynamic import
-        if (typeof import === 'function') {
-          const originalImport = import;
-          global.import = function() {
-            throw new Error('Dynamic import is blocked for security');
-          };
-        }
+        // Note: Cannot block 'import' keyword directly (it's reserved), but it's blocked
+        // in pre-execution check via checkForSensitiveAccess()
         
         // Block process.binding
         if (process.binding) {
@@ -502,9 +497,6 @@ module.exports = {
             configurable: false
           });
           require = originalRequire;
-          if (typeof originalImport !== 'undefined') {
-            global.import = originalImport;
-          }
           if (originalBinding) {
             process.binding = originalBinding;
           }
