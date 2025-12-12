@@ -218,7 +218,18 @@ class WordFilter {
 
     let normalized = text;
 
-    // Remove emojis FIRST (before any normalization) to prevent interference
+    // Remove non-Latin scripts FIRST (Thai, Chinese, Japanese, Arabic, etc.)
+    // These are commonly used for obfuscation but should be removed entirely
+    normalized = normalized.replace(/[\u0E00-\u0E7F]/g, ""); // Thai
+    normalized = normalized.replace(/[\u4E00-\u9FFF]/g, ""); // CJK Unified Ideographs
+    normalized = normalized.replace(/[\u3040-\u309F]/g, ""); // Hiragana
+    normalized = normalized.replace(/[\u30A0-\u30FF]/g, ""); // Katakana
+    normalized = normalized.replace(/[\u0600-\u06FF]/g, ""); // Arabic
+    normalized = normalized.replace(/[\u0590-\u05FF]/g, ""); // Hebrew
+    normalized = normalized.replace(/[\u0400-\u04FF]/g, ""); // Cyrillic (unless we want to map these)
+    normalized = normalized.replace(/[\u0370-\u03FF]/g, ""); // Greek (unless we want to map these)
+
+    // Remove emojis (before any normalization) to prevent interference
     // Most emojis are in the range U+1F300-1F9FF (D83C-D83E high surrogates)
     // Pattern: Match any high surrogate (D800-DFFF) followed by low surrogate (DC00-DFFF)
     normalized = normalized.replace(
