@@ -174,6 +174,11 @@ class WordFilter {
     // Convert to lowercase for comparison
     text = text.toLowerCase();
 
+    // Remove special characters that are used as separators FIRST
+    // This prevents ! from being treated as leetspeak when it's actually a separator
+    // Remove common separator characters before leetspeak replacement
+    text = text.replace(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/g, "");
+
     // Remove common leetspeak substitutions
     const leetMap = {
       0: "o",
@@ -182,13 +187,9 @@ class WordFilter {
       4: "a",
       5: "s",
       7: "t",
-      "@": "a",
-      "!": "i",
-      $: "s",
-      "#": "h",
     };
 
-    // Replace leetspeak characters
+    // Replace leetspeak characters (only numeric substitutions now)
     for (const [leet, normal] of Object.entries(leetMap)) {
       text = text.replace(
         new RegExp(leet.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"),
@@ -199,7 +200,7 @@ class WordFilter {
     // Remove repeated characters (more than 2 in a row)
     text = text.replace(/(.)\1{2,}/g, "$1$1");
 
-    // Remove special characters that might be used for obfuscation
+    // Remove any remaining special characters that might be used for obfuscation
     // Keep only alphanumeric after all normalization
     text = text.replace(/[^\w]/g, "");
 
