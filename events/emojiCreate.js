@@ -15,7 +15,7 @@ module.exports = {
           });
           const entry = auditLogs.entries.first();
           const executorId = entry?.executor?.id || "unknown";
-          
+
           // Track in event-based tracker
           if (client.eventActionTracker && executorId !== "unknown") {
             client.eventActionTracker.trackAction(
@@ -29,7 +29,7 @@ module.exports = {
               }
             );
           }
-          
+
           await client.advancedAntiNuke.monitorAction(
             emoji.guild,
             "emojiCreate",

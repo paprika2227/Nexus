@@ -36,12 +36,12 @@ class Database {
 
           // Optimize database performance (EXCEEDS WICK - better performance)
           this.db.serialize(() => {
-            // Enable WAL mode for better concurrency 
+            // Enable WAL mode for better concurrency
             this.db.run("PRAGMA journal_mode = WAL;", (err) => {
               if (err) logger.warn("Failed to enable WAL mode:", err);
             });
 
-            // Optimize for performance 
+            // Optimize for performance
             this.db.run("PRAGMA synchronous = NORMAL;"); // Faster writes
             this.db.run("PRAGMA cache_size = -64000;"); // 64MB cache
             this.db.run("PRAGMA temp_store = MEMORY;"); // Use memory for temp tables
@@ -351,7 +351,7 @@ class Database {
             )
         `);
 
-    // Advanced Automod 
+    // Advanced Automod
     this.db.run(`
             CREATE TABLE IF NOT EXISTS automod_config (
                 guild_id TEXT PRIMARY KEY,
@@ -432,7 +432,7 @@ class Database {
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_screening_guild_time 
                  ON member_screening_logs(guild_id, timestamp)`);
 
-    // Scheduled Actions System 
+    // Scheduled Actions System
     this.db.run(`
             CREATE TABLE IF NOT EXISTS scheduled_actions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -463,7 +463,7 @@ class Database {
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_scheduled_actions_guild 
                  ON scheduled_actions(guild_id, status)`);
 
-    // Voice Monitoring System 
+    // Voice Monitoring System
     this.db.run(`
             CREATE TABLE IF NOT EXISTS voice_monitoring_config (
                 guild_id TEXT PRIMARY KEY,
@@ -2002,6 +2002,32 @@ class Database {
           logger.warn("Database", "Error adding seasonal_theme column", {
             message: err?.message || String(err),
           });
+        }
+      }
+    );
+
+    // Migration: Add word filter columns to server_config
+    this.db.run(
+      `ALTER TABLE server_config ADD COLUMN word_filter_enabled INTEGER DEFAULT 0`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          // Migration error - silently continue (non-critical)
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE server_config ADD COLUMN word_filter_action TEXT DEFAULT 'delete'`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          // Migration error - silently continue (non-critical)
+        }
+      }
+    );
+    this.db.run(
+      `ALTER TABLE server_config ADD COLUMN blacklisted_words TEXT`,
+      (err) => {
+        if (err && !err.message.includes("duplicate column")) {
+          // Migration error - silently continue (non-critical)
         }
       }
     );

@@ -5,7 +5,7 @@ module.exports = {
   name: "voiceStateUpdate",
   async execute(oldState, newState, client) {
     try {
-      // Voice Monitoring System 
+      // Voice Monitoring System
       if (client.voiceMonitoring) {
         await client.voiceMonitoring.trackVoiceState(oldState, newState);
       }
@@ -74,7 +74,7 @@ module.exports = {
               );
             }
           }
-          
+
           // Trigger threat handling
           await client.advancedAntiNuke.monitorAction(
             guild,

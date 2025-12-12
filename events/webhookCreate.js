@@ -8,7 +8,7 @@ module.exports = {
       // Monitor webhook creation for anti-nuke
       if (webhook.guild && client.advancedAntiNuke) {
         const ownerId = webhook.owner?.id || "unknown";
-        
+
         // Track in event-based tracker
         if (client.eventActionTracker && ownerId !== "unknown") {
           client.eventActionTracker.trackAction(
@@ -22,7 +22,7 @@ module.exports = {
             }
           );
         }
-        
+
         await client.advancedAntiNuke.monitorAction(
           webhook.guild,
           "webhookCreate",

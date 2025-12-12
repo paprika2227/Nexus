@@ -28,7 +28,7 @@ module.exports = {
       );
     }
 
-    // Run security checks in parallel for better performance 
+    // Run security checks in parallel for better performance
     const securityChecks = [];
     if (client.advancedAntiNuke && message.channel) {
       securityChecks.push(
@@ -138,6 +138,103 @@ module.exports = {
     // Check auto-responders
     const AutoResponder = require("../commands/autoresponder");
     await AutoResponder.checkAutoResponder(message);
+
+    // Check word filter (EXCEEDS WICK - advanced variation detection)
+    // Always checks default blacklist + server-specific blacklist
+    const wordFilter = require("../utils/wordFilter");
+    const config = await db.getServerConfig(message.guild.id);
+
+    // Check word filter (default blacklist is always active, server blacklist if enabled)
+    const serverBlacklist = config?.blacklisted_words
+      ? JSON.parse(config.blacklisted_words)
+      : [];
+
+    // Always check default blacklist, plus server blacklist if word filter is enabled
+    const filterResult = wordFilter.checkText(
+      message.content,
+      serverBlacklist,
+      true // Always include default blacklist
+    );
+
+    if (filterResult.detected) {
+      // For default blacklist violations, always delete (more strict)
+      // For server blacklist violations, use configured action
+      const isDefaultViolation = filterResult.isDefault;
+      const action = isDefaultViolation
+        ? "delete" // Default blacklist always just deletes
+        : config?.word_filter_action || "delete";
+
+      try {
+        // Delete message first
+        await message.delete().catch(() => {
+          // Silently fail if can't delete
+        });
+
+        // Execute action based on config (only for server blacklist violations)
+        if (!isDefaultViolation) {
+          const member = await message.guild.members
+            .fetch(message.author.id)
+            .catch(() => null);
+
+          if (member) {
+            switch (action) {
+              case "warn":
+                await message.channel
+                  .send({
+                    content: `⚠️ ${message.author}, your message was removed for containing inappropriate content.`,
+                  })
+                  .catch(() => {});
+                break;
+              case "timeout":
+                await member
+                  .timeout(600000, "Word filter violation")
+                  .catch(() => {});
+                break;
+              case "kick":
+                await member.kick("Word filter violation").catch(() => {});
+                break;
+              case "ban":
+                await member
+                  .ban({
+                    reason: "Word filter violation",
+                    deleteMessageDays: 1,
+                  })
+                  .catch(() => {});
+                break;
+              // "delete" is default - just delete, no additional action
+            }
+          }
+        }
+
+        // Log violation
+        logger.warn(
+          "WordFilter",
+          `Blocked message from ${message.author.tag} (${message.author.id}) in ${message.guild.name}: Detected "${filterResult.word}" via ${filterResult.method}${isDefaultViolation ? " (default blacklist)" : " (server blacklist)"}`
+        );
+
+        // Log to database
+        db.db.run(
+          "INSERT INTO automod_violations (guild_id, user_id, violation_type, message_content, action_taken, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+          [
+            message.guild.id,
+            message.author.id,
+            "word_filter",
+            message.content.substring(0, 500), // Limit length
+            action,
+            Date.now(),
+          ],
+          () => {
+            // Silently continue if logging fails
+          }
+        );
+
+        return; // Stop processing this message
+      } catch (error) {
+        logger.error("WordFilter", "Error processing word filter violation", {
+          message: error?.message || String(error),
+        });
+      }
+    }
 
     // Check auto-moderation
     await AutoMod.checkMessage(message, client);

@@ -84,8 +84,99 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 4.3.5 - December 11, 2025</h2>
+          <h2>Version 4.3.6 - January 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🛡️ Advanced Word Filter System</h3>
+          <p>
+            Introduced comprehensive word filtering with variation detection,
+            default blacklist, and Unicode font normalization.
+          </p>
+
+          <h4>✨ New Features</h4>
+          <ul>
+            <li>
+              <strong>Word Filter Command:</strong> New
+              <code>/wordfilter</code> command to manage blacklisted words
+              (replaces <code>/seasonal</code>)
+            </li>
+            <li>
+              <strong>Default Blacklist:</strong> Always-active blacklist of
+              common slurs and offensive terms (cannot be disabled)
+            </li>
+            <li>
+              <strong>Advanced Variation Detection:</strong> Detects blacklisted
+              words with:
+              <ul>
+                <li>Spacing variations (b a d w o r d)</li>
+                <li>Case variations (BadWord, BADWORD, BaDwOrD)</li>
+                <li>Leetspeak (b4dw0rd, b@dw0rd)</li>
+                <li>
+                  Unicode font variations (fullwidth, mathematical, circled,
+                  etc.)
+                </li>
+                <li>Separator variations (b-a-d-w-o-r-d)</li>
+                <li>Repeated characters (baaadword)</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Configurable Actions:</strong> Set action for server
+              blacklist violations (delete, warn, timeout, kick, ban)
+            </li>
+            <li>
+              <strong>Test Command:</strong> Test if messages would be blocked
+              before sending
+            </li>
+          </ul>
+
+          <h4>🔧 Improvements</h4>
+          <ul>
+            <li>
+              <strong>Font Normalization:</strong> Converts Unicode font
+              variations (fullwidth, mathematical bold/italic, circled,
+              parenthesized, squared, script, fraktur, double-struck) to ASCII
+              for detection
+            </li>
+            <li>
+              <strong>Performance:</strong> Cached pattern compilation for
+              faster detection
+            </li>
+            <li>
+              <strong>Logging:</strong> Enhanced violation logging with
+              detection method tracking
+            </li>
+          </ul>
+
+          <h4>🗑️ Removed</h4>
+          <ul>
+            <li>
+              <strong>/seasonal Command:</strong> Removed to make room for new
+              word filter command (at Discord's 100 command limit)
+            </li>
+          </ul>
+
+          <h4>📊 Technical Details</h4>
+          <ul>
+            <li>
+              Default blacklist violations always delete messages (no additional
+              actions)
+            </li>
+            <li>
+              Server blacklist violations use configured action (delete, warn,
+              timeout, kick, or ban)
+            </li>
+            <li>
+              Database migrations added for
+              <code>word_filter_enabled</code>, <code>word_filter_action</code>,
+              and <code>blacklisted_words</code> columns
+            </li>
+            <li>
+              Word filter checks run before auto-moderation for faster response
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 4.3.5 - December 11, 2025</h2>
           <h3>⚡ Performance & Rate Limit Fixes</h3>
           <p>
             Replaced periodic audit log polling with event-based action
