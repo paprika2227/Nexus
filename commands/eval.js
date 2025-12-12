@@ -288,8 +288,11 @@ module.exports = {
       });
 
       if (!rateLimitCheck.allowed) {
+        const resetIn = rateLimitCheck.reset
+          ? Math.ceil(rateLimitCheck.reset - Date.now() / 1000)
+          : 60;
         return interaction.reply({
-          content: `❌ **Rate Limited:** You can only run 10 eval commands per minute. Try again in ${Math.ceil(rateLimitCheck.resetIn / 1000)} seconds.`,
+          content: `❌ **Rate Limited:** You can only run 10 eval commands per minute. Try again in ${resetIn} seconds.`,
           flags: MessageFlags.Ephemeral,
         });
       }
