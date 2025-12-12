@@ -323,14 +323,8 @@ module.exports = {
     const user = interaction.user;
     const member = interaction.member;
 
-    // Track eval usage for analytics
-    if (client.commandAnalytics) {
-      client.commandAnalytics.recordCommand("eval", {
-        userId: user.id,
-        guildId: guild?.id || "DM",
-        codeLength: code.length,
-      });
-    }
+    // Track eval usage for analytics (will be updated after execution with timing)
+    const analyticsStartTime = Date.now();
 
     // Create a sanitized process.env proxy that blocks sensitive keys
     const sanitizedEnv = new Proxy(process.env, {
@@ -667,6 +661,23 @@ module.exports = {
 
       // Sanitize error output to remove any token leaks
       errorOutput = this.sanitizeOutput(errorOutput);
+
+      // Track eval usage for analytics (failed execution)
+      if (client.commandAnalytics) {
+        const executionTime = Date.now() - analyticsStartTime;
+        client.commandAnalytics
+          .trackCommand(
+            guild?.id || "DM",
+            user.id,
+            "eval",
+            false,
+            executionTime
+          )
+          .catch((err) => {
+            // Silently fail analytics - don't break eval
+            logger.debug("Eval", `Analytics tracking failed: ${err.message}`);
+          });
+      }
 
       // Log eval errors for debugging
       logger.error("Eval", `Error in eval by ${user.tag}:`, {
