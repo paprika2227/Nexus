@@ -206,12 +206,6 @@ module.exports = {
           }
         }
 
-        // Log violation
-        logger.warn(
-          "WordFilter",
-          `Blocked message from ${message.author.tag} (${message.author.id}) in ${message.guild.name}: Detected "${filterResult.word}" via ${filterResult.method}${isDefaultViolation ? " (default blacklist)" : " (server blacklist)"}`
-        );
-
         // Log to database
         db.db.run(
           "INSERT INTO automod_violations (guild_id, user_id, violation_type, message_content, action_taken, timestamp) VALUES (?, ?, ?, ?, ?, ?)",

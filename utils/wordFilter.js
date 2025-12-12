@@ -1282,12 +1282,8 @@ class WordFilter {
           text.includes("ᵃ") ||
           text.includes("ı") ||
           text.toLowerCase().includes("nig"))
-      ) {
-        logger.info(
-          `[WordFilter] No blacklist to check against for: "${text}"`
-        );
-      }
-      return { detected: false, word: null, method: null, isDefault: false };
+      )
+        return { detected: false, word: null, method: null, isDefault: false };
     }
 
     // Normalize the input text
@@ -1302,53 +1298,46 @@ class WordFilter {
       text.includes("ı") ||
       text.toLowerCase().includes("nig") ||
       normalizedText.length === 0
-    ) {
-      logger.info(
-        `[WordFilter] Input: "${text}" → Normalized: "${normalizedText}" (original length: ${originalLength})`
-      );
-    }
+    )
+      if (normalizedText.length === 0 && originalLength > 0) {
+        // Special case: If normalized text is empty but original had content,
+        // check if original length matches any blacklisted word (suspicious obfuscation)
+        // Only flag if the text contains actual obfuscation characters (not just emojis)
+        // Check if text contains suspicious obfuscation characters (not just emojis)
+        // Look for zero-width characters, font variations, or other obfuscation techniques
+        const hasSuspiciousChars =
+          /[\u200B-\u200D\uFEFF\u2060]/.test(text) || // Zero-width characters
+          /[\u0250-\u02AF]/.test(text) || // Upside-down characters
+          /[\u1D00-\u1D7F]/.test(text) || // Phonetic extensions / small capitals
+          /[\u02B0-\u02FF]/.test(text) || // Modifier letters
+          /[\uD835]/.test(text) || // Mathematical alphanumeric symbols (surrogate pairs)
+          /[\u0100-\u017F]/.test(text) || // Latin Extended-A (diacritics used for obfuscation)
+          /[\uFF00-\uFFEF]/.test(text); // Fullwidth characters
 
-    // Special case: If normalized text is empty but original had content,
-    // check if original length matches any blacklisted word (suspicious obfuscation)
-    // Only flag if the text contains actual obfuscation characters (not just emojis)
-    if (normalizedText.length === 0 && originalLength > 0) {
-      // Check if text contains suspicious obfuscation characters (not just emojis)
-      // Look for zero-width characters, font variations, or other obfuscation techniques
-      const hasSuspiciousChars =
-        /[\u200B-\u200D\uFEFF\u2060]/.test(text) || // Zero-width characters
-        /[\u0250-\u02AF]/.test(text) || // Upside-down characters
-        /[\u1D00-\u1D7F]/.test(text) || // Phonetic extensions / small capitals
-        /[\u02B0-\u02FF]/.test(text) || // Modifier letters
-        /[\uD835]/.test(text) || // Mathematical alphanumeric symbols (surrogate pairs)
-        /[\u0100-\u017F]/.test(text) || // Latin Extended-A (diacritics used for obfuscation)
-        /[\uFF00-\uFFEF]/.test(text); // Fullwidth characters
+        // Only proceed if there are actual suspicious characters (not just emojis/whitespace)
+        if (hasSuspiciousChars) {
+          for (const word of combinedBlacklist) {
+            if (!word || typeof word !== "string") continue;
+            const normalizedWord = word.toLowerCase().trim();
+            if (!normalizedWord) continue;
+            // Only flag if length matches exactly or is within 1 character
+            // Also require original length to be at least 4
+            if (
+              Math.abs(originalLength - normalizedWord.length) <= 1 &&
+              originalLength >= 4
+            ) {
+              const isDefault = this.defaultBlacklist.includes(word);
 
-      // Only proceed if there are actual suspicious characters (not just emojis/whitespace)
-      if (hasSuspiciousChars) {
-        for (const word of combinedBlacklist) {
-          if (!word || typeof word !== "string") continue;
-          const normalizedWord = word.toLowerCase().trim();
-          if (!normalizedWord) continue;
-          // Only flag if length matches exactly or is within 1 character
-          // Also require original length to be at least 4
-          if (
-            Math.abs(originalLength - normalizedWord.length) <= 1 &&
-            originalLength >= 4
-          ) {
-            const isDefault = this.defaultBlacklist.includes(word);
-            logger.info(
-              `[WordFilter] SUSPICIOUS: Empty normalization but length matches "${word}" (${originalLength} vs ${normalizedWord.length})`
-            );
-            return {
-              detected: true,
-              word: word,
-              method: "suspicious_obfuscation",
-              isDefault: isDefault,
-            };
+              return {
+                detected: true,
+                word: word,
+                method: "suspicious_obfuscation",
+                isDefault: isDefault,
+              };
+            }
           }
         }
       }
-    }
 
     // Check each blacklisted word
     for (const word of combinedBlacklist) {
@@ -1368,17 +1357,13 @@ class WordFilter {
           text.includes("ᵃ") ||
           text.includes("ı") ||
           text.toLowerCase().includes("nig")
-        ) {
-          logger.info(
-            `[WordFilter] DETECTED: "${word}" in "${text}" (normalized: "${normalizedText}") via ${"normalized_match"}`
-          );
-        }
-        return {
-          detected: true,
-          word: word,
-          method: "normalized_match",
-          isDefault: isDefault,
-        };
+        )
+          return {
+            detected: true,
+            word: word,
+            method: "normalized_match",
+            isDefault: isDefault,
+          };
       }
 
       // Method 1.5: Fuzzy match - check if normalized text is similar to word (for cases where non-Latin chars were removed)
@@ -1404,7 +1389,10 @@ class WordFilter {
         // Check if normalizedText matches word with one character added to text
         // e.g., "nngga" should match "nigga"
         // Only check if normalized text is at least 3 chars to avoid false positives
-        if (normalizedText.length >= 3 && normalizedText.length === normalizedWord.length + 1) {
+        if (
+          normalizedText.length >= 3 &&
+          normalizedText.length === normalizedWord.length + 1
+        ) {
           for (let i = 0; i < normalizedText.length; i++) {
             const textWithCharRemoved =
               normalizedText.slice(0, i) + normalizedText.slice(i + 1);

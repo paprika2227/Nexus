@@ -84,8 +84,57 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 4.3.8 - January 2025</h2>
+          <h2>Version 4.3.9 - January 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔧 Word Filter Improvements & Bug Fixes</h3>
+          <p>
+            Refined word filter detection logic to reduce false positives and
+            improve accuracy of suspicious obfuscation detection.
+          </p>
+
+          <h4>✨ Improvements</h4>
+          <ul>
+            <li>
+              <strong>Reduced False Positives:</strong> Removed substring
+              matching that was causing innocent words to be flagged (e.g.,
+              "nig" from "night" matching "nigger")
+            </li>
+            <li>
+              <strong>Improved Suspicious Obfuscation Detection:</strong> Now
+              requires actual suspicious characters (zero-width, font
+              variations, etc.) rather than just emojis or whitespace
+            </li>
+            <li>
+              <strong>Stricter Length Matching:</strong> Suspicious obfuscation
+              detection now requires exact or ±1 character match (was ±2) and
+              minimum length of 4 characters
+            </li>
+            <li>
+              <strong>Enhanced Fuzzy Matching:</strong> Only performs fuzzy
+              matching when normalized text has at least 3 characters to avoid
+              false positives
+            </li>
+            <li>
+              <strong>Database Fix:</strong> Changed behavioral data INSERT to
+              use INSERT OR IGNORE to handle duplicate timestamps gracefully
+            </li>
+            <li>
+              <strong>Code Cleanup:</strong> Removed excessive logging and
+              improved code formatting
+            </li>
+          </ul>
+
+          <h4>🗑️ Removed</h4>
+          <ul>
+            <li>
+              Removed "it", "it's", and "its" from default blacklist (these are
+              common words that shouldn't be blocked)
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 4.3.8 - January 2025</h2>
           <h3>🛡️ Enhanced Font Variation Detection</h3>
           <p>
             Significantly expanded Unicode font normalization to detect even
