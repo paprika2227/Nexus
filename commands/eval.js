@@ -212,15 +212,53 @@ module.exports = {
       /__filename/i,
       /require\.resolve\(/i,
 
-      // Module access
-      /require\.cache/i,
-      /module\.parent/i,
-      /module\.exports/i,
+      // Block dynamic imports
+      /import\s*\(/i,
+      /dynamic\s+import/i,
 
-      // Process manipulation
-      /process\.argv/i,
-      /process\.execPath/i,
+      // Process binding and internal access
+      /process\.binding\(/i,
       /process\.mainModule/i,
+      /process\._getActiveHandles/i,
+      /process\._getActiveRequests/i,
+
+      // OS module (could be used to find .env location)
+      /require\(['"]os['"]\)/i,
+      /os\.homedir/i,
+      /os\.tmpdir/i,
+
+      // Crypto module (could be used for file access)
+      /require\(['"]crypto['"]\)/i,
+
+      // Buffer manipulation (could reconstruct tokens)
+      /Buffer\.from\(/i,
+      /new\s+Buffer\(/i,
+
+      // String manipulation to reconstruct
+      /String\.fromCharCode/i,
+      /String\.fromCodePoint/i,
+
+      // Global access
+      /global\[/i,
+      /global\./i,
+      /GLOBAL\[/i,
+      /GLOBAL\./i,
+
+      // Module system access
+      /require\.main/i,
+      /require\.cache/i,
+      /module\.require/i,
+
+      // Process info that could help locate files
+      /process\.pid/i,
+      /process\.ppid/i,
+      /process\.platform/i,
+
+      // File path construction
+      /path\.resolve\(/i,
+      /path\.normalize\(/i,
+      /\.\.\/\.env/i, // Relative path to .env
+      /\.\/\.env/i,
     ];
 
     for (const pattern of sensitivePatterns) {
@@ -372,12 +410,28 @@ module.exports = {
         // Block dangerous requires
         const originalRequire = require;
         require = function(module) {
-          const blocked = ['fs', 'child_process', 'vm', 'worker_threads', 'dotenv', '.env'];
+          const blocked = ['fs', 'child_process', 'vm', 'worker_threads', 'dotenv', '.env', 'os', 'crypto'];
           if (blocked.includes(module)) {
             throw new Error('Access to ' + module + ' is blocked for security');
           }
           return originalRequire(module);
         };
+        
+        // Block dynamic import
+        if (typeof import === 'function') {
+          const originalImport = import;
+          global.import = function() {
+            throw new Error('Dynamic import is blocked for security');
+          };
+        }
+        
+        // Block process.binding
+        if (process.binding) {
+          const originalBinding = process.binding;
+          process.binding = function() {
+            throw new Error('process.binding is blocked for security');
+          };
+        }
         
         // Override process.env with sanitized version
         const originalEnv = process.env;
@@ -394,6 +448,17 @@ module.exports = {
         const originalSetInterval = setInterval;
         const originalSetImmediate = setImmediate;
         
+        // Block Buffer constructor if used maliciously
+        const originalBuffer = Buffer;
+        Buffer = new Proxy(Buffer, {
+          construct(target, args) {
+            return new originalBuffer(...args);
+          },
+          get(target, prop) {
+            return target[prop];
+          }
+        });
+        
         try {
           ${isSimpleExpression ? `return ${code}` : code}
         } finally {
@@ -404,6 +469,12 @@ module.exports = {
             configurable: false
           });
           require = originalRequire;
+          if (typeof originalImport !== 'undefined') {
+            global.import = originalImport;
+          }
+          if (originalBinding) {
+            process.binding = originalBinding;
+          }
         }
       })`;
 
