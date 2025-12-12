@@ -84,8 +84,29 @@
 
       <div class="content-section">
         <div class="changelog-entry">
-          <h2>Version 4.3.9 - January 2025</h2>
+          <h2>Version 4.3.10 - January 2025</h2>
           <span class="version-badge">Latest</span>
+          <h3>🔒 Security Improvements</h3>
+          <p>
+            Made the activity command owner-only to restrict access to sensitive
+            bot activity logs.
+          </p>
+
+          <h4>🔧 Changes</h4>
+          <ul>
+            <li>
+              <strong>Activity Command:</strong> Changed `/activity` command to
+              be owner-only instead of requiring Administrator permissions
+            </li>
+            <li>
+              <strong>Security:</strong> Server join/leave logs and command
+              usage logs are now only accessible to bot owners
+            </li>
+          </ul>
+        </div>
+
+        <div class="changelog-entry">
+          <h2>Version 4.3.9 - January 2025</h2>
           <h3>🔧 Word Filter Improvements & Bug Fixes</h3>
           <p>
             Refined word filter detection logic to reduce false positives and
