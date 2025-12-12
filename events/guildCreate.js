@@ -222,6 +222,49 @@ module.exports = {
         }
       }
     }
+
+    // 99 servers - CRITICAL: Bot can no longer join servers
+    if (serverCount === 99) {
+      const canSend = await checkAndSendReminder(99);
+      if (canSend) {
+        try {
+          const owner = await client.users.fetch(process.env.OWNER_ID);
+          await owner.send({
+            embeds: [
+              {
+                title: "🚨 CRITICAL: 100-Server Limit Reached!",
+                description:
+                  "**Nexus has reached 99 servers!**\n\n⚠️ **ONLY 1 SERVER LEFT** before hitting the 100-server hard limit!\n\n**If you're not verified, your bot will STOP being able to join new servers at 100 servers.**\n\n**If you ARE verified**, you can continue growing beyond 100 servers.\n\n**Verify NOW (if not already):**\n[Discord Developer Portal](https://discord.com/developers/applications) → Your Bot → Bot Tab → Apply for Verification",
+                color: 0xff0000,
+                fields: [
+                  {
+                    name: "📊 Current Stats",
+                    value: `**Servers:** ${serverCount}/100\n**Users:** ${totalUsers}\n**Version:** ${version}`,
+                    inline: false,
+                  },
+                  {
+                    name: "🚨 Status",
+                    value:
+                      "Bot will be unable to join new servers at 100 servers if not verified!",
+                    inline: false,
+                  },
+                ],
+                timestamp: new Date().toISOString(),
+                footer: {
+                  text: "This is the final limit - verify immediately!",
+                },
+              },
+            ],
+          });
+          logger.error(
+            "Verification",
+            `Sent CRITICAL 99-server limit warning to owner`
+          );
+        } catch (error) {
+          logger.error("Verification", `Failed to send DM to owner: ${error}`);
+        }
+      }
+    }
     try {
       // Check if we have a tracked source for this user (guild owner)
       const owner = await guild.fetchOwner().catch(() => null);
