@@ -185,9 +185,9 @@
             });
           });
 
-          // Register new service worker with cache busting
+          // Register new service worker (cache version is in CACHE_NAME constant)
           navigator.serviceWorker
-            .register("/service-worker.js?v=3")
+            .register("/service-worker.js")
             .then((reg) => {
               console.log("Service Worker registered", reg);
               // Force update
