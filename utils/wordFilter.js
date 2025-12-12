@@ -938,6 +938,13 @@ class WordFilter {
     const normalizedText = this.normalizeText(text);
     const originalLower = text.toLowerCase();
 
+    // Debug: Log normalization for problematic strings
+    if (text.includes("Ğ") || text.includes("ᵃ")) {
+      logger.debug(
+        `[WordFilter] Input: "${text}" → Normalized: "${normalizedText}"`
+      );
+    }
+
     // Check each blacklisted word
     for (const word of combinedBlacklist) {
       if (!word || typeof word !== "string") continue;
