@@ -84,16 +84,44 @@ module.exports = {
       "CLIENT_SECRET",
       "ADMIN_PASSWORD",
       "SESSION_SECRET",
+      "ADMIN_WEBHOOK_URL",
+      "VOTE_WEBHOOK_URL",
     ];
     sensitiveKeys.forEach((key) => {
       const value = process.env[key];
       if (value) {
+        // Redact full value
         output = output.replace(
           new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"),
           `[${key}_REDACTED]`
         );
+        // Redact partial matches (first 10 and last 10 chars)
+        if (value.length > 20) {
+          const firstPart = value.substring(0, 10);
+          const lastPart = value.substring(value.length - 10);
+          output = output.replace(
+            new RegExp(firstPart.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"),
+            `[${key}_START_REDACTED]`
+          );
+          output = output.replace(
+            new RegExp(lastPart.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"),
+            `[${key}_END_REDACTED]`
+          );
+        }
       }
     });
+
+    // Redact any webhook URLs (they contain tokens)
+    output = output.replace(
+      /https:\/\/discord\.com\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+/gi,
+      "[WEBHOOK_URL_REDACTED]"
+    );
+
+    // Redact any JWT tokens (common format)
+    output = output.replace(
+      /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/g,
+      "[JWT_TOKEN_REDACTED]"
+    );
 
     return output;
   },
@@ -103,16 +131,96 @@ module.exports = {
    */
   checkForSensitiveAccess(code) {
     const sensitivePatterns = [
+      // Direct process.env access
       /process\.env\s*\[?\s*['"]DISCORD_TOKEN['"]\s*\]?/i,
       /process\.env\.DISCORD_TOKEN/i,
-      /client\.token/i,
-      /\.token\s*[=:]/i,
       /process\.env\s*\[?\s*['"]TOPGG_TOKEN['"]\s*\]?/i,
       /process\.env\s*\[?\s*['"]CLIENT_SECRET['"]\s*\]?/i,
       /process\.env\s*\[?\s*['"]ADMIN_PASSWORD['"]\s*\]?/i,
+      /process\.env\s*\[?\s*['"]SESSION_SECRET['"]\s*\]?/i,
+      /process\.env\s*\[?\s*['"]DISCORDBOTLIST_TOKEN['"]\s*\]?/i,
+      /process\.env\s*\[?\s*['"]VOIDBOTS_TOKEN['"]\s*\]?/i,
+      /process\.env\s*\[?\s*['"]ADMIN_WEBHOOK_URL['"]\s*\]?/i,
+      /process\.env\s*\[?\s*['"]VOTE_WEBHOOK_URL['"]\s*\]?/i,
+
+      // Client token access
+      /client\.token/i,
+      /client\.options\.token/i,
+      /\.token\s*[=:]/i,
+
+      // File system access to .env
+      /require\(['"]fs['"]\)/i,
+      /require\(['"]\.fs['"]\)/i,
+      /fs\.readFile/i,
+      /fs\.readFileSync/i,
+      /fs\.readdir/i,
+      /fs\.readdirSync/i,
+      /\.readFile/i,
+      /\.readFileSync/i,
+      /\.readdir/i,
+      /\.readdirSync/i,
+      /['"]\.env['"]/i,
+      /path\.join.*\.env/i,
+      /\.env['"]/i,
+
+      // dotenv package
       /require\(['"]\.env['"]\)/i,
       /require\(['"]dotenv['"]\)/i,
       /\.config\(\)/i, // dotenv.config()
+      /dotenv\./i,
+
+      // Object methods that could expose env
+      /Object\.keys\s*\(\s*process\.env/i,
+      /Object\.values\s*\(\s*process\.env/i,
+      /Object\.entries\s*\(\s*process\.env/i,
+      /Object\.getOwnPropertyNames\s*\(\s*process\.env/i,
+      /JSON\.stringify\s*\(\s*process\.env/i,
+      /Reflect\.ownKeys\s*\(\s*process\.env/i,
+      /Object\.getOwnPropertyDescriptor\s*\(\s*process\.env/i,
+
+      // Spread operator and destructuring
+      /\{\.\.\.\s*process\.env/i,
+      /\[\.\.\.\s*process\.env/i,
+      /Array\.from\s*\(\s*process\.env/i,
+
+      // Child process and execution
+      /require\(['"]child_process['"]\)/i,
+      /child_process\./i,
+      /\.exec\(/i,
+      /\.execSync\(/i,
+      /\.spawn\(/i,
+      /\.spawnSync\(/i,
+
+      // VM and worker threads
+      /require\(['"]vm['"]\)/i,
+      /require\(['"]worker_threads['"]\)/i,
+      /vm\./i,
+      /Worker\(/i,
+
+      // Eval/Function constructors (could bypass checks)
+      /new\s+Function\(/i,
+      /Function\(/i,
+      /eval\(/i,
+      /setTimeout\(/i,
+      /setInterval\(/i,
+      /setImmediate\(/i,
+
+      // Path manipulation
+      /require\(['"]path['"]\)/i,
+      /process\.cwd\(\)/i,
+      /__dirname/i,
+      /__filename/i,
+      /require\.resolve\(/i,
+
+      // Module access
+      /require\.cache/i,
+      /module\.parent/i,
+      /module\.exports/i,
+
+      // Process manipulation
+      /process\.argv/i,
+      /process\.execPath/i,
+      /process\.mainModule/i,
     ];
 
     for (const pattern of sensitivePatterns) {
@@ -203,9 +311,38 @@ module.exports = {
               }
               return optTarget[optProp];
             },
+            has(optTarget, optProp) {
+              if (optProp === "token") {
+                return false;
+              }
+              return optProp in optTarget;
+            },
+            ownKeys(optTarget) {
+              return Object.keys(optTarget).filter((key) => key !== "token");
+            },
+          });
+        }
+        // Block access to rest property
+        if (prop === "rest" && target.rest) {
+          return new Proxy(target.rest, {
+            get(restTarget, restProp) {
+              if (restProp === "token") {
+                return "[REDACTED]";
+              }
+              return restTarget[restProp];
+            },
           });
         }
         return target[prop];
+      },
+      has(target, prop) {
+        if (prop === "token") {
+          return false;
+        }
+        return prop in target;
+      },
+      ownKeys(target) {
+        return Object.keys(target).filter((key) => key !== "token");
       },
     });
 
@@ -230,7 +367,18 @@ module.exports = {
       // This allows the evaluated code to use: client, channel, guild, user, member, interaction
       // If it's a simple expression, automatically return it; otherwise execute as-is
       // Note: process.env is replaced with sanitizedEnv, client is replaced with sanitizedClient
+      // Block access to require, fs, child_process, vm, etc.
       const wrappedCode = `(async function(client, channel, guild, user, member, interaction, sanitizedEnv) {
+        // Block dangerous requires
+        const originalRequire = require;
+        require = function(module) {
+          const blocked = ['fs', 'child_process', 'vm', 'worker_threads', 'dotenv', '.env'];
+          if (blocked.includes(module)) {
+            throw new Error('Access to ' + module + ' is blocked for security');
+          }
+          return originalRequire(module);
+        };
+        
         // Override process.env with sanitized version
         const originalEnv = process.env;
         Object.defineProperty(process, 'env', {
@@ -238,15 +386,24 @@ module.exports = {
           writable: false,
           configurable: false
         });
+        
+        // Block dangerous globals
+        const originalEval = eval;
+        const originalFunction = Function;
+        const originalSetTimeout = setTimeout;
+        const originalSetInterval = setInterval;
+        const originalSetImmediate = setImmediate;
+        
         try {
           ${isSimpleExpression ? `return ${code}` : code}
         } finally {
-          // Restore original env (though it shouldn't be needed)
+          // Restore original env
           Object.defineProperty(process, 'env', {
             value: originalEnv,
             writable: false,
             configurable: false
           });
+          require = originalRequire;
         }
       })`;
 
