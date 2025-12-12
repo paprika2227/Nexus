@@ -125,13 +125,6 @@ module.exports = {
     // Only log if there are actual changes
     if (changes.length === 0) return;
 
-    // Console logging
-    console.log(
-      `🔧 [${newRole.guild.name} (${newRole.guild.id})] Role updated: ${
-        newRole.name
-      } - ${changes.map((c) => c.name).join(", ")}`
-    );
-
     // Enhanced logging
     const EnhancedLogging = require("../utils/enhancedLogging");
     await EnhancedLogging.log(newRole.guild.id, "role_update", "role", {

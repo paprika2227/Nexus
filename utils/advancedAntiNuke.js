@@ -302,18 +302,7 @@ class AdvancedAntiNuke {
       return; // Whitelisted users are exempt
     }
 
-    // Log that we're monitoring (especially for admins)
-    try {
-      const member = await guild.members.fetch(userId).catch(() => null);
-      const isAdmin = member?.permissions.has("Administrator");
-      if (isAdmin) {
-        logger.warn(
-          `[Anti-Nuke] Monitoring ADMIN ${userId} for ${actionType} in ${guild.name} (admins are NOT exempt)`
-        );
-      }
-    } catch (error) {
-      // Continue even if fetch fails
-    }
+    // Admin monitoring is tracked but not logged to reduce console noise
 
     // Track permission changes if this is a permission-related action
     if (

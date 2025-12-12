@@ -160,15 +160,6 @@ module.exports = {
     // Only log if there are actual changes
     if (changes.length === 0) return;
 
-    // Console logging
-    console.log(
-      `🔧 [${newChannel.guild.name} (${
-        newChannel.guild.id
-      })] Channel updated: #${newChannel.name} - ${changes
-        .map((c) => c.name)
-        .join(", ")}`
-    );
-
     // Enhanced logging
     const EnhancedLogging = require("../utils/enhancedLogging");
     await EnhancedLogging.log(newChannel.guild.id, "channel_update", "server", {

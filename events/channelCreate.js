@@ -60,14 +60,6 @@ module.exports = {
       }
     }
 
-    // Logging
-    logger.info(`Channel created: #${channel.name}`, {
-      guildId: channel.guild.id,
-      guildName: channel.guild.name,
-      channelId: channel.id,
-      channelName: channel.name,
-    });
-
     // Enhanced logging
     const EnhancedLogging = require("../utils/enhancedLogging");
     await EnhancedLogging.log(channel.guild.id, "channel_create", "server", {
