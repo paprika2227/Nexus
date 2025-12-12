@@ -148,6 +148,12 @@ module.exports = {
       /client\.token/i,
       /client\.options\.token/i,
       /\.token\s*[=:]/i,
+      // Object.getOwnPropertyDescriptor on client (could extract token)
+      /Object\.getOwnPropertyDescriptor\s*\(\s*client/i,
+      /Object\.getOwnPropertyDescriptor\s*\(\s*['"]client['"]/i,
+      /getOwnPropertyDescriptor\s*\(\s*client/i,
+      // Reflect.getOwnPropertyDescriptor on client
+      /Reflect\.getOwnPropertyDescriptor\s*\(\s*client/i,
 
       // File system access to .env
       /require\(['"]fs['"]\)/i,
@@ -414,6 +420,12 @@ module.exports = {
             ownKeys(optTarget) {
               return Object.keys(optTarget).filter((key) => key !== "token");
             },
+            getOwnPropertyDescriptor(optTarget, optProp) {
+              if (optProp === "token") {
+                return undefined; // Hide token property descriptor
+              }
+              return Object.getOwnPropertyDescriptor(optTarget, optProp);
+            },
           });
         }
         // Block access to rest property
@@ -437,6 +449,31 @@ module.exports = {
       },
       ownKeys(target) {
         return Object.keys(target).filter((key) => key !== "token");
+      },
+      getOwnPropertyDescriptor(target, prop) {
+        if (prop === "token") {
+          return undefined; // Hide token property descriptor
+        }
+        // Return a descriptor that hides the value if it's the token
+        const descriptor = Object.getOwnPropertyDescriptor(target, prop);
+        if (
+          descriptor &&
+          descriptor.value &&
+          typeof descriptor.value === "string"
+        ) {
+          // Check if this looks like a token (Discord bot token pattern)
+          if (
+            /^[MN][A-Za-z\d]{23}\.[A-Za-z\d-_]{6}\.[A-Za-z\d-_]{27}$/.test(
+              descriptor.value
+            )
+          ) {
+            return {
+              ...descriptor,
+              value: "[REDACTED]",
+            };
+          }
+        }
+        return descriptor;
       },
     });
 
@@ -500,6 +537,31 @@ module.exports = {
         const originalSetInterval = setInterval;
         const originalSetImmediate = setImmediate;
         
+        // Block Object.getOwnPropertyDescriptor on client and sensitive objects
+        const originalGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
+        Object.getOwnPropertyDescriptor = function(obj, prop) {
+          // Block if trying to get descriptor from client or message.client
+          if (obj === client || obj === message?.client || obj?.constructor?.name === 'Client') {
+            if (prop === 'token' || prop === 'options') {
+              return undefined; // Hide token-related descriptors
+            }
+          }
+          return originalGetOwnPropertyDescriptor.call(this, obj, prop);
+        };
+        
+        // Block Reflect.getOwnPropertyDescriptor similarly
+        if (Reflect && Reflect.getOwnPropertyDescriptor) {
+          const originalReflectGetOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor;
+          Reflect.getOwnPropertyDescriptor = function(obj, prop) {
+            if (obj === client || obj === message?.client || obj?.constructor?.name === 'Client') {
+              if (prop === 'token' || prop === 'options') {
+                return undefined;
+              }
+            }
+            return originalReflectGetOwnPropertyDescriptor.call(this, obj, prop);
+          };
+        }
+        
         // Block Buffer constructor if used maliciously
         const originalBuffer = Buffer;
         Buffer = new Proxy(Buffer, {
@@ -518,6 +580,11 @@ module.exports = {
           require = originalRequire;
           if (originalBinding) {
             process.binding = originalBinding;
+          }
+          // Restore Object.getOwnPropertyDescriptor
+          Object.getOwnPropertyDescriptor = originalGetOwnPropertyDescriptor;
+          if (Reflect && originalReflectGetOwnPropertyDescriptor) {
+            Reflect.getOwnPropertyDescriptor = originalReflectGetOwnPropertyDescriptor;
           }
         }
       })`;
