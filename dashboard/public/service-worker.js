@@ -91,18 +91,20 @@ self.addEventListener("fetch", (event) => {
 // Update service worker
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    Promise.all([
       // Delete ALL old caches to ensure fresh content
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log("Deleting old cache:", cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log("Deleting old cache:", cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // Take control of all pages immediately (only when active)
+      self.clients.claim(),
+    ])
   );
-  // Take control of all pages immediately
-  return self.clients.claim();
 });

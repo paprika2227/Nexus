@@ -190,8 +190,7 @@
             .register("/service-worker.js")
             .then((reg) => {
               console.log("Service Worker registered", reg);
-              // Force update
-              reg.update();
+              // Don't force update immediately - let it activate naturally
             })
             .catch((err) =>
               console.log("Service Worker registration failed", err)
