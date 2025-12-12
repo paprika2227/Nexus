@@ -1,10 +1,6 @@
-const CACHE_NAME = "nexus-dashboard-v2";
-const urlsToCache = [
-  "/dashboard",
-  "/dashboard.css",
-  "/dashboard.js",
-  "/manifest.json",
-];
+const CACHE_NAME = "nexus-dashboard-v3";
+// Don't cache HTML files - they change frequently and need fresh content
+const urlsToCache = ["/dashboard.css", "/dashboard.js", "/manifest.json"];
 
 // Install service worker
 self.addEventListener("install", (event) => {
@@ -31,7 +27,30 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     caches.match(event.request).then((response) => {
-      // Cache hit - return response
+      // Never cache HTML files - always fetch fresh
+      const url = new URL(event.request.url);
+      const isHTML =
+        event.request.headers.get("accept")?.includes("text/html") ||
+        url.pathname.endsWith(".html") ||
+        url.pathname === "/" ||
+        url.pathname === "/dashboard" ||
+        url.pathname.match(/^\/\d+\/dashboard$/);
+
+      if (isHTML) {
+        // Always fetch fresh HTML, don't use cache
+        return fetch(event.request)
+          .then((response) => {
+            return response;
+          })
+          .catch((error) => {
+            // If fetch fails, try cache as fallback
+            if (response) return response;
+            console.log("Fetch failed for:", event.request.url);
+            return new Response("Network error", { status: 408 });
+          });
+      }
+
+      // Cache hit - return response for non-HTML files
       if (response) {
         return response;
       }

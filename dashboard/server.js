@@ -690,12 +690,20 @@ class DashboardServer {
           return res.redirect("/no-access");
         }
 
+        // Prevent caching of HTML files
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
         res.sendFile(path.join(__dirname, "public", "dashboard.html"));
       }
     );
 
     // Legacy: Redirect to server selection (for backwards compatibility)
     this.app.get("/dashboard", this.checkAuthPage.bind(this), (req, res) => {
+      // Prevent caching of HTML files
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
       res.sendFile(path.join(__dirname, "public", "dashboard.html"));
     });
 
