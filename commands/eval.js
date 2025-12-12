@@ -461,37 +461,13 @@ module.exports = {
           };
         }
         
-        // Override process.env with sanitized version
-        // Since process.env is non-configurable, we can't redefine it
-        // Instead, we'll wrap process in a Proxy to intercept env access
-        const originalProcess = process;
-        const proxiedProcess = new Proxy(originalProcess, {
-          get(target, prop) {
-            if (prop === 'env') {
-              return sanitizedEnv;
-            }
-            return target[prop];
-          },
-          set(target, prop, value) {
-            if (prop === 'env') {
-              // Block attempts to set env
-              return false;
-            }
-            target[prop] = value;
-            return true;
-          },
-          has(target, prop) {
-            if (prop === 'env') {
-              return true;
-            }
-            return prop in target;
-          }
-        });
-        
-        // We can't actually replace the global process, but we can document
-        // that process.env access will be intercepted via the Proxy
-        // Note: This only works if code accesses process.env, not if it
-        // directly references the global process object in certain ways
+        // Note: process.env is non-configurable, so we cannot redefine it
+        // The sanitizedEnv Proxy we pass will intercept individual key access
+        // when accessed through the Proxy, but direct process.env access will
+        // still use the real object. This is acceptable as:
+        // 1. Pre-execution check blocks process.env access patterns
+        // 2. The Proxy protects individual key access when used correctly
+        // 3. Output sanitization redacts any leaked values
         
         // Block dangerous globals
         const originalEval = eval;
@@ -517,7 +493,7 @@ module.exports = {
           // Restore require
           require = originalRequire;
           if (originalBinding) {
-            originalProcess.binding = originalBinding;
+            process.binding = originalBinding;
           }
         }
       })`;
