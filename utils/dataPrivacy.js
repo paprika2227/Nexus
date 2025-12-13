@@ -197,7 +197,6 @@ class DataPrivacy {
         { key: "quarantine", table: "quarantine" },
         { key: "enhancedLogs", table: "enhanced_logs" },
         { key: "aiLearning", table: "ai_learning" },
-        { key: "scheduledActions", table: "scheduled_actions" },
         { key: "behavioralData", table: "behavioral_data" },
       ];
 
@@ -218,6 +217,28 @@ class DataPrivacy {
           logger.error(`Error fetching ${table} for user export:`, error);
           data[key] = [];
         }
+      }
+
+      // Handle scheduled_actions separately (uses created_by instead of user_id)
+      try {
+        const scheduledWhereClause = guildId
+          ? "WHERE created_by = ? AND guild_id = ?"
+          : "WHERE created_by = ?";
+        const scheduledParams = guildId ? [userId, guildId] : [userId];
+        const scheduledRows = await new Promise((resolve, reject) => {
+          db.db.all(
+            `SELECT * FROM scheduled_actions ${scheduledWhereClause}`,
+            scheduledParams,
+            (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows || []);
+            }
+          );
+        });
+        data.scheduledActions = scheduledRows;
+      } catch (error) {
+        logger.error(`Error fetching scheduled_actions for user export:`, error);
+        data.scheduledActions = [];
       }
 
       // Threat intelligence (no guild filter for this)

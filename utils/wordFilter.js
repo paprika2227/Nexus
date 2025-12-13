@@ -1349,21 +1349,75 @@ class WordFilter {
       // Check if this is from default blacklist
       const isDefault = this.defaultBlacklist.includes(word);
 
-      // Method 1: Direct match in normalized text
+      // Method 1: Check original text with word boundaries first (to avoid false positives like "than i gave")
+      // This prevents matching across word boundaries in normal text
+      const wordBoundaryRegex = new RegExp(
+        `\\b${normalizedWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+        "i"
+      );
+      if (wordBoundaryRegex.test(text)) {
+        return {
+          detected: true,
+          word: word,
+          method: "word_boundary_match",
+          isDefault: isDefault,
+        };
+      }
+
+      // Method 1.5: Direct match in normalized text (for obfuscation attempts)
+      // Check normalized text, but verify the match doesn't span word boundaries in original
       if (normalizedText.includes(normalizedWord)) {
-        // Log detection
-        if (
-          text.includes("Ğ") ||
-          text.includes("ᵃ") ||
-          text.includes("ı") ||
-          text.toLowerCase().includes("nig")
-        )
+        // Find the position of the match in normalized text
+        const matchIndex = normalizedText.indexOf(normalizedWord);
+        const matchEnd = matchIndex + normalizedWord.length;
+        
+        // Reconstruct where this would be in the original text
+        // Count characters before the match (excluding spaces in original)
+        let charCount = 0;
+        let startPos = -1;
+        let endPos = -1;
+        
+        for (let i = 0; i < text.length; i++) {
+          const char = text[i].toLowerCase();
+          // Skip spaces and non-alphanumeric when counting
+          if (/[a-z0-9]/.test(char)) {
+            if (charCount === matchIndex && startPos === -1) {
+              startPos = i;
+            }
+            if (charCount === matchEnd - 1 && endPos === -1) {
+              endPos = i + 1;
+              break;
+            }
+            charCount++;
+          }
+        }
+        
+        // Check if the match spans across word boundaries in original text
+        // A word boundary exists if there's a space between start and end positions
+        if (startPos >= 0 && endPos > startPos) {
+          const matchedText = text.substring(startPos, endPos);
+          // If the matched text contains a space, it's spanning word boundaries - false positive
+          if (matchedText.includes(" ")) {
+            // Skip this match - it's a false positive
+            // Continue to next check methods
+          } else {
+            // Valid match (no word boundary crossing)
+            return {
+              detected: true,
+              word: word,
+              method: "normalized_match",
+              isDefault: isDefault,
+            };
+          }
+        } else {
+          // Couldn't map back to original - be safe and flag it
           return {
             detected: true,
             word: word,
             method: "normalized_match",
             isDefault: isDefault,
           };
+        }
       }
 
       // Method 1.5: Fuzzy match - check if normalized text is similar to word (for cases where non-Latin chars were removed)
