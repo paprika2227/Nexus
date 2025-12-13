@@ -191,7 +191,10 @@ module.exports = {
 
   async handleList(interaction) {
     try {
-      await interaction.deferReply();
+      // Defer immediately to prevent interaction timeout
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply();
+      }
 
       const achievements = await db.getAllAchievements();
 
@@ -465,6 +468,7 @@ module.exports = {
 
     for (const achievement of achievements) {
       await new Promise((resolve, reject) => {
+        // Try new structure first (with achievement_id column)
         db.db.run(
           `INSERT OR IGNORE INTO achievements (achievement_id, name, description, icon, requirement_type, requirement_value, reward_xp, rarity)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -479,8 +483,41 @@ module.exports = {
             achievement.rarity,
           ],
           (err) => {
-            if (err) reject(err);
-            else resolve();
+            if (err) {
+              // If achievement_id column doesn't exist, try old structure
+              if (err.message && err.message.includes("no such column: achievement_id")) {
+                // Old structure: insert with achievement_type and achievement_data
+                const achievementData = JSON.stringify({
+                  name: achievement.name,
+                  description: achievement.description,
+                  icon: achievement.icon,
+                  type: achievement.type,
+                  value: achievement.value,
+                  xp: achievement.xp,
+                  rarity: achievement.rarity,
+                });
+                
+                db.db.run(
+                  `INSERT OR IGNORE INTO achievements (guild_id, user_id, achievement_type, achievement_data, unlocked_at)
+                   VALUES (?, ?, ?, ?, ?)`,
+                  [
+                    null, // guild_id - null for global achievements
+                    null, // user_id - null for global achievements
+                    achievement.id,
+                    achievementData,
+                    Date.now(),
+                  ],
+                  (err2) => {
+                    if (err2) reject(err2);
+                    else resolve();
+                  }
+                );
+              } else {
+                reject(err);
+              }
+            } else {
+              resolve();
+            }
           }
         );
       });
