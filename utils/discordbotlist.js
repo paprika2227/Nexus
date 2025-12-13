@@ -113,7 +113,10 @@ class DiscordBotList {
         return null;
       }
       // Only log actual errors (not rate limits)
-      logger.debug("[Discord Bot List] Error checking vote status:", error.message || error);
+      logger.debug(
+        "[Discord Bot List] Error checking vote status:",
+        error.message || error
+      );
       return null;
     }
   }
