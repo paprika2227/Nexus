@@ -5488,7 +5488,10 @@ class Database {
                   (err, rows) => {
                     if (err) {
                       // If achievement_id column error, fall back to old structure check
-                      if (err.message && err.message.includes("achievement_id")) {
+                      if (
+                        err.message &&
+                        err.message.includes("achievement_id")
+                      ) {
                         // Try old structure as fallback
                         this.db.all(
                           `SELECT id, achievement_type as achievement_id, achievement_data, unlocked_at
@@ -5504,15 +5507,19 @@ class Database {
                               const transformed = (rows2 || []).map((row) => {
                                 let achievementData = {};
                                 try {
-                                  achievementData = JSON.parse(row.achievement_data || "{}");
+                                  achievementData = JSON.parse(
+                                    row.achievement_data || "{}"
+                                  );
                                 } catch (e) {
                                   achievementData = {};
                                 }
                                 return {
                                   id: row.id,
                                   achievement_id: row.achievement_id,
-                                  name: achievementData.name || row.achievement_id,
-                                  description: achievementData.description || "",
+                                  name:
+                                    achievementData.name || row.achievement_id,
+                                  description:
+                                    achievementData.description || "",
                                   icon: achievementData.icon || "🏆",
                                   requirement_type: achievementData.type || "",
                                   requirement_value: achievementData.value || 0,
