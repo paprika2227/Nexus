@@ -256,20 +256,6 @@ module.exports = {
         const VerificationSystem = require("../utils/verificationSystem");
         client.verificationSystem = new VerificationSystem(client);
       }
-
-      // Start verification process
-      try {
-        const verificationResult =
-          await client.verificationSystem.startVerification(member, config);
-
-        if (verificationResult && !verificationResult.sent) {
-          logger.warn(
-            `[Verification] Failed to send verification to ${member.user.id} in ${member.guild.id}: ${verificationResult.reason}`
-          );
-        }
-      } catch (error) {
-        logger.error(`[Verification] Error starting verification:`, error);
-      }
     }
 
     // Whitelist already checked above, reuse the variable
@@ -502,7 +488,10 @@ module.exports = {
         await member.roles.add(role);
       } catch (error) {
         // Handle "Unknown Role" error (role was deleted but still in database)
-        if (error.code === 10011 || (error.message && error.message.includes("Unknown Role"))) {
+        if (
+          error.code === 10011 ||
+          (error.message && error.message.includes("Unknown Role"))
+        ) {
           logger.warn(
             "GuildMemberAdd",
             `Auto-role ${autoRole.role_id} no longer exists in ${member.guild.name}, removing from database`
@@ -513,7 +502,11 @@ module.exports = {
             [member.guild.id, autoRole.role_id],
             (err) => {
               if (err) {
-                logger.error("GuildMemberAdd", "Failed to remove invalid autorole from database", err);
+                logger.error(
+                  "GuildMemberAdd",
+                  "Failed to remove invalid autorole from database",
+                  err
+                );
               }
             }
           );

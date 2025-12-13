@@ -5498,7 +5498,12 @@ class Database {
         `SELECT id, achievement_type, achievement_data FROM achievements ORDER BY id LIMIT 1`,
         [],
         (testErr, testRows) => {
-          if (!testErr && testRows && testRows.length > 0 && testRows[0].achievement_type) {
+          if (
+            !testErr &&
+            testRows &&
+            testRows.length > 0 &&
+            testRows[0].achievement_type
+          ) {
             // Old structure confirmed - query all and transform
             this.db.all(
               `SELECT * FROM achievements ORDER BY id`,
@@ -5510,10 +5515,15 @@ class Database {
                   // Transform old structure to match new structure format
                   const achievementMap = new Map();
                   (rows || []).forEach((row) => {
-                    if (row.achievement_type && !achievementMap.has(row.achievement_type)) {
+                    if (
+                      row.achievement_type &&
+                      !achievementMap.has(row.achievement_type)
+                    ) {
                       let achievementData = {};
                       try {
-                        achievementData = JSON.parse(row.achievement_data || "{}");
+                        achievementData = JSON.parse(
+                          row.achievement_data || "{}"
+                        );
                       } catch (e) {
                         achievementData = {};
                       }
@@ -5549,7 +5559,9 @@ class Database {
                   // Add achievement_id from id or name if missing
                   const transformed = (rows || []).map((row) => {
                     if (!row.achievement_id) {
-                      row.achievement_id = row.name?.toLowerCase().replace(/\s+/g, '_') || `achievement_${row.id}`;
+                      row.achievement_id =
+                        row.name?.toLowerCase().replace(/\s+/g, "_") ||
+                        `achievement_${row.id}`;
                     }
                     return row;
                   });
