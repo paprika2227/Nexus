@@ -5413,7 +5413,12 @@ class Database {
           const hasGuildId = pragmaRows.some((col) => col.name === "guild_id");
           const hasUserId = pragmaRows.some((col) => col.name === "user_id");
 
-          if (!hasAchievementId && hasAchievementType && hasGuildId && hasUserId) {
+          if (
+            !hasAchievementId &&
+            hasAchievementType &&
+            hasGuildId &&
+            hasUserId
+          ) {
             // Old structure - query directly from achievements table
             this.db.all(
               `SELECT id, achievement_type as achievement_id, achievement_data, unlocked_at
@@ -5470,7 +5475,7 @@ class Database {
                   return;
                 }
 
-                // New structure - use JOIN
+                // New structure - use JOIN (with fallback if achievement_id doesn't actually exist)
                 this.db.all(
                   `SELECT a.id, a.achievement_id, a.name, a.description, a.icon, 
                           a.requirement_type, a.requirement_value, a.reward_xp, a.reward_role,
@@ -5482,7 +5487,49 @@ class Database {
                   [guildId, userId],
                   (err, rows) => {
                     if (err) {
-                      reject(err);
+                      // If achievement_id column error, fall back to old structure check
+                      if (err.message && err.message.includes("achievement_id")) {
+                        // Try old structure as fallback
+                        this.db.all(
+                          `SELECT id, achievement_type as achievement_id, achievement_data, unlocked_at
+                           FROM achievements
+                           WHERE guild_id = ? AND user_id = ?
+                           ORDER BY unlocked_at DESC`,
+                          [guildId, userId],
+                          (err2, rows2) => {
+                            if (err2) {
+                              resolve([]);
+                            } else {
+                              // Transform old structure
+                              const transformed = (rows2 || []).map((row) => {
+                                let achievementData = {};
+                                try {
+                                  achievementData = JSON.parse(row.achievement_data || "{}");
+                                } catch (e) {
+                                  achievementData = {};
+                                }
+                                return {
+                                  id: row.id,
+                                  achievement_id: row.achievement_id,
+                                  name: achievementData.name || row.achievement_id,
+                                  description: achievementData.description || "",
+                                  icon: achievementData.icon || "🏆",
+                                  requirement_type: achievementData.type || "",
+                                  requirement_value: achievementData.value || 0,
+                                  reward_xp: achievementData.xp || 0,
+                                  reward_role: null,
+                                  rarity: achievementData.rarity || "common",
+                                  seasonal: 0,
+                                  unlocked_at: row.unlocked_at,
+                                };
+                              });
+                              resolve(transformed);
+                            }
+                          }
+                        );
+                      } else {
+                        reject(err);
+                      }
                     } else {
                       resolve(rows || []);
                     }
