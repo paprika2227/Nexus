@@ -37,7 +37,7 @@ module.exports = {
       }
     }
 
-    // Enhanced logging
+    // Enhanced logging (silent - no console output)
     const EnhancedLogging = require("../utils/enhancedLogging");
     await EnhancedLogging.log(role.guild.id, "role_create", "role", {
       userId: null,
@@ -54,7 +54,7 @@ module.exports = {
         hoist: role.hoist,
       },
       severity: "info",
-    });
+    }).catch(() => {}); // Silently fail if logging fails
 
     // Check for mod log channel
     const config = await db.getServerConfig(role.guild.id);
