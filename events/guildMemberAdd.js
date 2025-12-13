@@ -8,10 +8,7 @@ const performanceMonitor = require("../utils/performanceMonitor");
 module.exports = {
   name: "guildMemberAdd",
   async execute(member, client) {
-    // Use both logger and console.log to ensure we see it
-    const logMsg = `[guildMemberAdd] Member joined: ${member.user.tag} (${member.id}) in ${member.guild.name} (${member.guild.id})`;
-    logger.info(logMsg);
-    console.log(logMsg); // Backup logging
+    // Member join tracking (no console logging to reduce noise)
 
     // Track growth analytics
     if (client.growthAnalytics) {

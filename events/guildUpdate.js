@@ -156,13 +156,6 @@ module.exports = {
     // Only log if there are actual changes
     if (changes.length === 0) return;
 
-    // Console logging
-    console.log(
-      `⚙️ [${newGuild.name} (${newGuild.id})] Server settings updated: ${changes
-        .map((c) => c.name)
-        .join(", ")}`
-    );
-
     // Enhanced logging
     const EnhancedLogging = require("../utils/enhancedLogging");
     await EnhancedLogging.log(newGuild.id, "guild_update", "server", {

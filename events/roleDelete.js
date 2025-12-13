@@ -48,11 +48,6 @@ module.exports = {
       );
     });
 
-    // Console logging
-    console.log(
-      `🗑️ [${role.guild.name} (${role.guild.id})] Role deleted: ${role.name} (${role.id})`
-    );
-
     // Enhanced logging
     const EnhancedLogging = require("../utils/enhancedLogging");
     await EnhancedLogging.log(role.guild.id, "role_delete", "server", {

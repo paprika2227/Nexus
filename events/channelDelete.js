@@ -49,11 +49,6 @@ module.exports = {
       );
     });
 
-    // Console logging
-    console.log(
-      `🗑️ [${channel.guild.name} (${channel.guild.id})] Channel deleted: #${channel.name} (${channel.id})`
-    );
-
     // Enhanced logging
     const EnhancedLogging = require("../utils/enhancedLogging");
     await EnhancedLogging.log(channel.guild.id, "channel_delete", "server", {

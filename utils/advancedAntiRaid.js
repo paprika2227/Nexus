@@ -13,12 +13,7 @@ class AdvancedAntiRaid {
         (j) => Date.now() - j.timestamp < timeWindow
       );
       const result = recentJoins.length >= threshold;
-      // Debug logging
-      if (recentJoins.length > 0) {
-        logger.debug(
-          `[Anti-Raid] Rate-based check: ${recentJoins.length} joins in ${timeWindow}ms window, threshold: ${threshold}, triggered: ${result}`
-        );
-      }
+      // Rate-based check (no debug logging)
       return result;
     },
 

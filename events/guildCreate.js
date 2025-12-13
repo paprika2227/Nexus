@@ -321,7 +321,7 @@ module.exports = {
         guild.memberCount || 0
       );
 
-      logger.info("Guild Create", `Tracked join from source: ${inviteSource}`);
+      // Tracked join from source (no console logging)
 
       // Referral tracking removed (command deprecated to stay under 100 command limit)
 
@@ -455,11 +455,7 @@ module.exports = {
           }
         );
       });
-      logger.info(
-        "Guild Create",
-        `Owner: ${owner ? owner.user.tag : "Unknown"}`
-      );
-      logger.info("Guild Create", `Members: ${guild.memberCount || 0}`);
+      // Guild join logged to database (no console logging)
     } catch (error) {
       logger.error("Guild Create", "Failed to log guild join", {
         message: error?.message || String(error),

@@ -30,7 +30,7 @@ module.exports = {
       );
       console.error("❌ CRITICAL: GuildMembers intent is NOT enabled!");
     } else {
-      logger.info("Ready", "✅ GuildMembers intent is enabled");
+      // GuildMembers intent enabled (no console logging)
     }
 
     if (!hasGuildPresences) {
@@ -101,10 +101,7 @@ module.exports = {
 
           if (commands.length > 0) {
             await dbl.postCommands(commands);
-            logger.info(
-              "Ready",
-              `Posted ${commands.length} commands to Discord Bot List`
-            );
+            // Commands posted to Discord Bot List (no console logging)
           }
         } catch (error) {
           logger.error(
@@ -117,19 +114,12 @@ module.exports = {
     }
 
     if (shardInfo.isSharded) {
-      logger.info(
-        "Ready",
-        `✅ Shard ${shardInfo.shardId}/${shardInfo.shardCount - 1} is online!`
-      );
+      // Shard online (no console logging)
       const shardUserCount = client.guilds.cache.reduce(
         (acc, guild) => acc + guild.memberCount,
         0
       );
-      logger.info(
-        "Ready",
-        `📊 Serving ${client.guilds.cache.size} servers on this shard`
-      );
-      logger.info("Ready", `👥 Watching ${shardUserCount} users on this shard`);
+      // Shard stats tracked (no console logging)
     } else {
       const totalUserCount = client.guilds.cache.reduce(
         (acc, guild) => acc + guild.memberCount,
@@ -145,8 +135,7 @@ module.exports = {
       client.channelPins = new Map();
     }
 
-    // List all guilds
-    logger.info("Ready", `\n📋 Guilds (${client.guilds.cache.size}):`);
+    // Guild list tracked (no console logging)
     const guilds = Array.from(client.guilds.cache.values()).sort(
       (a, b) => (b.memberCount || 0) - (a.memberCount || 0)
     );
@@ -161,17 +150,13 @@ module.exports = {
         }) - ${memberCount} members - Owner: ${ownerTag}`
       );
     });
-    logger.info("Ready", ""); // Empty line for spacing
 
     // Get total stats if sharded
     if (shardInfo.isSharded) {
       try {
         const totalGuilds = await ShardManager.getGuildCount(client);
         const totalUsers = await ShardManager.getUserCount(client);
-        logger.info(
-          "Ready",
-          `🌐 Total across all shards: ${totalGuilds} servers, ${totalUsers} users`
-        );
+        // Total shard stats tracked (no console logging)
       } catch (error) {
         logger.error("Ready", "Failed to fetch shard stats", {
           message: error?.message || String(error),
@@ -205,10 +190,7 @@ module.exports = {
       (!shardInfo.isSharded || shardInfo.shardId === 0)
     ) {
       client.snapshotScheduler.start();
-      logger.info(
-        "Ready",
-        "📸 Snapshot scheduler started (hourly backups enabled)"
-      );
+      // Snapshot scheduler started (no console logging)
     }
 
     // Start automatic vote checking for all guilds (EXCEEDS WICK - auto vote rewards)
@@ -229,11 +211,7 @@ module.exports = {
     ) {
       const port = process.env.PORT || 3000;
       client.dashboardServer.start(port);
-      logger.info("Ready", `🌐 Dashboard server started on port ${port}`);
-      logger.info(
-        "Ready",
-        `🔗 Access at: ${process.env.DASHBOARD_URL || `http://localhost:${port}`}`
-      );
+      // Dashboard server started (no console logging)
     }
 
     // Start Scheduled Actions System (EXCEEDS WICK - automation)
@@ -242,7 +220,7 @@ module.exports = {
       (!shardInfo.isSharded || shardInfo.shardId === 0)
     ) {
       await client.scheduledActions.start();
-      logger.info("Ready", "⏰ Scheduled Actions system started");
+      // Scheduled Actions system started (no console logging)
     }
 
     // Generate initial recommendations for all guilds
@@ -258,7 +236,7 @@ module.exports = {
         );
       }
     }
-    logger.info("Ready", "🤖 Smart recommendations generated");
+    // Smart recommendations generated (no console logging)
 
     // Initialize default configs for all servers
     client.guilds.cache.forEach((guild) => {
@@ -433,7 +411,7 @@ module.exports = {
     if (shouldStartBackup) {
       try {
         databaseBackup.startSchedule();
-        logger.info("Ready", "📦 Database backup system started");
+        // Database backup system started (no console logging)
 
         // Start auto-scaling monitor (checks every hour)
         autoScaling.startMonitoring(client, 3600000);
@@ -441,7 +419,7 @@ module.exports = {
 
         // Start shard error tracker cleanup
         shardErrorTracker.startCleanup();
-        logger.info("Ready", "🔍 Shard error tracking started");
+        // Shard error tracking started (no console logging)
 
         // Start memory monitoring (DISABLED - too noisy)
         // memoryMonitor.start(60000); // Check every minute

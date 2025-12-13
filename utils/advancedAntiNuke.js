@@ -831,8 +831,6 @@ class AdvancedAntiNuke {
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
 
-        logger.info(`[Anti-Nuke] Starting recovery...`);
-
         // Trigger auto-recovery after attacker is removed
         this.attemptRecovery(guild, threatType, counts, userId).catch(
           (error) => {
@@ -851,9 +849,6 @@ class AdvancedAntiNuke {
     if (!actionTaken && hasKickPerms) {
       try {
         await member.kick(`Anti-Nuke: ${threatType} detected`);
-        logger.success(
-          `[Anti-Nuke] ✅ KICKED ${userId} | ${threatType} | Waiting for removal...`
-        );
         actionTaken = true;
 
         // Wait 2 seconds for Discord to actually remove the attacker from the server
@@ -864,13 +859,9 @@ class AdvancedAntiNuke {
           .fetch(userId)
           .catch(() => null);
         if (stillPresent) {
-          logger.warn(
-            `[Anti-Nuke] Attacker still in server after kick - waiting longer...`
-          );
+          // Attacker still in server after kick - waiting longer (silent)
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
-
-        logger.info(`[Anti-Nuke] Starting recovery...`);
 
         // Trigger auto-recovery after attacker is removed
         this.attemptRecovery(guild, threatType, counts, userId).catch(
@@ -1576,9 +1567,7 @@ class AdvancedAntiNuke {
               deletedSpamChannels++;
             } catch (error) {
               // Continue
-              if (error.code === 429 || error.status === 429) {
-                logger.warn(`[Anti-Nuke] Rate limited during channel cleanup`);
-              }
+              // Rate limited during channel cleanup (silent)
             }
           })
         );
@@ -2189,9 +2178,7 @@ class AdvancedAntiNuke {
               });
             } catch (error) {
               // Continue if DM fails (DMs disabled, etc.)
-              if (error.code === 429 || error.status === 429) {
-                logger.warn(`[Anti-Nuke] Rate limited during admin DM alerts`);
-              }
+              // Rate limited during admin DM alerts (silent)
             }
           })
         );

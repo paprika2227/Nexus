@@ -6,7 +6,7 @@ const { version } = require("../package.json");
 module.exports = {
   name: "guildDelete",
   async execute(guild, client) {
-    logger.info("Guild Delete", `Left server: ${guild.name} (${guild.id})`);
+    // Server left (no console logging)
 
     // Track bot removal for data cleanup (30 days after removal)
     await new Promise((resolve, reject) => {
@@ -98,9 +98,7 @@ module.exports = {
         );
       });
 
-      logger.info("Guild Delete", `   Source: ${inviteSource}`);
-      logger.info("Guild Delete", `   Active for: ${daysActive} days`);
-      logger.info("Guild Delete", `   Members: ${guild.memberCount || 0}`);
+      // Server leave details tracked (no console logging)
     } catch (error) {
       logger.error("Guild Delete", "Failed to log guild leave", error);
     }
@@ -178,7 +176,7 @@ module.exports = {
         req.write(postData);
         req.end();
 
-        logger.info("Guild Delete", "📬 Admin leave notification sent");
+        // Admin leave notification sent (no console logging)
       } catch (webhookError) {
         logger.error(
           "Guild Delete",
