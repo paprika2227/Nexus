@@ -5402,7 +5402,33 @@ class Database {
          ORDER BY unlocked_at DESC`,
         [guildId, userId],
         (err, rows) => {
-          if (!err && rows && rows.length > 0 && rows[0].achievement_type) {
+          if (err) {
+            // If old structure query fails (columns don't exist), try new structure
+            // But don't query achievement_id from achievements table
+            this.db.all(
+              `SELECT name FROM sqlite_master WHERE type='table' AND name='user_achievements'`,
+              [],
+              (tableErr, tableRows) => {
+                if (tableErr || !tableRows || tableRows.length === 0) {
+                  resolve([]);
+                  return;
+                }
+                // Just get from user_achievements, don't JOIN
+                this.db.all(
+                  `SELECT achievement_id, unlocked_at
+                   FROM user_achievements
+                   WHERE guild_id = ? AND user_id = ?
+                   ORDER BY unlocked_at DESC`,
+                  [guildId, userId],
+                  (err2, rows2) => {
+                    resolve(rows2 || []);
+                  }
+                );
+              }
+            );
+            return;
+          }
+          if (rows && rows.length > 0 && rows[0].achievement_type) {
             // Old structure confirmed - transform
             const transformed = (rows || []).map((row) => {
               let achievementData = {};
@@ -5438,21 +5464,21 @@ class Database {
                   return;
                 }
 
-                // Try new structure - but don't select achievement_id from achievements table
+                // Try new structure - but don't JOIN on achievements table if it doesn't have achievement_id
+                // Just get data from user_achievements table
                 this.db.all(
-                  `SELECT ua.achievement_id, ua.unlocked_at, a.id, a.name, a.description, a.icon, 
-                          a.requirement_type, a.requirement_value, a.reward_xp, a.reward_role,
-                          a.rarity, a.seasonal
-                   FROM user_achievements ua
-                   LEFT JOIN achievements a ON ua.achievement_id = a.achievement_id
-                   WHERE ua.guild_id = ? AND ua.user_id = ?
-                   ORDER BY ua.unlocked_at DESC`,
+                  `SELECT achievement_id, unlocked_at
+                   FROM user_achievements
+                   WHERE guild_id = ? AND user_id = ?
+                   ORDER BY unlocked_at DESC`,
                   [guildId, userId],
                   (err2, rows2) => {
                     if (err2) {
                       // If any error, return empty array
                       resolve([]);
                     } else {
+                      // Return minimal data - just achievement_id and unlocked_at
+                      // The calling code will need to handle missing achievement details
                       resolve(rows2 || []);
                     }
                   }
