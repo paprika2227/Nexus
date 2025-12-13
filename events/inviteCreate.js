@@ -7,11 +7,6 @@ module.exports = {
       const guild = invite.guild;
       const inviter = invite.inviter;
 
-      logger.info(
-        "InviteCreate",
-        `Invite created in ${guild.name}: ${invite.code} by ${inviter?.tag || "Unknown"}`
-      );
-
       // Log to database
       const db = require("../utils/database");
       db.db.run(

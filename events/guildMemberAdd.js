@@ -184,10 +184,6 @@ module.exports = {
         member
       );
 
-      logger.debug(
-        `[guildMemberAdd] detectRaid returned: ${raidDetected} for ${member.user.tag}`
-      );
-
       const raidPerfResult = performanceMonitor.end(raidPerfId);
       if (raidPerfResult) {
         logger.info(

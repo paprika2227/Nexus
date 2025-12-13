@@ -6,11 +6,6 @@ module.exports = {
     try {
       const guild = invite.guild;
 
-      logger.info(
-        "InviteDelete",
-        `Invite deleted in ${guild.name}: ${invite.code}`
-      );
-
       // Log to database
       const db = require("../utils/database");
       db.db.run(
