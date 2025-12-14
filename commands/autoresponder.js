@@ -7,6 +7,15 @@ const {
 const db = require("../utils/database");
 const ErrorMessages = require("../utils/errorMessages");
 
+function sanitizeInput(input, maxLength = 2000) {
+  if (!input || typeof input !== "string") return input;
+  return input
+    .replace(/\0/g, "")
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, "")
+    .trim()
+    .substring(0, maxLength);
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("autoresponder")
@@ -65,10 +74,27 @@ module.exports = {
     const subcommand = interaction.options.getSubcommand();
 
     if (subcommand === "create") {
-      const trigger = interaction.options.getString("trigger");
-      const response = interaction.options.getString("response");
+      const triggerRaw = interaction.options.getString("trigger");
+      const responseRaw = interaction.options.getString("response");
       const caseSensitive =
         interaction.options.getBoolean("case_sensitive") || false;
+
+      const trigger = sanitizeInput(triggerRaw, 100);
+      const response = sanitizeInput(responseRaw, 2000);
+
+      if (!trigger || trigger.length === 0) {
+        return interaction.reply({
+          content: "❌ Trigger cannot be empty!",
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      if (!response || response.length === 0) {
+        return interaction.reply({
+          content: "❌ Response cannot be empty!",
+          flags: MessageFlags.Ephemeral,
+        });
+      }
 
       await new Promise((resolve, reject) => {
         db.db.run(
@@ -209,7 +235,96 @@ module.exports = {
   },
 };
 
-// Handle auto-responder in messageCreate event
+function sanitizeResponse(response, messageObj) {
+  if (!response || typeof response !== "string") {
+    return response;
+  }
+
+  const MAX_LENGTH = 2000;
+  const MAX_EXPR_LENGTH = 500;
+
+  const sanitizeString = (str) => {
+    return str
+      .replace(/\0/g, "")
+      .replace(/[\x00-\x1F\x7F-\x9F]/g, "")
+      .trim();
+  };
+
+  const validateExpression = (expr) => {
+    if (!expr || typeof expr !== "string") return false;
+    if (expr.length === 0 || expr.length > MAX_EXPR_LENGTH) return false;
+
+    const normalized = expr.replace(/\s+/g, " ").trim();
+    if (normalized.length === 0) return false;
+
+    const blockedPatterns = [
+      /require\s*\(/,
+      /import\s+/,
+      /eval\s*\(/,
+      /Function\s*\(/,
+    ];
+
+    if (blockedPatterns.some((p) => p.test(normalized))) {
+      return false;
+    }
+
+    return true;
+  };
+
+  const processExpression = (expr) => {
+    if (!validateExpression(expr)) {
+      return null;
+    }
+
+    const normalized = expr.replace(/\s+/g, " ").trim();
+
+    try {
+      if (!messageObj || typeof messageObj !== "object") {
+        return null;
+      }
+
+      const result = new Function("message", `return(${normalized});`)(
+        messageObj
+      );
+      const stringified = String(result);
+      const sanitized = sanitizeString(stringified);
+
+      if (sanitized.length === 0 || sanitized.length > MAX_LENGTH) {
+        return null;
+      }
+
+      return sanitized;
+    } catch {
+      return null;
+    }
+  };
+
+  const templatePattern = /\$\{([^}]+)\}/g;
+  let processed = response;
+  const seen = new Set();
+  let match;
+
+  while ((match = templatePattern.exec(response)) !== null) {
+    if (seen.has(match[0])) continue;
+    seen.add(match[0]);
+
+    const expr = match[1].trim();
+    const evaluated = processExpression(expr);
+
+    if (evaluated !== null) {
+      processed = processed.replace(match[0], evaluated);
+    }
+  }
+
+  processed = sanitizeString(processed);
+
+  if (processed.length > MAX_LENGTH) {
+    processed = processed.substring(0, MAX_LENGTH);
+  }
+
+  return processed;
+}
+
 module.exports.checkAutoResponder = async (message) => {
   const responders = await new Promise((resolve, reject) => {
     db.db.all(
@@ -232,8 +347,9 @@ module.exports.checkAutoResponder = async (message) => {
       : trigger.toLowerCase();
 
     if (messageContent.includes(triggerLower)) {
-      await message.reply(responder.response);
-      return true; // Only respond once
+      const sanitized = sanitizeResponse(responder.response, message);
+      await message.reply(sanitized);
+      return true;
     }
   }
 

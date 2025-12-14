@@ -148,12 +148,20 @@ module.exports = {
       /client\.token/i,
       /client\.options\.token/i,
       /\.token\s*[=:]/i,
+      /interaction\.client\.token/i,
+      /message\.client\.token/i,
+      /interaction\.client\[.*token/i,
+      /message\.client\[.*token/i,
       // Object.getOwnPropertyDescriptor on client (could extract token)
       /Object\.getOwnPropertyDescriptor\s*\(\s*client/i,
       /Object\.getOwnPropertyDescriptor\s*\(\s*['"]client['"]/i,
       /getOwnPropertyDescriptor\s*\(\s*client/i,
+      /Object\.getOwnPropertyDescriptor\s*\(\s*interaction\.client/i,
+      /Object\.getOwnPropertyDescriptor\s*\(\s*message\.client/i,
       // Reflect.getOwnPropertyDescriptor on client
       /Reflect\.getOwnPropertyDescriptor\s*\(\s*client/i,
+      /Reflect\.getOwnPropertyDescriptor\s*\(\s*interaction\.client/i,
+      /Reflect\.getOwnPropertyDescriptor\s*\(\s*message\.client/i,
 
       // File system access to .env
       /require\(['"]fs['"]\)/i,
@@ -399,20 +407,21 @@ module.exports = {
     // Create a sanitized client object without token access
     const sanitizedClient = new Proxy(client, {
       get(target, prop) {
-        if (prop === "token") {
+        const propStr = String(prop);
+        if (propStr === "token") {
           return "[REDACTED]";
         }
         // Block access to token through other means
-        if (prop === "options" && target.options) {
+        if (propStr === "options" && target.options) {
           return new Proxy(target.options, {
             get(optTarget, optProp) {
-              if (optProp === "token") {
+              if (String(optProp) === "token") {
                 return "[REDACTED]";
               }
               return optTarget[optProp];
             },
             has(optTarget, optProp) {
-              if (optProp === "token") {
+              if (String(optProp) === "token") {
                 return false;
               }
               return optProp in optTarget;
@@ -421,18 +430,18 @@ module.exports = {
               return Object.keys(optTarget).filter((key) => key !== "token");
             },
             getOwnPropertyDescriptor(optTarget, optProp) {
-              if (optProp === "token") {
-                return undefined; // Hide token property descriptor
+              if (String(optProp) === "token") {
+                return undefined;
               }
               return Object.getOwnPropertyDescriptor(optTarget, optProp);
             },
           });
         }
         // Block access to rest property
-        if (prop === "rest" && target.rest) {
+        if (propStr === "rest" && target.rest) {
           return new Proxy(target.rest, {
             get(restTarget, restProp) {
-              if (restProp === "token") {
+              if (String(restProp) === "token") {
                 return "[REDACTED]";
               }
               return restTarget[restProp];
@@ -442,7 +451,7 @@ module.exports = {
         return target[prop];
       },
       has(target, prop) {
-        if (prop === "token") {
+        if (String(prop) === "token") {
           return false;
         }
         return prop in target;
@@ -451,17 +460,15 @@ module.exports = {
         return Object.keys(target).filter((key) => key !== "token");
       },
       getOwnPropertyDescriptor(target, prop) {
-        if (prop === "token") {
-          return undefined; // Hide token property descriptor
+        if (String(prop) === "token") {
+          return undefined;
         }
-        // Return a descriptor that hides the value if it's the token
         const descriptor = Object.getOwnPropertyDescriptor(target, prop);
         if (
           descriptor &&
           descriptor.value &&
           typeof descriptor.value === "string"
         ) {
-          // Check if this looks like a token (Discord bot token pattern)
           if (
             /^[MN][A-Za-z\d]{23}\.[A-Za-z\d-_]{6}\.[A-Za-z\d-_]{27}$/.test(
               descriptor.value
@@ -476,6 +483,22 @@ module.exports = {
         return descriptor;
       },
     });
+
+    const sanitizedInteraction = Object.create(
+      Object.getPrototypeOf(interaction)
+    );
+    Object.assign(sanitizedInteraction, interaction);
+    Object.defineProperty(sanitizedInteraction, "client", {
+      value: sanitizedClient,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+
+    const sanitizedMessage = {
+      ...message,
+      client: sanitizedClient,
+    };
 
     // Defer reply if not silent
     if (!silent) {
@@ -541,10 +564,10 @@ module.exports = {
         const originalGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
         let originalReflectGetOwnPropertyDescriptor = null;
         Object.getOwnPropertyDescriptor = function(obj, prop) {
-          // Block if trying to get descriptor from client or message.client
-          if (obj === client || obj === message?.client || obj?.constructor?.name === 'Client') {
-            if (prop === 'token' || prop === 'options') {
-              return undefined; // Hide token-related descriptors
+          const propStr = String(prop);
+          if (obj === client || obj === interaction?.client || obj === message?.client || obj?.constructor?.name === 'Client') {
+            if (propStr === 'token' || propStr === 'options') {
+              return undefined;
             }
           }
           return originalGetOwnPropertyDescriptor.call(this, obj, prop);
@@ -554,8 +577,9 @@ module.exports = {
         if (Reflect && Reflect.getOwnPropertyDescriptor) {
           originalReflectGetOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor;
           Reflect.getOwnPropertyDescriptor = function(obj, prop) {
-            if (obj === client || obj === message?.client || obj?.constructor?.name === 'Client') {
-              if (prop === 'token' || prop === 'options') {
+            const propStr = String(prop);
+            if (obj === client || obj === interaction?.client || obj === message?.client || obj?.constructor?.name === 'Client') {
+              if (propStr === 'token' || propStr === 'options') {
                 return undefined;
               }
             }
@@ -609,8 +633,8 @@ module.exports = {
             guild,
             user,
             member,
-            interaction,
-            message,
+            sanitizedInteraction,
+            sanitizedMessage,
             { env: sanitizedEnv }
           ),
           new Promise((_, reject) =>

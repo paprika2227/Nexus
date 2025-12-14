@@ -286,26 +286,12 @@ class BackupManager {
     }
   }
 
-  /**
-   * Restore bot configuration
-   */
   async restoreConfig(guildId, config) {
     try {
-      // Update all config fields
-      for (const [key, value] of Object.entries(config)) {
-        if (key !== "guild_id") {
-          await new Promise((resolve, reject) => {
-            db.db.run(
-              `UPDATE server_config SET ${key} = ? WHERE guild_id = ?`,
-              [value, guildId],
-              (err) => {
-                if (err) reject(err);
-                else resolve();
-              }
-            );
-          });
-        }
-      }
+      const filteredConfig = { ...config };
+      delete filteredConfig.guild_id;
+      
+      await db.setServerConfig(guildId, filteredConfig);
       return true;
     } catch (error) {
       logger.error("BackupManager", "Restore config error", error);
